@@ -1,6 +1,15 @@
 {
   "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
     "jsx": "react-jsx",
-    "jsxImportSource": "@opentui/solid"
-  }
+    "jsxImportSource": "@opentui/solid",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "types": ["node"]
+  },
+  "include": ["*.ts", "*.tsx"]
 }

@@ -138,6 +138,8 @@ export default Plugin.define({
           ))
         }
         setProviders(await Promise.all(requests))
+      } catch {
+        // Keep the last successful snapshot when provider synchronization fails.
       } finally {
         refreshing = false
       }

@@ -4,10 +4,22 @@
   "private": true,
   "type": "module",
   "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./tui": "./tui.tsx",
+    "./rpc": "./rpc.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@opencode/plugin": "2.0.11",
     "@opentui/solid": ">=0.5.10",
     "effect": "4.0.0-rc.112",
     "solid-js": "1.9.15"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest"
   }
 }

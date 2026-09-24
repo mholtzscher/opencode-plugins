@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./tui": "./tui.ts"
+  },
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit"
