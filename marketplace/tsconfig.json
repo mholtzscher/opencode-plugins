@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "preserve",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext"
+  },
+  "include": ["*.ts", "*.tsx", "*.json"]
+}
