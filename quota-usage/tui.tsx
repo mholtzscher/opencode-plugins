@@ -1,3 +1,4 @@
+/** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode/plugin/tui"
 import { For, Show, createSignal } from "solid-js"
 import { CodexUsage, OpenCodeGoUsage } from "./rpc.js"
