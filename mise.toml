@@ -1,6 +1,3 @@
-[env]
-XDG_CONFIG_HOME = "{{config_root}}/.opencode-dev"
-
 [tasks.opencode]
-description = "Launch OpenCode with local plugins and an isolated development config"
+description = "Launch OpenCode with local plugins"
 run = "opencode --standalone"

@@ -16,6 +16,11 @@ export default Plugin.define({
       }
     };
     const CacheMetrics = (props: { sessionID: string }) => {
+      const [expanded, setExpanded] = createSignal(false);
+      const toggleExpanded = (event: { stopPropagation: () => void }) => {
+        event.stopPropagation();
+        setExpanded((value) => !value);
+      };
       const [messages, setMessages] = createSignal(
         context.data.session.message.list(props.sessionID) ?? []
       );
@@ -83,6 +88,16 @@ export default Plugin.define({
             <text fg={rateColor()}>
               <b>{((totals().rate ?? 0) * 100).toFixed(1)}% input cache hit</b>
             </text>
+          </Show>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles. */}
+          <box onMouseDown={toggleExpanded}>
+            <text fg={context.theme.text.muted}>
+              {expanded()
+                ? "▼ Hide additional metrics"
+                : "▶ Show additional metrics"}
+            </text>
+          </box>
+          <Show when={expanded() && totals().rate !== undefined}>
             <box flexDirection="row" gap={1}>
               <text fg={context.theme.text.base}>
                 <b>In:</b>
@@ -116,7 +131,6 @@ export default Plugin.define({
               </text>
             </box>
           </Show>
-          <text fg={context.theme.text.muted}>Click for history →</text>
         </box>
       );
     };
