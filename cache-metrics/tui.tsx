@@ -1,5 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode/plugin/tui";
+import type { BoxRenderable, TextRenderable } from "@opentui/core";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { CacheHistoryPanel } from "./cache-history-panel.js";
 import { calculateSessionCacheRate } from "./cache-rate.js";
@@ -16,8 +17,27 @@ export default Plugin.define({
       }
     };
     const CacheMetrics = (props: { sessionID: string }) => {
-      const [expanded, setExpanded] = createSignal(false);
-      const toggleExpanded = () => setExpanded((value) => !value);
+      let expanded = false;
+      let details: BoxRenderable | undefined;
+      let toggleLabel: TextRenderable | undefined;
+      const setDetails = (element: BoxRenderable) => {
+        details = element;
+      };
+      const setToggleLabel = (element: TextRenderable) => {
+        toggleLabel = element;
+      };
+      const toggleExpanded = () => {
+        expanded = !expanded;
+        if (details) {
+          details.visible = expanded;
+          details.height = expanded ? "auto" : 0;
+        }
+        if (toggleLabel) {
+          toggleLabel.content = expanded
+            ? "▼ Hide additional metrics"
+            : "▶ Show additional metrics";
+        }
+      };
       const [messages, setMessages] = createSignal(
         context.data.session.message.list(props.sessionID) ?? []
       );
@@ -91,13 +111,20 @@ export default Plugin.define({
           </box>
           <box>
             {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI text handles mouse events without DOM roles. */}
-            <text fg={context.theme.text.muted} onMouseDown={toggleExpanded}>
-              {expanded()
-                ? "▼ Hide additional metrics"
-                : "▶ Show additional metrics"}
+            <text
+              fg={context.theme.text.muted}
+              onMouseDown={toggleExpanded}
+              ref={setToggleLabel}
+            >
+              ▶ Show additional metrics
             </text>
           </box>
-          <Show when={expanded() && totals().rate !== undefined}>
+          <box
+            flexDirection="column"
+            height={0}
+            ref={setDetails}
+            visible={false}
+          >
             <box flexDirection="row" gap={1}>
               <text fg={context.theme.text.base}>
                 <b>In:</b>
@@ -130,7 +157,7 @@ export default Plugin.define({
                 {totals().write.toLocaleString()}
               </text>
             </box>
-          </Show>
+          </box>
         </box>
       );
     };
