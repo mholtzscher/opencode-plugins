@@ -1,4 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["./marketplace", "./cache-metrics"]
+  "plugins": [
+    "./marketplace",
+    "./cache-metrics",
+    "./quota-usage",
+    "./github-tools",
+    "./spec-tools"
+  ]
 }

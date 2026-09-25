@@ -88,8 +88,15 @@ export default Plugin.define({
                 <b>In:</b>
               </text>
               <text fg={context.theme.text.muted}>
-                {totals().read.toLocaleString()} cached ·{" "}
-                {totals().input.toLocaleString()} new
+                {totals().read.toLocaleString()} cached
+              </text>
+            </box>
+            <box flexDirection="row" gap={1}>
+              <text fg={context.theme.text.base}>
+                <b>New:</b>
+              </text>
+              <text fg={context.theme.text.muted}>
+                {totals().input.toLocaleString()}
               </text>
             </box>
             <box flexDirection="row" gap={1}>
