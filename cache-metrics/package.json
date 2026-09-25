@@ -8,19 +8,19 @@
     "./tui": "./tui.tsx"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@opencode/plugin": "^2.0.12"
-  },
-  "peerDependencies": {
-    "@opentui/solid": ">=0.5.10",
-    "solid-js": ">=1.9.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "latest",
     "typescript": "latest"
+  },
+  "peerDependencies": {
+    "@opentui/solid": ">=0.5.10",
+    "solid-js": ">=1.9.0"
   }
 }

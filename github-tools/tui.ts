@@ -10,12 +10,12 @@ interface CommandContext {
   cwd: string;
   hasUI: true;
   signal: AbortSignal;
-  waitForIdle: () => Promise<void>;
   ui: {
     notify: (message: string, level: "error" | "info" | "warning") => void;
     select: (title: string, options: string[]) => Promise<string | undefined>;
     setStatus: (key: string, message: string | undefined) => void;
   };
+  waitForIdle: () => Promise<void>;
 }
 
 interface OpenCodeCommandHost {
@@ -31,7 +31,10 @@ interface OpenCodeCommandHost {
       handler: (args: string, context: CommandContext) => Promise<void>;
     }
   ) => void;
-  sendUserMessage: (prompt: string, options?: { expandPromptTemplates?: boolean }) => void;
+  sendUserMessage: (
+    prompt: string,
+    options?: { expandPromptTemplates?: boolean }
+  ) => void;
 }
 
 const PR_MAX_CONTEXT_CHARS = 50_000;
@@ -92,6 +95,15 @@ const FAILED_STEP_CONCLUSIONS = new Set([
   "action_required",
 ]);
 const CHECK_RUN_URL_PATTERN = /\/check-runs\/(?<checkRunId>\d+)$/u;
+const COMMENT_BADGE_PATTERN =
+  /^\s*<sub>\s*<sub>(?<badge>[^<]*)<\/sub>\s*<\/sub>\s*/iu;
+const COMMENT_REACTION_PATTERN =
+  / ?\*{0,2}(?:was this )?useful\?\s*react with[^.\n]*\.?\*{0,2}/giu;
+const EXTRA_BLANK_LINES_PATTERN = /[ \t]*\n[ \t]*\n[ \t]*\n+/gu;
+const WHITESPACE_PATTERN = /\s+/u;
+const LINE_BREAK_PATTERN = /\r?\n/u;
+const NO_CHECKS_PATTERN = /no checks reported/iu;
+const COMMAND_PATTERN = /^\/(?<name>[^\s]+)(?:\s+(?<arguments>[\s\S]*))?$/u;
 // ANSI escape introducer (ESC, U+001B).
 const ANSI_ESCAPE = "\u001B";
 // CSI sequences, for example ESC[31m. Built from a string because the lint ruleset
@@ -107,29 +119,29 @@ interface GhUser {
 }
 
 interface PrMetadata {
+  baseRefName: string;
+  headRefName: string;
   number: number;
   title: string;
   url: string;
-  headRefName: string;
-  baseRefName: string;
 }
 
 interface ReviewThreadComment {
   author?: GhUser | null;
   body: string;
-  url: string;
   databaseId: number | null;
+  url: string;
 }
 
 interface ReviewThread {
-  id: string;
-  isResolved: boolean;
-  path: string;
-  line: number | null;
-  originalLine: number | null;
   comments: {
     nodes: ReviewThreadComment[];
   };
+  id: string;
+  isResolved: boolean;
+  line: number | null;
+  originalLine: number | null;
+  path: string;
 }
 
 interface ReviewThreadsPage {
@@ -150,42 +162,42 @@ interface RepoView {
 }
 
 interface PullRequestCommandArguments {
-  watchChecks: boolean;
   describe: boolean;
   request: string;
+  watchChecks: boolean;
 }
 
 /** A row from `gh pr checks --json`; every requested field is a string. */
 type PullRequestCheck = Record<(typeof PR_CHECK_JSON_FIELDS)[number], string>;
 
 interface GithubActionsUrl {
-  url: string;
+  attempt?: string;
+  jobId?: string;
   owner: string;
   repo: string;
   runId: string;
-  attempt?: string;
-  jobId?: string;
+  url: string;
 }
 
 interface GhResult {
-  stdout: string;
   stderr: string;
+  stdout: string;
 }
 
 interface PrReviewContext {
-  owner: string;
   name: string;
+  owner: string;
   pr: PrMetadata;
   reviewThreads: ReviewThread[];
 }
 
 interface OpenPullRequest {
+  author?: GhUser | null;
+  headRefName: string;
+  isDraft?: boolean;
   number: number;
   title: string;
   url: string;
-  headRefName: string;
-  author?: GhUser | null;
-  isDraft?: boolean;
 }
 
 /** Every value the gh CLI can return through a JSON round trip. */
@@ -400,14 +412,11 @@ const parseReviewThreads = (text: string): ReviewThread[] =>
 const cleanCommentBody = (body: string): string =>
   body
     .replace(
-      /^\s*<sub>\s*<sub>(?<badge>[^<]*)<\/sub>\s*<\/sub>\s*/iu,
+      COMMENT_BADGE_PATTERN,
       (_match, badge: string) => `${badge.trim()} — `
     )
-    .replaceAll(
-      / ?\*{0,2}(?:was this )?useful\?\s*react with[^.\n]*\.?\*{0,2}/giu,
-      ""
-    )
-    .replaceAll(/[ \t]*\n[ \t]*\n[ \t]*\n+/gu, "\n\n")
+    .replaceAll(COMMENT_REACTION_PATTERN, "")
+    .replaceAll(EXTRA_BLANK_LINES_PATTERN, "\n\n")
     .trim();
 
 const truncateCommentBody = (body: string): string => {
@@ -490,7 +499,7 @@ const PR_DESCRIPTION_PUBLISH_INSTRUCTIONS = `Publish the description with \`gh p
 export const parsePullRequestCommandArguments = (
   args: string
 ): PullRequestCommandArguments => {
-  const tokens = args.trim().split(/\s+/u).filter(Boolean);
+  const tokens = args.trim().split(WHITESPACE_PATTERN).filter(Boolean);
   const describeFlags: readonly string[] = PR_DESCRIBE_FLAGS;
   return {
     describe: tokens.some((token) => describeFlags.includes(token)),
@@ -899,7 +908,7 @@ const mergeWindows = (windows: [number, number][]): [number, number][] => {
 
 const summarizeFailedLog = (rawLog: string): string => {
   const normalized = stripAnsi(rawLog)
-    .split(/\r?\n/u)
+    .split(LINE_BREAK_PATTERN)
     .map(normalizeLogLine)
     .filter((line) => line.trim().length > 0);
 
@@ -979,7 +988,9 @@ const failedOrInterestingJobs = (run: JsonValue): JsonValue[] =>
 
 const checkRunIdFromJob = (job: JsonValue): string | undefined => {
   const url = readText(readPath(job, ["check_run_url"]));
-  return CHECK_RUN_URL_PATTERN.exec(url)?.groups?.checkRunId;
+  const match = CHECK_RUN_URL_PATTERN.exec(url);
+  // biome-ignore lint/suspicious/noUnnecessaryConditions: A check-run URL need not match this pattern.
+  return match?.groups?.checkRunId;
 };
 
 const collectCheckAnnotationSections = async (
@@ -1236,7 +1247,7 @@ const readCurrentPullRequestChecks = async (
     );
   }
   if (!result.stdout.trim()) {
-    if (/no checks reported/iu.test(result.stderr)) {
+    if (NO_CHECKS_PATTERN.test(result.stderr)) {
       return [];
     }
     throw new Error(
@@ -1333,7 +1344,11 @@ const registerPullRequestActionsCommand = (host: OpenCodeCommandHost): void => {
         if (checks.some((check) => check.bucket === "pending")) {
           ctx.ui.setStatus("pr-actions", "Waiting for pull request actions...");
           await waitForCurrentPullRequestChecks(host, ctx.cwd, ctx.signal);
-          checks = await readCurrentPullRequestChecks(host, ctx.cwd, ctx.signal);
+          checks = await readCurrentPullRequestChecks(
+            host,
+            ctx.cwd,
+            ctx.signal
+          );
         }
 
         if (checks.some((check) => check.bucket === "pending")) {
@@ -1484,10 +1499,6 @@ export default Plugin.define({
       cwd: location.directory,
       hasUI: true,
       signal: commandAbortController.signal,
-      waitForIdle: async () => {
-        await submittedPrompt;
-        submittedPrompt = undefined;
-      },
       ui: {
         notify: (message, level) => {
           context.ui.toast.show({
@@ -1497,12 +1508,21 @@ export default Plugin.define({
         },
         select: async (title, options) =>
           context.ui.dialog.select({
+            options: options.map((option) => ({
+              title: option,
+              value: option,
+            })),
             title,
-            options: options.map((option) => ({ title: option, value: option })),
           }),
         setStatus: (_key, message) => {
-          if (message) context.ui.toast.show({ message, variant: "info", duration: 1500 });
+          if (message) {
+            context.ui.toast.show({ duration: 1500, message, variant: "info" });
+          }
         },
+      },
+      waitForIdle: async () => {
+        await submittedPrompt;
+        submittedPrompt = undefined;
       },
     };
     const host: OpenCodeCommandHost = {
@@ -1533,57 +1553,68 @@ export default Plugin.define({
         commands.push({ name, ...command });
       },
       sendUserMessage: (prompt) => {
+        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Session creation and model setup are part of one prompt transaction.
         submittedPrompt = (async () => {
           const route = context.ui.router.current();
           let sessionID: string;
           if (route.type === "session") {
-            sessionID = route.sessionID;
+            ({ sessionID } = route);
             const session = await context.client.session.get({ sessionID });
             if (!session.model) {
-              const build = await context.client.agent.get({ agentID: "build", location });
+              const build = await context.client.agent.get({
+                agentID: "build",
+                location,
+              });
               if (!build.data.model) {
                 throw new Error("Build agent has no configured model");
               }
-              await context.client.session.switchAgent({ sessionID, agent: "build" });
-              await context.client.session.switchModel({ sessionID, model: build.data.model });
+              await context.client.session.switchAgent({
+                agent: "build",
+                sessionID,
+              });
+              await context.client.session.switchModel({
+                model: build.data.model,
+                sessionID,
+              });
             }
           } else {
-            const build = await context.client.agent.get({ agentID: "build", location });
+            const build = await context.client.agent.get({
+              agentID: "build",
+              location,
+            });
             if (!build.data.model) {
               throw new Error("Build agent has no configured model");
             }
             sessionID = (
               await context.client.session.create({
-                location,
                 agent: "build",
+                location,
                 model: build.data.model,
               })
             ).id;
           }
 
           if (route.type !== "session") {
-            context.ui.router.navigate({ type: "session", sessionID });
+            context.ui.router.navigate({ sessionID, type: "session" });
           }
 
-          const command =
-            /^\/(?<name>[^\s]+)(?:\s+(?<arguments>[\s\S]*))?$/u.exec(
-              prompt
-            );
+          const command = COMMAND_PATTERN.exec(prompt);
+          // biome-ignore lint/suspicious/noUnnecessaryConditions: A user prompt need not be a slash command.
           if (command?.groups?.name) {
             await context.client.session.command({
-              sessionID,
               name: command.groups.name,
+              sessionID,
               text: command.groups.arguments ?? "",
             });
             return;
           }
           await context.client.session.prompt({ sessionID, text: prompt });
         })().catch((error: unknown) => {
-            context.ui.toast.show({
-              message: `Could not submit GitHub prompt: ${githubErrorMessage(error)}`,
-              variant: "error",
-            });
+          context.ui.toast.show({
+            message: `Could not submit GitHub prompt: ${githubErrorMessage(error)}`,
+            variant: "error",
           });
+        });
       },
     };
 
@@ -1597,16 +1628,16 @@ export default Plugin.define({
       append: "app",
       render: () => {
         context.keymap.layer(() => ({
-          mode: "global",
-          commands: commands.map((command) => ({
-            id: `github-tools.${command.name}`,
-            title: command.description,
-            group: "GitHub tools",
-            palette: true,
-            slash: { name: command.name, arguments: true },
-            run: async (input) => command.handler(input ?? "", commandContext),
-          })),
           bindings: [],
+          commands: commands.map((command) => ({
+            group: "GitHub tools",
+            id: `github-tools.${command.name}`,
+            palette: true,
+            run: async (input) => command.handler(input ?? "", commandContext),
+            slash: { arguments: true, name: command.name },
+            title: command.description,
+          })),
+          mode: "global",
         }));
         return null;
       },

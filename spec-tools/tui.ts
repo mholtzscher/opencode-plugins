@@ -9,12 +9,12 @@ interface CommandContext {
   cwd: string;
   hasUI: true;
   signal: AbortSignal;
-  waitForIdle: () => Promise<void>;
   ui: {
     input: (title: string) => Promise<string | undefined>;
     notify: (message: string, level: "error" | "info" | "warning") => void;
     select: (title: string, options: string[]) => Promise<string | undefined>;
   };
+  waitForIdle: () => Promise<void>;
 }
 
 interface OpenCodeCommandHost {
@@ -38,6 +38,7 @@ const execFileAsync = promisify(execFile);
 
 const GIT_TIMEOUT_MS = 5000;
 const GIT_MAX_BUFFER = 4 * 1024 * 1024;
+const COMMAND_PATTERN = /^\/(?<name>[^\s]+)(?:\s+(?<arguments>[\s\S]*))?$/u;
 
 const buildImplementationPrompt = (specPath: string): string =>
   `Implement @${specPath} end-to-end.
@@ -268,20 +269,22 @@ const orderSpecsByRecency = async (
   return recencies
     .toSorted(
       (left, right) =>
-        right.recency - left.recency ||
-        left.name.localeCompare(right.name)
+        right.recency - left.recency || left.name.localeCompare(right.name)
     )
     .map((entry) => entry.name);
 };
 
 interface SpecCommand {
-  name: string;
-  description: string;
-  pickerTitle: string;
   buildPrompt: (specPath: string) => string;
+  description: string;
+  name: string;
+  pickerTitle: string;
 }
 
-const registerSpecCommand = (host: OpenCodeCommandHost, command: SpecCommand): void => {
+const registerSpecCommand = (
+  host: OpenCodeCommandHost,
+  command: SpecCommand
+): void => {
   host.registerCommand(command.name, {
     description: command.description,
     handler: async (_args, ctx) => {
@@ -371,13 +374,9 @@ export default Plugin.define({
       cwd: location.directory,
       hasUI: true,
       signal: commandAbortController.signal,
-      waitForIdle: async () => {
-        await submittedPrompt;
-        submittedPrompt = undefined;
-      },
       ui: {
         input: async (title) =>
-          context.ui.dialog.prompt({ title, placeholder: "Describe the idea" }),
+          context.ui.dialog.prompt({ placeholder: "Describe the idea", title }),
         notify: (message, level) => {
           context.ui.toast.show({
             message,
@@ -386,9 +385,16 @@ export default Plugin.define({
         },
         select: async (title, options) =>
           context.ui.dialog.select({
+            options: options.map((option) => ({
+              title: option,
+              value: option,
+            })),
             title,
-            options: options.map((option) => ({ title: option, value: option })),
           }),
+      },
+      waitForIdle: async () => {
+        await submittedPrompt;
+        submittedPrompt = undefined;
       },
     };
     const host: OpenCodeCommandHost = {
@@ -396,98 +402,110 @@ export default Plugin.define({
         commands.push({ name, ...command });
       },
       sendUserMessage: (prompt) => {
+        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Session creation and model setup are part of one prompt transaction.
         submittedPrompt = (async () => {
           const route = context.ui.router.current();
           let sessionID: string;
           if (route.type === "session") {
-            sessionID = route.sessionID;
+            ({ sessionID } = route);
             const session = await context.client.session.get({ sessionID });
             if (!session.model) {
-              const build = await context.client.agent.get({ agentID: "build", location });
+              const build = await context.client.agent.get({
+                agentID: "build",
+                location,
+              });
               if (!build.data.model) {
                 throw new Error("Build agent has no configured model");
               }
-              await context.client.session.switchAgent({ sessionID, agent: "build" });
-              await context.client.session.switchModel({ sessionID, model: build.data.model });
+              await context.client.session.switchAgent({
+                agent: "build",
+                sessionID,
+              });
+              await context.client.session.switchModel({
+                model: build.data.model,
+                sessionID,
+              });
             }
           } else {
-            const build = await context.client.agent.get({ agentID: "build", location });
+            const build = await context.client.agent.get({
+              agentID: "build",
+              location,
+            });
             if (!build.data.model) {
               throw new Error("Build agent has no configured model");
             }
             sessionID = (
               await context.client.session.create({
-                location,
                 agent: "build",
+                location,
                 model: build.data.model,
               })
             ).id;
           }
 
           if (route.type !== "session") {
-            context.ui.router.navigate({ type: "session", sessionID });
+            context.ui.router.navigate({ sessionID, type: "session" });
           }
 
-          const command =
-            /^\/(?<name>[^\s]+)(?:\s+(?<arguments>[\s\S]*))?$/u.exec(
-              prompt
-            );
+          const command = COMMAND_PATTERN.exec(prompt);
+          // biome-ignore lint/suspicious/noUnnecessaryConditions: A user prompt need not be a slash command.
           if (command?.groups?.name) {
             await context.client.session.command({
-              sessionID,
               name: command.groups.name,
+              sessionID,
               text: command.groups.arguments ?? "",
             });
             return;
           }
           await context.client.session.prompt({ sessionID, text: prompt });
         })().catch((error: unknown) => {
-            context.ui.toast.show({
-              message: `Could not submit spec prompt: ${error instanceof Error ? error.message : String(error)}`,
-              variant: "error",
-            });
+          context.ui.toast.show({
+            message: `Could not submit spec prompt: ${error instanceof Error ? error.message : String(error)}`,
+            variant: "error",
           });
+        });
       },
     };
 
     registerCreateSpecCommand(host);
     registerSpecCommand(host, {
-    buildPrompt: buildImplementationPrompt,
-    description: "Choose a file from specs/ and ask the agent to implement it",
-    name: "implement-spec",
-    pickerTitle: "Choose a specification to implement",
-  });
+      buildPrompt: buildImplementationPrompt,
+      description:
+        "Choose a file from specs/ and ask the agent to implement it",
+      name: "implement-spec",
+      pickerTitle: "Choose a specification to implement",
+    });
     registerSpecCommand(host, {
-    buildPrompt: buildStackedImplementationPrompt,
-    description:
-      "Choose a file from specs/ and ask the agent to implement it as stacked PRs, one per deliverable",
-    name: "implement-spec-stacked",
-    pickerTitle: "Choose a specification to implement as a stack",
-  });
+      buildPrompt: buildStackedImplementationPrompt,
+      description:
+        "Choose a file from specs/ and ask the agent to implement it as stacked PRs, one per deliverable",
+      name: "implement-spec-stacked",
+      pickerTitle: "Choose a specification to implement as a stack",
+    });
     registerSpecCommand(host, {
-    buildPrompt: buildScrubPrompt,
-    description: "Choose a file from specs/ and ask the agent to refine it",
-    name: "scrub-spec",
-    pickerTitle: "Choose a specification to refine",
-  });
+      buildPrompt: buildScrubPrompt,
+      description: "Choose a file from specs/ and ask the agent to refine it",
+      name: "scrub-spec",
+      pickerTitle: "Choose a specification to refine",
+    });
     registerSpecCommand(host, {
-    buildPrompt: buildSimplifyPrompt,
-    description:
-      "Choose a file from specs/ and ask the agent to propose a much simpler solution with 80% of the benefits",
-    name: "simplify-spec",
-    pickerTitle: "Choose a specification to simplify",
-  });
+      buildPrompt: buildSimplifyPrompt,
+      description:
+        "Choose a file from specs/ and ask the agent to propose a much simpler solution with 80% of the benefits",
+      name: "simplify-spec",
+      pickerTitle: "Choose a specification to simplify",
+    });
     registerSpecCommand(host, {
-    buildPrompt: buildAnnotationPrompt,
-    description: "Choose a file from specs/ and annotate it with Plannotator",
-    name: "spec-annotate",
-    pickerTitle: "Choose a specification to annotate",
-  });
+      buildPrompt: buildAnnotationPrompt,
+      description: "Choose a file from specs/ and annotate it with Plannotator",
+      name: "spec-annotate",
+      pickerTitle: "Choose a specification to annotate",
+    });
     registerSpecCommand(host, {
-    buildPrompt: buildBackgroundScrubPrompt,
-    description:
-      "Choose a file from specs/ and refine it in a background subagent",
-    name: "scrub-spec-bg",
+      buildPrompt: buildBackgroundScrubPrompt,
+      description:
+        "Choose a file from specs/ and refine it in a background subagent",
+      name: "scrub-spec-bg",
       pickerTitle: "Choose a specification to refine in the background",
     });
 
@@ -495,16 +513,16 @@ export default Plugin.define({
       append: "app",
       render: () => {
         context.keymap.layer(() => ({
-          mode: "global",
-          commands: commands.map((command) => ({
-            id: `spec-tools.${command.name}`,
-            title: command.description,
-            group: "Spec tools",
-            palette: true,
-            slash: { name: command.name },
-            run: async (input) => command.handler(input ?? "", commandContext),
-          })),
           bindings: [],
+          commands: commands.map((command) => ({
+            group: "Spec tools",
+            id: `spec-tools.${command.name}`,
+            palette: true,
+            run: async (input) => command.handler(input ?? "", commandContext),
+            slash: { name: command.name },
+            title: command.description,
+          })),
+          mode: "global",
         }));
         return null;
       },

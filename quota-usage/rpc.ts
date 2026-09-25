@@ -1,68 +1,68 @@
-import { Rpc } from "@opencode/plugin/rpc"
+import { Rpc } from "@opencode/plugin/rpc";
 
-export type QuotaWindow = {
-  id: string
-  label: string
-  remainingPercent: number
-  display?: string
-  resetAt?: number
+export interface QuotaWindow {
+  display?: string;
+  id: string;
+  label: string;
+  remainingPercent: number;
+  resetAt?: number;
 }
 
-export type QuotaProvider = {
-  provider: "codex" | "opencode-go"
-  name: string
-  status: "ok" | "unavailable"
-  windows: QuotaWindow[]
-  message?: string
-  fetchedAt: number
+export interface QuotaProvider {
+  fetchedAt: number;
+  message?: string;
+  name: string;
+  provider: "codex" | "opencode-go";
+  status: "ok" | "unavailable";
+  windows: QuotaWindow[];
 }
 
 const quotaOutput = {
-  type: "object",
+  additionalProperties: false,
   properties: {
-    provider: { type: "string", enum: ["codex", "opencode-go"] },
+    fetchedAt: { type: "number" },
+    message: { type: "string" },
     name: { type: "string" },
-    status: { type: "string", enum: ["ok", "unavailable"] },
+    provider: { enum: ["codex", "opencode-go"], type: "string" },
+    status: { enum: ["ok", "unavailable"], type: "string" },
     windows: {
-      type: "array",
       items: {
-        type: "object",
+        additionalProperties: false,
         properties: {
+          display: { type: "string" },
           id: { type: "string" },
           label: { type: "string" },
           remainingPercent: { type: "number" },
-          display: { type: "string" },
           resetAt: { type: "number" },
         },
         required: ["id", "label", "remainingPercent"],
-        additionalProperties: false,
+        type: "object",
       },
+      type: "array",
     },
-    message: { type: "string" },
-    fetchedAt: { type: "number" },
   },
   required: ["provider", "name", "status", "windows", "fetchedAt"],
-  additionalProperties: false,
-} as const
+  type: "object",
+} as const;
 
 const quotaMethod = {
+  errors: {},
   input: {
-    type: "object",
-    properties: {},
     additionalProperties: false,
+    properties: {},
+    type: "object",
   },
   output: quotaOutput,
-  errors: {},
-} as const
+} as const;
 
 export const CodexUsage = Rpc.define({
+  events: {},
   id: "codex-usage",
   methods: { get: quotaMethod },
-  events: {},
-})
+});
 
 export const OpenCodeGoUsage = Rpc.define({
+  events: {},
   id: "opencode-go-usage",
   methods: { get: quotaMethod },
-  events: {},
-})
+});

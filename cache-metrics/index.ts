@@ -1,6 +1,8 @@
-import { Plugin } from "@opencode/plugin"
+import { Plugin } from "@opencode/plugin";
 
 export default Plugin.define({
   id: "cache-metrics",
-  setup() {},
-})
+  setup() {
+    // This plugin only supplies the TUI extension.
+  },
+});

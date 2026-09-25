@@ -1,4 +1,6 @@
 export default {
   id: "spec-tools",
-  setup() {},
+  setup() {
+    // Commands are registered by the TUI extension.
+  },
 };

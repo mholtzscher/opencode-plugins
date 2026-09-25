@@ -5,7 +5,9 @@ import { parsePullRequestCommandArguments } from "./tui.js";
 describe("parsePullRequestCommandArguments", () => {
   test("separates control flags from user guidance", () => {
     expect(
-      parsePullRequestCommandArguments("--watch --describe use branch feature-x")
+      parsePullRequestCommandArguments(
+        "--watch --describe use branch feature-x"
+      )
     ).toEqual({
       describe: true,
       request: "use branch feature-x",

@@ -1,67 +1,508 @@
 {
   "items": [
-    { "id": "code-review", "kind": "skill", "name": "Code review", "description": "Find correctness and maintainability issues in a change.", "origin": "internal", "version": "2.1.0" },
-    { "id": "incident-triage", "kind": "skill", "name": "Incident triage", "description": "Trace alerts to likely causes and assemble a timeline.", "origin": "internal", "version": "1.4.0" },
-    { "id": "api-design", "kind": "skill", "name": "API design", "description": "Review an API contract for consistency and usability.", "origin": "external", "version": "3.0.0" },
-    { "id": "sql-tuning", "kind": "skill", "name": "SQL tuning", "description": "Investigate slow queries and suggest indexing changes.", "origin": "external", "version": "1.2.0" },
-    { "id": "write-changelog", "kind": "command", "name": "/write-changelog", "description": "Summarize user-facing changes since the last release.", "origin": "internal", "version": "1.1.0" },
-    { "id": "ship-check", "kind": "command", "name": "/ship-check", "description": "Run a lightweight release-readiness checklist.", "origin": "internal", "version": "2.0.0" },
-    { "id": "explain-diff", "kind": "command", "name": "/explain-diff", "description": "Explain a diff to a teammate in plain language.", "origin": "external", "version": "1.0.0" },
-    { "id": "security-auditor", "kind": "agent", "name": "Security auditor", "description": "Review code paths for exploitable security flaws.", "origin": "internal", "version": "1.6.0" },
-    { "id": "test-planner", "kind": "agent", "name": "Test planner", "description": "Identify high-value tests for changed behavior.", "origin": "external", "version": "2.3.0" },
-    { "id": "docs-editor", "kind": "agent", "name": "Docs editor", "description": "Improve reference docs and examples for clarity.", "origin": "external", "version": "1.5.0" },
-    { "id": "architecture-review", "kind": "skill", "name": "Architecture review", "description": "Check module boundaries and dependency direction.", "origin": "internal", "version": "1.0.0" },
-    { "id": "accessibility-audit", "kind": "skill", "name": "Accessibility audit", "description": "Spot keyboard, contrast, and semantic markup issues.", "origin": "external", "version": "2.2.0" },
-    { "id": "benchmark-design", "kind": "skill", "name": "Benchmark design", "description": "Set up representative performance comparisons.", "origin": "internal", "version": "1.3.0" },
-    { "id": "bug-reproduction", "kind": "skill", "name": "Bug reproduction", "description": "Turn a reported issue into reliable reproduction steps.", "origin": "internal", "version": "2.0.0" },
-    { "id": "cloud-costs", "kind": "skill", "name": "Cloud cost analysis", "description": "Find expensive infrastructure and cost trends.", "origin": "external", "version": "1.1.0" },
-    { "id": "code-migration", "kind": "skill", "name": "Code migration", "description": "Plan safe migrations across dependent packages.", "origin": "internal", "version": "1.5.0" },
-    { "id": "concurrency-review", "kind": "skill", "name": "Concurrency review", "description": "Inspect shared state for races and deadlocks.", "origin": "external", "version": "1.8.0" },
-    { "id": "config-audit", "kind": "skill", "name": "Configuration audit", "description": "Check application defaults and environment overrides.", "origin": "internal", "version": "1.0.0" },
-    { "id": "data-modeling", "kind": "skill", "name": "Data modeling", "description": "Refine entities, keys, and relationship constraints.", "origin": "internal", "version": "2.4.0" },
-    { "id": "dependency-update", "kind": "skill", "name": "Dependency update", "description": "Evaluate library upgrades and breaking changes.", "origin": "external", "version": "1.6.0" },
-    { "id": "error-handling", "kind": "skill", "name": "Error handling", "description": "Check how failures surface across service boundaries.", "origin": "internal", "version": "1.2.0" },
-    { "id": "event-design", "kind": "skill", "name": "Event design", "description": "Design durable messages and consumer contracts.", "origin": "internal", "version": "1.0.0" },
-    { "id": "frontend-performance", "kind": "skill", "name": "Frontend performance", "description": "Diagnose slow rendering and oversized bundles.", "origin": "external", "version": "3.1.0" },
-    { "id": "incident-retrospective", "kind": "skill", "name": "Incident retrospective", "description": "Create a timeline and identify follow-up actions.", "origin": "internal", "version": "1.7.0" },
-    { "id": "integration-testing", "kind": "skill", "name": "Integration testing", "description": "Choose useful tests at system boundaries.", "origin": "external", "version": "2.0.0" },
-    { "id": "logging-design", "kind": "skill", "name": "Logging design", "description": "Make operational logs easier to search and interpret.", "origin": "internal", "version": "1.4.0" },
-    { "id": "observability-review", "kind": "skill", "name": "Observability review", "description": "Inspect traces, metrics, and alert coverage.", "origin": "external", "version": "1.9.0" },
-    { "id": "onboarding-guide", "kind": "skill", "name": "Onboarding guide", "description": "Turn repository knowledge into a newcomer guide.", "origin": "internal", "version": "1.0.0" },
-    { "id": "performance-profiling", "kind": "skill", "name": "Performance profiling", "description": "Locate hot paths using profiles and benchmarks.", "origin": "external", "version": "2.6.0" },
-    { "id": "privacy-review", "kind": "skill", "name": "Privacy review", "description": "Track sensitive data through storage and logs.", "origin": "internal", "version": "1.1.0" },
-    { "id": "release-notes", "kind": "skill", "name": "Release notes", "description": "Summarize changes for customers and support.", "origin": "external", "version": "1.2.0" },
-    { "id": "resilience-review", "kind": "skill", "name": "Resilience review", "description": "Check timeouts, retries, and fallback behavior.", "origin": "internal", "version": "2.1.0" },
-    { "id": "schema-evolution", "kind": "skill", "name": "Schema evolution", "description": "Review backwards-compatible database changes.", "origin": "internal", "version": "1.5.0" },
-    { "id": "test-triage", "kind": "skill", "name": "Test triage", "description": "Distinguish flaky tests from real regressions.", "origin": "external", "version": "1.4.0" },
-    { "id": "threat-model", "kind": "skill", "name": "Threat model", "description": "Map trust boundaries and plausible attack paths.", "origin": "external", "version": "2.3.0" },
-    { "id": "typescript-refactor", "kind": "skill", "name": "TypeScript refactor", "description": "Improve types while preserving runtime behavior.", "origin": "internal", "version": "1.8.0" },
-    { "id": "ux-writing", "kind": "skill", "name": "UX writing", "description": "Tighten product language and error messages.", "origin": "external", "version": "1.3.0" },
-    { "id": "write-adr", "kind": "command", "name": "/write-adr", "description": "Record a decision and its tradeoffs.", "origin": "internal", "version": "1.2.0" },
-    { "id": "summarize-issue", "kind": "command", "name": "/summarize-issue", "description": "Summarize an issue and its current resolution.", "origin": "external", "version": "1.0.0" },
-    { "id": "review-pr", "kind": "command", "name": "/review-pr", "description": "Review a pull request for correctness.", "origin": "internal", "version": "2.3.0" },
-    { "id": "draft-tests", "kind": "command", "name": "/draft-tests", "description": "Suggest tests that protect changed behavior.", "origin": "external", "version": "1.5.0" },
-    { "id": "explain-stacktrace", "kind": "command", "name": "/explain-stacktrace", "description": "Trace an error back to its likely source.", "origin": "internal", "version": "1.1.0" },
-    { "id": "prepare-release", "kind": "command", "name": "/prepare-release", "description": "Check release artifacts and documentation.", "origin": "internal", "version": "1.7.0" },
-    { "id": "audit-config", "kind": "command", "name": "/audit-config", "description": "Identify conflicting project settings.", "origin": "external", "version": "2.0.0" },
-    { "id": "summarize-session", "kind": "command", "name": "/summarize-session", "description": "Capture decisions and next steps from a session.", "origin": "internal", "version": "1.0.0" },
-    { "id": "find-todo", "kind": "command", "name": "/find-todo", "description": "Locate unfinished work in the repository.", "origin": "external", "version": "1.6.0" },
-    { "id": "generate-fixture", "kind": "command", "name": "/generate-fixture", "description": "Create a realistic development fixture.", "origin": "external", "version": "1.4.0" },
-    { "id": "check-migrations", "kind": "command", "name": "/check-migrations", "description": "Review pending schema migrations.", "origin": "internal", "version": "1.9.0" },
-    { "id": "draft-runbook", "kind": "command", "name": "/draft-runbook", "description": "Write an operational runbook from current behavior.", "origin": "internal", "version": "1.0.0" },
-    { "id": "accessibility-reviewer", "kind": "agent", "name": "Accessibility reviewer", "description": "Check interaction flows for accessibility gaps.", "origin": "external", "version": "1.5.0" },
-    { "id": "api-reviewer", "kind": "agent", "name": "API reviewer", "description": "Review endpoint contracts and error semantics.", "origin": "internal", "version": "2.1.0" },
-    { "id": "build-investigator", "kind": "agent", "name": "Build investigator", "description": "Trace build failures to toolchain or source changes.", "origin": "internal", "version": "1.3.0" },
-    { "id": "dependency-auditor", "kind": "agent", "name": "Dependency auditor", "description": "Identify vulnerable or incompatible dependencies.", "origin": "external", "version": "1.8.0" },
-    { "id": "design-critic", "kind": "agent", "name": "Design critic", "description": "Challenge a proposal's assumptions and tradeoffs.", "origin": "external", "version": "1.2.0" },
-    { "id": "incident-commander", "kind": "agent", "name": "Incident commander", "description": "Coordinate investigation and maintain a timeline.", "origin": "internal", "version": "2.0.0" },
-    { "id": "migration-planner", "kind": "agent", "name": "Migration planner", "description": "Plan a staged rollout with rollback points.", "origin": "internal", "version": "1.4.0" },
-    { "id": "performance-investigator", "kind": "agent", "name": "Performance investigator", "description": "Find bottlenecks using telemetry and profiles.", "origin": "external", "version": "2.2.0" },
-    { "id": "product-analyst", "kind": "agent", "name": "Product analyst", "description": "Turn user feedback into actionable themes.", "origin": "internal", "version": "1.1.0" },
-    { "id": "release-coordinator", "kind": "agent", "name": "Release coordinator", "description": "Track release checks and deployment readiness.", "origin": "internal", "version": "1.6.0" },
-    { "id": "reliability-reviewer", "kind": "agent", "name": "Reliability reviewer", "description": "Inspect failure handling and recovery paths.", "origin": "external", "version": "1.9.0" },
-    { "id": "research-assistant", "kind": "agent", "name": "Research assistant", "description": "Compare documentation and capture source links.", "origin": "external", "version": "1.0.0" },
-    { "id": "test-investigator", "kind": "agent", "name": "Test investigator", "description": "Diagnose failing and flaky test suites.", "origin": "internal", "version": "2.4.0" },
-    { "id": "ui-reviewer", "kind": "agent", "name": "UI reviewer", "description": "Check usability, states, and responsive layouts.", "origin": "external", "version": "1.3.0" }
+    {
+      "id": "code-review",
+      "kind": "skill",
+      "name": "Code review",
+      "description": "Find correctness and maintainability issues in a change.",
+      "origin": "internal",
+      "version": "2.1.0"
+    },
+    {
+      "id": "incident-triage",
+      "kind": "skill",
+      "name": "Incident triage",
+      "description": "Trace alerts to likely causes and assemble a timeline.",
+      "origin": "internal",
+      "version": "1.4.0"
+    },
+    {
+      "id": "api-design",
+      "kind": "skill",
+      "name": "API design",
+      "description": "Review an API contract for consistency and usability.",
+      "origin": "external",
+      "version": "3.0.0"
+    },
+    {
+      "id": "sql-tuning",
+      "kind": "skill",
+      "name": "SQL tuning",
+      "description": "Investigate slow queries and suggest indexing changes.",
+      "origin": "external",
+      "version": "1.2.0"
+    },
+    {
+      "id": "write-changelog",
+      "kind": "command",
+      "name": "/write-changelog",
+      "description": "Summarize user-facing changes since the last release.",
+      "origin": "internal",
+      "version": "1.1.0"
+    },
+    {
+      "id": "ship-check",
+      "kind": "command",
+      "name": "/ship-check",
+      "description": "Run a lightweight release-readiness checklist.",
+      "origin": "internal",
+      "version": "2.0.0"
+    },
+    {
+      "id": "explain-diff",
+      "kind": "command",
+      "name": "/explain-diff",
+      "description": "Explain a diff to a teammate in plain language.",
+      "origin": "external",
+      "version": "1.0.0"
+    },
+    {
+      "id": "security-auditor",
+      "kind": "agent",
+      "name": "Security auditor",
+      "description": "Review code paths for exploitable security flaws.",
+      "origin": "internal",
+      "version": "1.6.0"
+    },
+    {
+      "id": "test-planner",
+      "kind": "agent",
+      "name": "Test planner",
+      "description": "Identify high-value tests for changed behavior.",
+      "origin": "external",
+      "version": "2.3.0"
+    },
+    {
+      "id": "docs-editor",
+      "kind": "agent",
+      "name": "Docs editor",
+      "description": "Improve reference docs and examples for clarity.",
+      "origin": "external",
+      "version": "1.5.0"
+    },
+    {
+      "id": "architecture-review",
+      "kind": "skill",
+      "name": "Architecture review",
+      "description": "Check module boundaries and dependency direction.",
+      "origin": "internal",
+      "version": "1.0.0"
+    },
+    {
+      "id": "accessibility-audit",
+      "kind": "skill",
+      "name": "Accessibility audit",
+      "description": "Spot keyboard, contrast, and semantic markup issues.",
+      "origin": "external",
+      "version": "2.2.0"
+    },
+    {
+      "id": "benchmark-design",
+      "kind": "skill",
+      "name": "Benchmark design",
+      "description": "Set up representative performance comparisons.",
+      "origin": "internal",
+      "version": "1.3.0"
+    },
+    {
+      "id": "bug-reproduction",
+      "kind": "skill",
+      "name": "Bug reproduction",
+      "description": "Turn a reported issue into reliable reproduction steps.",
+      "origin": "internal",
+      "version": "2.0.0"
+    },
+    {
+      "id": "cloud-costs",
+      "kind": "skill",
+      "name": "Cloud cost analysis",
+      "description": "Find expensive infrastructure and cost trends.",
+      "origin": "external",
+      "version": "1.1.0"
+    },
+    {
+      "id": "code-migration",
+      "kind": "skill",
+      "name": "Code migration",
+      "description": "Plan safe migrations across dependent packages.",
+      "origin": "internal",
+      "version": "1.5.0"
+    },
+    {
+      "id": "concurrency-review",
+      "kind": "skill",
+      "name": "Concurrency review",
+      "description": "Inspect shared state for races and deadlocks.",
+      "origin": "external",
+      "version": "1.8.0"
+    },
+    {
+      "id": "config-audit",
+      "kind": "skill",
+      "name": "Configuration audit",
+      "description": "Check application defaults and environment overrides.",
+      "origin": "internal",
+      "version": "1.0.0"
+    },
+    {
+      "id": "data-modeling",
+      "kind": "skill",
+      "name": "Data modeling",
+      "description": "Refine entities, keys, and relationship constraints.",
+      "origin": "internal",
+      "version": "2.4.0"
+    },
+    {
+      "id": "dependency-update",
+      "kind": "skill",
+      "name": "Dependency update",
+      "description": "Evaluate library upgrades and breaking changes.",
+      "origin": "external",
+      "version": "1.6.0"
+    },
+    {
+      "id": "error-handling",
+      "kind": "skill",
+      "name": "Error handling",
+      "description": "Check how failures surface across service boundaries.",
+      "origin": "internal",
+      "version": "1.2.0"
+    },
+    {
+      "id": "event-design",
+      "kind": "skill",
+      "name": "Event design",
+      "description": "Design durable messages and consumer contracts.",
+      "origin": "internal",
+      "version": "1.0.0"
+    },
+    {
+      "id": "frontend-performance",
+      "kind": "skill",
+      "name": "Frontend performance",
+      "description": "Diagnose slow rendering and oversized bundles.",
+      "origin": "external",
+      "version": "3.1.0"
+    },
+    {
+      "id": "incident-retrospective",
+      "kind": "skill",
+      "name": "Incident retrospective",
+      "description": "Create a timeline and identify follow-up actions.",
+      "origin": "internal",
+      "version": "1.7.0"
+    },
+    {
+      "id": "integration-testing",
+      "kind": "skill",
+      "name": "Integration testing",
+      "description": "Choose useful tests at system boundaries.",
+      "origin": "external",
+      "version": "2.0.0"
+    },
+    {
+      "id": "logging-design",
+      "kind": "skill",
+      "name": "Logging design",
+      "description": "Make operational logs easier to search and interpret.",
+      "origin": "internal",
+      "version": "1.4.0"
+    },
+    {
+      "id": "observability-review",
+      "kind": "skill",
+      "name": "Observability review",
+      "description": "Inspect traces, metrics, and alert coverage.",
+      "origin": "external",
+      "version": "1.9.0"
+    },
+    {
+      "id": "onboarding-guide",
+      "kind": "skill",
+      "name": "Onboarding guide",
+      "description": "Turn repository knowledge into a newcomer guide.",
+      "origin": "internal",
+      "version": "1.0.0"
+    },
+    {
+      "id": "performance-profiling",
+      "kind": "skill",
+      "name": "Performance profiling",
+      "description": "Locate hot paths using profiles and benchmarks.",
+      "origin": "external",
+      "version": "2.6.0"
+    },
+    {
+      "id": "privacy-review",
+      "kind": "skill",
+      "name": "Privacy review",
+      "description": "Track sensitive data through storage and logs.",
+      "origin": "internal",
+      "version": "1.1.0"
+    },
+    {
+      "id": "release-notes",
+      "kind": "skill",
+      "name": "Release notes",
+      "description": "Summarize changes for customers and support.",
+      "origin": "external",
+      "version": "1.2.0"
+    },
+    {
+      "id": "resilience-review",
+      "kind": "skill",
+      "name": "Resilience review",
+      "description": "Check timeouts, retries, and fallback behavior.",
+      "origin": "internal",
+      "version": "2.1.0"
+    },
+    {
+      "id": "schema-evolution",
+      "kind": "skill",
+      "name": "Schema evolution",
+      "description": "Review backwards-compatible database changes.",
+      "origin": "internal",
+      "version": "1.5.0"
+    },
+    {
+      "id": "test-triage",
+      "kind": "skill",
+      "name": "Test triage",
+      "description": "Distinguish flaky tests from real regressions.",
+      "origin": "external",
+      "version": "1.4.0"
+    },
+    {
+      "id": "threat-model",
+      "kind": "skill",
+      "name": "Threat model",
+      "description": "Map trust boundaries and plausible attack paths.",
+      "origin": "external",
+      "version": "2.3.0"
+    },
+    {
+      "id": "typescript-refactor",
+      "kind": "skill",
+      "name": "TypeScript refactor",
+      "description": "Improve types while preserving runtime behavior.",
+      "origin": "internal",
+      "version": "1.8.0"
+    },
+    {
+      "id": "ux-writing",
+      "kind": "skill",
+      "name": "UX writing",
+      "description": "Tighten product language and error messages.",
+      "origin": "external",
+      "version": "1.3.0"
+    },
+    {
+      "id": "write-adr",
+      "kind": "command",
+      "name": "/write-adr",
+      "description": "Record a decision and its tradeoffs.",
+      "origin": "internal",
+      "version": "1.2.0"
+    },
+    {
+      "id": "summarize-issue",
+      "kind": "command",
+      "name": "/summarize-issue",
+      "description": "Summarize an issue and its current resolution.",
+      "origin": "external",
+      "version": "1.0.0"
+    },
+    {
+      "id": "review-pr",
+      "kind": "command",
+      "name": "/review-pr",
+      "description": "Review a pull request for correctness.",
+      "origin": "internal",
+      "version": "2.3.0"
+    },
+    {
+      "id": "draft-tests",
+      "kind": "command",
+      "name": "/draft-tests",
+      "description": "Suggest tests that protect changed behavior.",
+      "origin": "external",
+      "version": "1.5.0"
+    },
+    {
+      "id": "explain-stacktrace",
+      "kind": "command",
+      "name": "/explain-stacktrace",
+      "description": "Trace an error back to its likely source.",
+      "origin": "internal",
+      "version": "1.1.0"
+    },
+    {
+      "id": "prepare-release",
+      "kind": "command",
+      "name": "/prepare-release",
+      "description": "Check release artifacts and documentation.",
+      "origin": "internal",
+      "version": "1.7.0"
+    },
+    {
+      "id": "audit-config",
+      "kind": "command",
+      "name": "/audit-config",
+      "description": "Identify conflicting project settings.",
+      "origin": "external",
+      "version": "2.0.0"
+    },
+    {
+      "id": "summarize-session",
+      "kind": "command",
+      "name": "/summarize-session",
+      "description": "Capture decisions and next steps from a session.",
+      "origin": "internal",
+      "version": "1.0.0"
+    },
+    {
+      "id": "find-todo",
+      "kind": "command",
+      "name": "/find-todo",
+      "description": "Locate unfinished work in the repository.",
+      "origin": "external",
+      "version": "1.6.0"
+    },
+    {
+      "id": "generate-fixture",
+      "kind": "command",
+      "name": "/generate-fixture",
+      "description": "Create a realistic development fixture.",
+      "origin": "external",
+      "version": "1.4.0"
+    },
+    {
+      "id": "check-migrations",
+      "kind": "command",
+      "name": "/check-migrations",
+      "description": "Review pending schema migrations.",
+      "origin": "internal",
+      "version": "1.9.0"
+    },
+    {
+      "id": "draft-runbook",
+      "kind": "command",
+      "name": "/draft-runbook",
+      "description": "Write an operational runbook from current behavior.",
+      "origin": "internal",
+      "version": "1.0.0"
+    },
+    {
+      "id": "accessibility-reviewer",
+      "kind": "agent",
+      "name": "Accessibility reviewer",
+      "description": "Check interaction flows for accessibility gaps.",
+      "origin": "external",
+      "version": "1.5.0"
+    },
+    {
+      "id": "api-reviewer",
+      "kind": "agent",
+      "name": "API reviewer",
+      "description": "Review endpoint contracts and error semantics.",
+      "origin": "internal",
+      "version": "2.1.0"
+    },
+    {
+      "id": "build-investigator",
+      "kind": "agent",
+      "name": "Build investigator",
+      "description": "Trace build failures to toolchain or source changes.",
+      "origin": "internal",
+      "version": "1.3.0"
+    },
+    {
+      "id": "dependency-auditor",
+      "kind": "agent",
+      "name": "Dependency auditor",
+      "description": "Identify vulnerable or incompatible dependencies.",
+      "origin": "external",
+      "version": "1.8.0"
+    },
+    {
+      "id": "design-critic",
+      "kind": "agent",
+      "name": "Design critic",
+      "description": "Challenge a proposal's assumptions and tradeoffs.",
+      "origin": "external",
+      "version": "1.2.0"
+    },
+    {
+      "id": "incident-commander",
+      "kind": "agent",
+      "name": "Incident commander",
+      "description": "Coordinate investigation and maintain a timeline.",
+      "origin": "internal",
+      "version": "2.0.0"
+    },
+    {
+      "id": "migration-planner",
+      "kind": "agent",
+      "name": "Migration planner",
+      "description": "Plan a staged rollout with rollback points.",
+      "origin": "internal",
+      "version": "1.4.0"
+    },
+    {
+      "id": "performance-investigator",
+      "kind": "agent",
+      "name": "Performance investigator",
+      "description": "Find bottlenecks using telemetry and profiles.",
+      "origin": "external",
+      "version": "2.2.0"
+    },
+    {
+      "id": "product-analyst",
+      "kind": "agent",
+      "name": "Product analyst",
+      "description": "Turn user feedback into actionable themes.",
+      "origin": "internal",
+      "version": "1.1.0"
+    },
+    {
+      "id": "release-coordinator",
+      "kind": "agent",
+      "name": "Release coordinator",
+      "description": "Track release checks and deployment readiness.",
+      "origin": "internal",
+      "version": "1.6.0"
+    },
+    {
+      "id": "reliability-reviewer",
+      "kind": "agent",
+      "name": "Reliability reviewer",
+      "description": "Inspect failure handling and recovery paths.",
+      "origin": "external",
+      "version": "1.9.0"
+    },
+    {
+      "id": "research-assistant",
+      "kind": "agent",
+      "name": "Research assistant",
+      "description": "Compare documentation and capture source links.",
+      "origin": "external",
+      "version": "1.0.0"
+    },
+    {
+      "id": "test-investigator",
+      "kind": "agent",
+      "name": "Test investigator",
+      "description": "Diagnose failing and flaky test suites.",
+      "origin": "internal",
+      "version": "2.4.0"
+    },
+    {
+      "id": "ui-reviewer",
+      "kind": "agent",
+      "name": "UI reviewer",
+      "description": "Check usability, states, and responsive layouts.",
+      "origin": "external",
+      "version": "1.3.0"
+    }
   ]
 }
