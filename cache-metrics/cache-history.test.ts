@@ -122,4 +122,62 @@ describe("cache history timeline", () => {
       retryAttempt: 2,
     });
   });
+
+  test("flags lost cached reads only against comparable context sizes", () => {
+    const history = buildCacheHistory(
+      new Map([
+        [
+          "parent",
+          [
+            response("warm", 100, 1000, 8000),
+            response("expanded", 200, 9000, 8000),
+            response("lost", 300, 16_000, 1000),
+            response("low-again", 400, 16_500, 500),
+            response("shrunk", 500, 100, 9000),
+            response("tiny-context", 550, 100, 100),
+            {
+              ...response("other-model", 600, 900, 100),
+              model: { id: "other", providerID: "openai" },
+            } as SessionMessageInfo,
+          ],
+        ],
+        ["child", [response("child-miss", 700, 900, 100)]],
+      ])
+    );
+    expect(history.map((point) => point.previousRead)).toEqual([
+      undefined,
+      undefined,
+      8000,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  test("does not compare across compaction or a low-cache intervening response", () => {
+    const history = buildCacheHistory(
+      new Map([
+        [
+          "parent",
+          [
+            response("warm", 100, 1000, 8000),
+            {
+              reason: "auto",
+              status: "completed",
+              type: "compaction",
+            } as SessionMessageInfo,
+            response("compacted", 200, 8000, 1000),
+            response("next", 300, 8000, 500),
+          ],
+        ],
+      ])
+    );
+    expect(history.map((point) => point.previousRead)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
 });

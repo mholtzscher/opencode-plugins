@@ -211,6 +211,19 @@ export function CacheHistoryPanel(props: {
                 <text fg={rateColor(point)}>
                   <b>{percent(point.rate)}</b>
                 </text>
+                <Show when={point.previousRead !== undefined}>
+                  <text
+                    fg={
+                      context.theme.text.feedback?.warning?.base ??
+                      context.theme.hue.yellow[500]
+                    }
+                  >
+                    <b>
+                      ⚠ Possible cache loss ({count(point.previousRead ?? 0)} →{" "}
+                      {count(point.read)} cached)
+                    </b>
+                  </text>
+                </Show>
                 <text fg={context.theme.text.base} truncate wrapMode="none">
                   {new Date(point.time).toLocaleTimeString()} ·{" "}
                   {point.providerID}/{point.modelID}

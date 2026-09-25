@@ -12,6 +12,8 @@ export interface CacheHistoryPoint {
   input: number;
   modelID: string;
   output: number;
+  /** Cached reads on the preceding comparable response, when a likely loss is detected. */
+  previousRead?: number;
   /** Short, single-line user request preceding this response; never tool input or output. */
   prompt?: string;
   providerID: string;
@@ -90,12 +92,26 @@ export function buildCacheHistory(
   );
   let input = 0;
   let read = 0;
+  const previous = new Map<string, CacheHistoryPoint>();
   return sorted.map((point) => {
+    const key = `${point.sessionID}:${point.providerID}:${point.modelID}`;
+    const baseline = previous.get(key);
+    const previousRead =
+      baseline !== undefined &&
+      !point.afterCompaction &&
+      baseline.read >= 1000 &&
+      point.read <= baseline.read * 0.3 &&
+      point.input + point.read >= (baseline.input + baseline.read) * 0.8
+        ? baseline.read
+        : undefined;
+    // Always compare to the latest completed response, even if it has no usage.
+    previous.set(key, point);
     input += point.input;
     read += point.read;
     return {
       ...point,
       cumulativeRate: input + read > 0 ? read / (input + read) : undefined,
+      previousRead,
     };
   });
 }
