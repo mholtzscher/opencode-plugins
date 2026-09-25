@@ -2,6 +2,7 @@
 import { Plugin } from "@opencode/plugin/tui"
 import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { calculateSessionCacheRate } from "./cache-rate.js"
+import { CacheHistoryPanel } from "./cache-history-panel.js"
 
 export default Plugin.define({
   id: "cache-metrics.tui",
@@ -53,6 +54,36 @@ export default Plugin.define({
       )
     }
 
-    return context.ui.slot({ append: "sidebar.content", render: ({ sessionID }) => <CacheMetrics sessionID={sessionID} /> })
+    const removeSidebar = context.ui.slot({ append: "sidebar.content", render: ({ sessionID }) => <CacheMetrics sessionID={sessionID} /> })
+    const removePanel = context.ui.slot({
+      append: "session.panel",
+      render: (panel) => <Show when={panel.name === "cache-metrics.history"}><CacheHistoryPanel panel={panel} /></Show>,
+    })
+    const removeCommand = context.ui.slot({
+      append: "app",
+      render: () => {
+        context.keymap.layer(() => ({
+          mode: "global",
+          commands: [{
+            id: "cache-metrics.history.open",
+            title: "Open cache history",
+            group: "Cache",
+            palette: true,
+            slash: { name: "cache-history" },
+            run: () => {
+              if (!context.ui.panel.open("cache-metrics.history")) {
+                context.ui.toast.show({ message: "Open a session to view cache history", variant: "info" })
+              }
+            },
+          }],
+        }))
+        return null
+      },
+    })
+    return () => {
+      removeCommand()
+      removePanel()
+      removeSidebar()
+    }
   },
 })
