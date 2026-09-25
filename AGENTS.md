@@ -1,0 +1,7 @@
+# Repository notes
+
+- This is a collection of independent OpenCode V2 plugins, not a Bun workspace. Each plugin has its own `package.json`, `bun.lock`, and `tsconfig.json`; install and verify from the affected plugin directory. Use Ultracite for linting and formatting from the root: `bun run check` or `bun run fix` (configured via Biome).
+- Plugin packages export a server entry (`index.ts`) and a TUI entry (`tui.ts` or `tui.tsx`); `quota-usage` additionally exports `rpc.ts`. Check both sides when changing shared behavior. The root `opencode.jsonc` loads only `marketplace` and `cache-metrics`; the presence of other plugin directories does not mean they are active here.
+- Focused verification: `cd <plugin> && bun run typecheck`; for `cache-metrics`, `github-tools`, and `spec-tools`, also run `bun test` (or `bun test <test-file>`). `marketplace` and `quota-usage` have no test script. Run the root `bun run check` for lint/format diagnostics.
+- `marketplace` is a prototype: `marketplace.json` is its sample catalog, and install/update/uninstall actions only change durable TUI state; they do not install OpenCode resources. See `marketplace/README.md` before treating it as a real package manager.
+- `github-tools` commands require an authenticated `gh` CLI; `/pr-review` additionally requires Plannotator. `spec-tools` commands that use existing specs look under the current project's `specs/` directory.
