@@ -7,6 +7,11 @@ import { CacheHistoryPanel } from "./cache-history-panel.js"
 export default Plugin.define({
   id: "cache-metrics.tui",
   setup(context) {
+    const openCacheHistory = () => {
+      if (!context.ui.panel.open("cache-metrics.history")) {
+        context.ui.toast.show({ message: "Open a session to view cache history", variant: "info" })
+      }
+    }
     const CacheMetrics = (props: { sessionID: string }) => {
       const [messages, setMessages] = createSignal(context.data.session.message.list(props.sessionID) ?? [])
       const refresh = (sessionID: string) => {
@@ -34,7 +39,7 @@ export default Plugin.define({
       return (
         <box width="100%" flexDirection="column" border borderStyle="rounded"
           borderColor={context.theme.border.base} title="Cache" titleColor={context.theme.text.base}
-          paddingLeft={1} paddingRight={1}>
+          paddingLeft={1} paddingRight={1} onMouseDown={openCacheHistory}>
           <Show when={totals().rate !== undefined} fallback={<text fg={context.theme.text.muted}>No token usage yet</text>}>
             <text fg={rateColor()}><b>{((totals().rate ?? 0) * 100).toFixed(1)}% input cache hit</b></text>
             <box flexDirection="row" gap={1}>
@@ -50,6 +55,7 @@ export default Plugin.define({
               <text fg={context.theme.text.muted}>{totals().write.toLocaleString()}</text>
             </box>
           </Show>
+          <text fg={context.theme.text.muted}>Click for history →</text>
         </box>
       )
     }
@@ -70,11 +76,7 @@ export default Plugin.define({
             group: "Cache",
             palette: true,
             slash: { name: "cache-history" },
-            run: () => {
-              if (!context.ui.panel.open("cache-metrics.history")) {
-                context.ui.toast.show({ message: "Open a session to view cache history", variant: "info" })
-              }
-            },
+            run: openCacheHistory,
           }],
         }))
         return null

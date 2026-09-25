@@ -2,7 +2,7 @@
 
 OpenCode V2 sidebar plugin showing the current session's cache-read rate and token totals.
 
-Open **Cache history** from the command palette or run `/cache-history` in a session to see a chronological per-response cache-hit trend and token counts. The history panel includes the parent and subagent sessions by default; press `s` to switch to the selected session only, `r` to refresh, `f` to toggle fullscreen, or Escape to close. Completed responses are reconstructed from saved OpenCode messages, so history survives a TUI restart without separate plugin storage. The trend displays up to the latest 40 responses, oldest to newest; `·` means no measured input.
+Click the **Cache** sidebar card, open **Cache history** from the command palette, or run `/cache-history` in a session to see a chronological per-response cache-hit trend and token counts. The history panel includes the parent and subagent sessions by default; press `s` to switch to the selected session only, `r` to refresh, `f` to toggle fullscreen, or Escape to close. Completed responses are reconstructed from saved OpenCode messages, so history survives a TUI restart without separate plugin storage. The trend displays up to the latest 40 responses, oldest to newest; `·` means no measured input.
 
 Each response also shows a short excerpt of the preceding user request, tool names called in this and the previous response, compaction markers, and finish/retry state. The panel does not show tool arguments, tool output, or full prompts. These labels describe saved conversation steps, not proof of why a provider did or did not cache a request.
 
