@@ -1,0 +1,12 @@
+{
+  "name": "opencode-plugins-workspace",
+  "private": true,
+  "scripts": {
+    "check": "ultracite check",
+    "fix": "ultracite fix"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "ultracite": "^7.12.0"
+  }
+}

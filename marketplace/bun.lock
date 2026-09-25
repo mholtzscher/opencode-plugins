@@ -6,13 +6,15 @@
       "name": "opencode-marketplace-prototype",
       "dependencies": {
         "@opencode/plugin": "^2.0.12",
-        "@opentui/core": ">=0.5.10",
-        "@opentui/solid": ">=0.5.10",
-        "solid-js": "^1.9.0",
       },
       "devDependencies": {
         "@types/node": "latest",
         "typescript": "latest",
+      },
+      "peerDependencies": {
+        "@opentui/core": ">=0.5.10",
+        "@opentui/solid": ">=0.5.10",
+        "solid-js": ">=1.9.0",
       },
     },
   },
