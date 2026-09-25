@@ -89,9 +89,9 @@ export default Plugin.define({
               </text>
             </Show>
           </box>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles. */}
-          <box onMouseDown={toggleExpanded}>
-            <text fg={context.theme.text.muted}>
+          <box>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI text handles mouse events without DOM roles. */}
+            <text fg={context.theme.text.muted} onMouseDown={toggleExpanded}>
               {expanded()
                 ? "▼ Hide additional metrics"
                 : "▶ Show additional metrics"}
