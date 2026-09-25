@@ -12,7 +12,11 @@ import {
   Show,
 } from "solid-js";
 import type { CacheHistoryPoint } from "./cache-history.js";
-import { buildCacheHistory, formatCacheHistoryTrend } from "./cache-history.js";
+import {
+  buildCacheHistory,
+  exportCacheHistory,
+  formatCacheHistoryTrend,
+} from "./cache-history.js";
 
 const percent = (rate: number | undefined) =>
   rate === undefined ? "—" : `${(rate * 100).toFixed(1)}%`;
@@ -151,6 +155,32 @@ export function CacheHistoryPanel(props: {
         title: "Refresh cache history",
       },
       {
+        bind: "e",
+        id: "cache-metrics.history.export",
+        run: () => {
+          try {
+            const json = exportCacheHistory(
+              props.panel.sessionID,
+              family() ? "family" : "session",
+              history()
+            );
+            if (!context.renderer.copyToClipboardOSC52(json)) {
+              throw new Error("Clipboard unavailable");
+            }
+            context.ui.toast.show({
+              message: "Cache history JSON copied to clipboard",
+              variant: "success",
+            });
+          } catch {
+            context.ui.toast.show({
+              message: "Could not copy cache history to clipboard",
+              variant: "error",
+            });
+          }
+        },
+        title: "Copy cache history JSON",
+      },
+      {
         bind: "f",
         id: "cache-metrics.history.fullscreen",
         run: props.panel.toggleFullscreen,
@@ -277,7 +307,7 @@ export function CacheHistoryPanel(props: {
         </Show>
       </scrollbox>
       <text fg={context.theme.text.muted}>
-        s Scope · r Refresh · f Fullscreen · Esc Close
+        s Scope · r Refresh · e Export JSON · f Fullscreen · Esc Close
       </text>
     </box>
   );

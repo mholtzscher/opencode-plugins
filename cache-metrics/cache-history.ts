@@ -130,3 +130,42 @@ export function formatCacheHistoryTrend(
     )
     .join("");
 }
+
+/** Serialize the currently displayed scope and its per-response token timeline. */
+export function exportCacheHistory(
+  sessionID: string,
+  scope: "session" | "family",
+  points: readonly CacheHistoryPoint[]
+): string {
+  const totals = points.reduce(
+    (result, point) => {
+      result.input += point.input;
+      result.output += point.output;
+      result.cacheRead += point.read;
+      result.cacheWrite += point.write;
+      return result;
+    },
+    { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 }
+  );
+  return JSON.stringify(
+    {
+      exportedAt: new Date().toISOString(),
+      responseCount: points.length,
+      scope,
+      sessionID,
+      timeline: points.map((point) => ({
+        ...point,
+        time: new Date(point.time).toISOString(),
+      })),
+      totals: {
+        ...totals,
+        cacheHitRate:
+          totals.input + totals.cacheRead > 0
+            ? totals.cacheRead / (totals.input + totals.cacheRead)
+            : null,
+      },
+    },
+    null,
+    2
+  );
+}

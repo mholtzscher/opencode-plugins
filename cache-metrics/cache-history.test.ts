@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { SessionMessageInfo } from "@opencode/client";
-import { buildCacheHistory, formatCacheHistoryTrend } from "./cache-history.js";
+import {
+  buildCacheHistory,
+  exportCacheHistory,
+  formatCacheHistoryTrend,
+} from "./cache-history.js";
 
 const response = (
   id: string,
@@ -20,6 +24,45 @@ const response = (
   }) as SessionMessageInfo;
 
 describe("cache history timeline", () => {
+  test("exports scoped token totals and the chronological response timeline", () => {
+    const history = buildCacheHistory(
+      new Map([
+        ["parent", [response("later", 300, 10, 90)]],
+        ["child", [response("earlier", 200, 90, 10)]],
+      ])
+    );
+    const exported = JSON.parse(
+      exportCacheHistory("parent", "family", history)
+    );
+    expect(exported).toMatchObject({
+      responseCount: 2,
+      scope: "family",
+      sessionID: "parent",
+      timeline: [
+        {
+          id: "earlier",
+          read: 10,
+          sessionID: "child",
+          time: new Date(200).toISOString(),
+        },
+        {
+          id: "later",
+          read: 90,
+          sessionID: "parent",
+          time: new Date(300).toISOString(),
+        },
+      ],
+      totals: {
+        cacheHitRate: 0.5,
+        cacheRead: 100,
+        cacheWrite: 0,
+        input: 100,
+        output: 50,
+      },
+    });
+    expect(exported.exportedAt).toBeString();
+  });
+
   test("sorts parent and subagent responses and calculates weighted cumulative rate", () => {
     const history = buildCacheHistory(
       new Map([
