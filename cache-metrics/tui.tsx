@@ -143,7 +143,7 @@ export default Plugin.define({
       append: "session.panel",
       render: (panel) => (
         <Show when={panel.name === "cache-metrics.history"}>
-          <CacheHistoryPanel panel={panel} />
+          <CacheHistoryPanel context={context} panel={panel} />
         </Show>
       ),
     });

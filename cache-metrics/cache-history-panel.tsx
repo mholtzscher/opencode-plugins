@@ -1,7 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 
 import type { SessionMessageInfo } from "@opencode/client";
-import { usePlugin } from "@opencode/plugin/tui";
+import type { Plugin } from "@opencode/plugin/tui";
 import type { PanelInput } from "@opencode/plugin/tui/context";
 import {
   createEffect,
@@ -19,8 +19,11 @@ const percent = (rate: number | undefined) =>
 const count = (tokens: number) => tokens.toLocaleString();
 
 /** Session panel showing chronological cache history for the current session and its subagents. */
-export function CacheHistoryPanel(props: { panel: PanelInput }) {
-  const context = usePlugin();
+export function CacheHistoryPanel(props: {
+  panel: PanelInput;
+  context: Parameters<Parameters<typeof Plugin.define>[0]["setup"]>[0];
+}) {
+  const { context } = props;
   const [family, setFamily] = createSignal(true);
   const [snapshots, setSnapshots] = createSignal<
     ReadonlyMap<string, readonly SessionMessageInfo[]>
