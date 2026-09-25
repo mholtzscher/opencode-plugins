@@ -17,10 +17,7 @@ export default Plugin.define({
     };
     const CacheMetrics = (props: { sessionID: string }) => {
       const [expanded, setExpanded] = createSignal(false);
-      const toggleExpanded = (event: { stopPropagation: () => void }) => {
-        event.stopPropagation();
-        setExpanded((value) => !value);
-      };
+      const toggleExpanded = () => setExpanded((value) => !value);
       const [messages, setMessages] = createSignal(
         context.data.session.message.list(props.sessionID) ?? []
       );
@@ -66,29 +63,32 @@ export default Plugin.define({
         return context.theme.text.muted;
       };
       return (
-        // biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles.
         <box
           border
           borderColor={context.theme.border.base}
           borderStyle="rounded"
           flexDirection="column"
-          onMouseDown={openCacheHistory}
           paddingLeft={1}
           paddingRight={1}
           title="Cache"
           titleColor={context.theme.text.base}
           width="100%"
         >
-          <Show
-            fallback={
-              <text fg={context.theme.text.muted}>No token usage yet</text>
-            }
-            when={totals().rate !== undefined}
-          >
-            <text fg={rateColor()}>
-              <b>{((totals().rate ?? 0) * 100).toFixed(1)}% input cache hit</b>
-            </text>
-          </Show>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles. */}
+          <box onMouseDown={openCacheHistory}>
+            <Show
+              fallback={
+                <text fg={context.theme.text.muted}>No token usage yet</text>
+              }
+              when={totals().rate !== undefined}
+            >
+              <text fg={rateColor()}>
+                <b>
+                  {((totals().rate ?? 0) * 100).toFixed(1)}% input cache hit
+                </b>
+              </text>
+            </Show>
+          </box>
           {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles. */}
           <box onMouseDown={toggleExpanded}>
             <text fg={context.theme.text.muted}>

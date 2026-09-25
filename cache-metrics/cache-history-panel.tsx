@@ -36,16 +36,30 @@ export function CacheHistoryPanel(props: {
     generation += 1;
     const current = generation;
     const { sessionID } = props.panel;
+    const root = context.data.session.root(sessionID);
+    const ids = family()
+      ? [...new Set([root, ...context.data.session.family(root)])]
+      : [sessionID];
+    setSnapshots(
+      new Map(
+        ids.map((id) => [id, context.data.session.message.list(id) ?? []])
+      )
+    );
     setLoading(true);
     setError(false);
     try {
       await context.data.session.sync(sessionID);
-      const root = context.data.session.root(sessionID);
-      const ids = family()
-        ? [...new Set([root, ...context.data.session.family(root)])]
+      const refreshedRoot = context.data.session.root(sessionID);
+      const refreshedIDs = family()
+        ? [
+            ...new Set([
+              refreshedRoot,
+              ...context.data.session.family(refreshedRoot),
+            ]),
+          ]
         : [sessionID];
       const entries = await Promise.all(
-        ids.map(async (id) => {
+        refreshedIDs.map(async (id) => {
           context.data.session.message.invalidate(id);
           await context.data.session.message.sync(id);
           return [id, context.data.session.message.list(id) ?? []] as const;
