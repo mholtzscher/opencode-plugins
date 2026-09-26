@@ -3,6 +3,7 @@
 import type { SessionMessageInfo } from "@opencode/client";
 import type { Plugin } from "@opencode/plugin/tui";
 import type { PanelInput } from "@opencode/plugin/tui/context";
+import type { ScrollBoxRenderable } from "@opentui/core";
 import {
   createEffect,
   createMemo,
@@ -35,7 +36,43 @@ export function CacheHistoryPanel(props: {
   >(new Map());
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal(false);
+  const [follow, setFollow] = createSignal(true);
+  const [streamingSessions, setStreamingSessions] = createSignal<Set<string>>(
+    new Set()
+  );
+  let scrollbox: ScrollBoxRenderable | undefined;
+  const setScrollbox = (element: ScrollBoxRenderable) => {
+    scrollbox = element;
+  };
   let generation = 0;
+
+  const inScope = (sessionID: string) =>
+    sessionID === props.panel.sessionID ||
+    (family() &&
+      context.data.session.root(sessionID) ===
+        context.data.session.root(props.panel.sessionID));
+
+  const updateStreamingSession = (sessionID: string, streaming: boolean) => {
+    setStreamingSessions((current) => {
+      const next = new Set(current);
+      if (streaming) {
+        next.add(sessionID);
+      } else {
+        next.delete(sessionID);
+      }
+      return next;
+    });
+  };
+  const streamingInScope = () => [...streamingSessions()].some(inScope);
+  const emptyHistoryMessage = () => {
+    if (loading()) {
+      return "Loading saved responses…";
+    }
+    if (streamingInScope()) {
+      return "Waiting for token usage…";
+    }
+    return "No completed responses with token usage yet.";
+  };
 
   const refresh = async () => {
     generation += 1;
@@ -87,19 +124,56 @@ export function CacheHistoryPanel(props: {
   createEffect(() => {
     const { sessionID } = props.panel;
     family();
+    setStreamingSessions(new Set<string>());
     if (sessionID) {
+      refresh();
+    }
+  });
+  createEffect(() => {
+    if (follow()) {
+      scrollbox?.scrollTo(scrollbox.scrollHeight);
+    }
+  });
+  const stopStepStarted = context.data.on("session.step.started", (event) => {
+    if (inScope(event.data.sessionID)) {
+      updateStreamingSession(event.data.sessionID, true);
+    }
+  });
+  const stopStepEnded = context.data.on("session.step.ended", (event) => {
+    if (inScope(event.data.sessionID)) {
+      updateStreamingSession(event.data.sessionID, false);
+      refresh();
+    }
+  });
+  const stopStepFailed = context.data.on("session.step.failed", (event) => {
+    if (inScope(event.data.sessionID)) {
+      updateStreamingSession(event.data.sessionID, false);
       refresh();
     }
   });
   const stopExecution = context.data.on(
     "session.execution.succeeded",
     (event) => {
-      if (
-        event.data.sessionID === props.panel.sessionID ||
-        (family() &&
-          context.data.session.root(event.data.sessionID) ===
-            context.data.session.root(props.panel.sessionID))
-      ) {
+      if (inScope(event.data.sessionID)) {
+        updateStreamingSession(event.data.sessionID, false);
+        refresh();
+      }
+    }
+  );
+  const stopExecutionFailed = context.data.on(
+    "session.execution.failed",
+    (event) => {
+      if (inScope(event.data.sessionID)) {
+        updateStreamingSession(event.data.sessionID, false);
+        refresh();
+      }
+    }
+  );
+  const stopExecutionInterrupted = context.data.on(
+    "session.execution.interrupted",
+    (event) => {
+      if (inScope(event.data.sessionID)) {
+        updateStreamingSession(event.data.sessionID, false);
         refresh();
       }
     }
@@ -119,7 +193,12 @@ export function CacheHistoryPanel(props: {
   });
   onCleanup(() => {
     generation += 1;
+    stopStepStarted();
+    stopStepEnded();
+    stopStepFailed();
     stopExecution();
+    stopExecutionFailed();
+    stopExecutionInterrupted();
     stopCreated();
   });
 
@@ -147,6 +226,12 @@ export function CacheHistoryPanel(props: {
         id: "cache-metrics.history.scope",
         run: () => setFamily(!family()),
         title: "Toggle cache history session scope",
+      },
+      {
+        bind: "t",
+        id: "cache-metrics.history.follow",
+        run: () => setFollow(!follow()),
+        title: "Toggle cache history follow mode",
       },
       {
         bind: "r",
@@ -211,7 +296,8 @@ export function CacheHistoryPanel(props: {
       </text>
       <text fg={context.theme.text.muted}>
         {turns().length} turns · {history().length} responses · cumulative{" "}
-        {percent(history().at(-1)?.cumulativeRate)}
+        {percent(history().at(-1)?.cumulativeRate)} · Follow{" "}
+        {follow() ? "on" : "off"}
       </text>
       <Show when={history().length > 0}>
         <text fg={context.theme.text.muted}>
@@ -228,7 +314,13 @@ export function CacheHistoryPanel(props: {
           Could not refresh history. Press r to retry.
         </text>
       </Show>
-      <scrollbox flexGrow={1}>
+      <scrollbox
+        flexGrow={1}
+        // biome-ignore lint/performance/noJsxPropsBind: Solid mounts this ref once for the panel's scrollbox.
+        ref={setScrollbox}
+        stickyScroll={follow()}
+        stickyStart="bottom"
+      >
         <For each={turns()}>
           {(turn, index) => (
             <box
@@ -368,16 +460,19 @@ export function CacheHistoryPanel(props: {
             </box>
           )}
         </For>
-        <Show when={history().length === 0}>
+        <Show when={streamingInScope()}>
           <text fg={context.theme.text.muted}>
-            {loading()
-              ? "Loading saved responses…"
-              : "No completed responses with token usage yet."}
+            Response streaming… cache metrics appear when the response
+            completes.
           </text>
+        </Show>
+        <Show when={history().length === 0}>
+          <text fg={context.theme.text.muted}>{emptyHistoryMessage()}</text>
         </Show>
       </scrollbox>
       <text fg={context.theme.text.muted}>
-        s Scope · r Refresh · e Export JSON · f Fullscreen · Esc Close
+        s Scope · t Follow · r Refresh · e Export JSON · f Fullscreen · Esc
+        Close
       </text>
     </box>
   );
