@@ -4,6 +4,7 @@ import {
   buildCacheHistory,
   exportCacheHistory,
   formatCacheHistoryTrend,
+  groupCacheHistoryTurns,
 } from "./cache-history.js";
 
 const response = (
@@ -163,6 +164,44 @@ describe("cache history timeline", () => {
       afterTools: ["grep"],
       prompt: "Find the bug now",
       retryAttempt: 2,
+    });
+  });
+
+  test("groups tool continuations into turns without merging subagent requests", () => {
+    const user = (id: string, text: string) =>
+      ({ id, text, type: "user" }) as SessionMessageInfo;
+    const history = buildCacheHistory(
+      new Map([
+        [
+          "parent",
+          [
+            user("u1", "First request"),
+            response("p1", 100, 10, 90),
+            response("p2", 300, 20, 80),
+            user("u2", "Second request"),
+            response("p3", 400, 30, 70),
+          ],
+        ],
+        ["child", [user("c1", "Subagent request"), response("c", 200, 90, 10)]],
+      ])
+    );
+    const turns = groupCacheHistoryTurns(history);
+    expect(
+      turns.map(({ sessionID, prompt, points }) => ({
+        ids: points.map((point) => point.id),
+        prompt,
+        sessionID,
+      }))
+    ).toEqual([
+      { ids: ["p1", "p2"], prompt: "First request", sessionID: "parent" },
+      { ids: ["c"], prompt: "Subagent request", sessionID: "child" },
+      { ids: ["p3"], prompt: "Second request", sessionID: "parent" },
+    ]);
+    expect(turns[0]).toMatchObject({
+      input: 30,
+      output: 50,
+      rate: 0.85,
+      read: 170,
     });
   });
 

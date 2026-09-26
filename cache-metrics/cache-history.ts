@@ -24,7 +24,21 @@ export interface CacheHistoryPoint {
   time: number;
   /** Tool calls in this response, useful for identifying the following step. */
   tools: string[];
+  /** User-message boundary in this session; responses before any user message share a fallback group. */
+  turnID: string;
   write: number;
+}
+
+export interface CacheHistoryTurn {
+  id: string;
+  input: number;
+  output: number;
+  points: CacheHistoryPoint[];
+  prompt?: string;
+  rate?: number;
+  read: number;
+  sessionID: string;
+  time: number;
 }
 
 /** Build a chronological cache history from saved messages, deduplicated by session and message ID. */
@@ -34,10 +48,14 @@ export function buildCacheHistory(
   const points = new Map<string, CacheHistoryPoint>();
   for (const [sessionID, messages] of sessions) {
     let prompt: string | undefined;
+    let turnID = `${sessionID}:before-user`;
+    let userIndex = 0;
     let afterTools: string[] = [];
     let afterCompaction: string | undefined;
     for (const message of messages) {
       if (message.type === "user") {
+        userIndex += 1;
+        turnID = `${sessionID}:user:${message.id ?? userIndex}`;
         prompt =
           message.text.replace(/\s+/g, " ").trim().slice(0, 90) || undefined;
         afterTools = [];
@@ -78,6 +96,7 @@ export function buildCacheHistory(
         sessionID,
         time: message.time.completed,
         tools,
+        turnID,
         write: cache.write,
       });
       afterTools = tools;
@@ -114,6 +133,43 @@ export function buildCacheHistory(
       previousRead,
     };
   });
+}
+
+/** Group measured assistant responses by the user message that preceded them in their own session. */
+export function groupCacheHistoryTurns(
+  points: readonly CacheHistoryPoint[]
+): CacheHistoryTurn[] {
+  const turns = new Map<string, CacheHistoryTurn>();
+  for (const point of points) {
+    let turn = turns.get(point.turnID);
+    if (!turn) {
+      turn = {
+        id: point.turnID,
+        input: 0,
+        output: 0,
+        points: [],
+        prompt: point.prompt,
+        read: 0,
+        sessionID: point.sessionID,
+        time: point.time,
+      };
+      turns.set(point.turnID, turn);
+    }
+    turn.points.push(point);
+    turn.time = Math.min(turn.time, point.time);
+    turn.input += point.input;
+    turn.read += point.read;
+    turn.output += point.output;
+  }
+  return [...turns.values()]
+    .map((turn) => ({
+      ...turn,
+      rate:
+        turn.input + turn.read > 0
+          ? turn.read / (turn.input + turn.read)
+          : undefined,
+    }))
+    .sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
 }
 
 /** Compact chronological cache-hit trend for up to the latest 40 responses; dots have no measured input. */

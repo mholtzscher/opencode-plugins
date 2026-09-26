@@ -16,6 +16,7 @@ import {
   buildCacheHistory,
   exportCacheHistory,
   formatCacheHistoryTrend,
+  groupCacheHistoryTurns,
 } from "./cache-history.js";
 
 const percent = (rate: number | undefined) =>
@@ -123,6 +124,7 @@ export function CacheHistoryPanel(props: {
   });
 
   const history = createMemo(() => buildCacheHistory(snapshots()));
+  const turns = createMemo(() => groupCacheHistoryTurns(history()));
   const rateColor = (point: CacheHistoryPoint) => {
     if (point.rate === undefined || point.rate < 0.3) {
       return context.theme.text.muted;
@@ -208,7 +210,7 @@ export function CacheHistoryPanel(props: {
         </b>
       </text>
       <text fg={context.theme.text.muted}>
-        Per response cache hit · {history().length} responses · cumulative{" "}
+        {turns().length} turns · {history().length} responses · cumulative{" "}
         {percent(history().at(-1)?.cumulativeRate)}
       </text>
       <Show when={history().length > 0}>
@@ -227,74 +229,142 @@ export function CacheHistoryPanel(props: {
         </text>
       </Show>
       <scrollbox flexGrow={1}>
-        <For each={history()}>
-          {(point) => (
+        <For each={turns()}>
+          {(turn, index) => (
             <box
               border
-              borderColor={context.theme.border.base}
+              borderColor={context.theme.hue.blue[500]}
+              borderStyle="rounded"
               flexDirection="column"
-              paddingLeft={1}
-              paddingRight={1}
               width="100%"
             >
-              <box flexDirection="row" gap={1}>
-                <text fg={rateColor(point)}>
-                  <b>{percent(point.rate)}</b>
+              <box
+                flexDirection="column"
+                paddingLeft={1}
+                paddingRight={1}
+                width="100%"
+              >
+                <text fg={context.theme.text.base}>
+                  <b>
+                    Turn {index() + 1} ·{" "}
+                    {turn.sessionID ===
+                    context.data.session.root(props.panel.sessionID)
+                      ? "Parent"
+                      : "Subagent"}{" "}
+                    · {turn.points.length}{" "}
+                    {turn.points.length === 1 ? "response" : "responses"}
+                  </b>
                 </text>
-                <Show when={point.previousRead !== undefined}>
-                  <text
-                    fg={
-                      context.theme.text.feedback?.warning?.base ??
-                      context.theme.hue.yellow[500]
-                    }
-                  >
-                    <b>
-                      ⚠ Possible cache loss ({count(point.previousRead ?? 0)} →{" "}
-                      {count(point.read)} cached)
-                    </b>
-                  </text>
-                </Show>
                 <text fg={context.theme.text.base} truncate wrapMode="none">
-                  {new Date(point.time).toLocaleTimeString()} ·{" "}
-                  {point.providerID}/{point.modelID}
+                  Request: {turn.prompt ?? "(No saved user request)"}
+                </text>
+                <text fg={context.theme.text.muted}>
+                  Turn cache hit {percent(turn.rate)} · In {count(turn.read)}{" "}
+                  cached / {count(turn.input)} new · Out {count(turn.output)}
                 </text>
               </box>
-              <text fg={context.theme.text.muted} truncate wrapMode="none">
-                {point.sessionID ===
-                context.data.session.root(props.panel.sessionID)
-                  ? "Parent"
-                  : `Subagent (${point.agent})`}{" "}
-                · In {count(point.read)} cached / {count(point.input)} new · Out{" "}
-                {count(point.output)}
-              </text>
-              <Show when={point.prompt}>
-                <text fg={context.theme.text.base} truncate wrapMode="none">
-                  Request: {point.prompt}
-                </text>
-              </Show>
-              <Show when={point.afterTools.length > 0}>
-                <text fg={context.theme.text.muted} truncate wrapMode="none">
-                  After tools: {point.afterTools.join(", ")}
-                </text>
-              </Show>
-              <Show when={point.afterCompaction}>
-                <text fg={context.theme.text.muted}>
-                  After {point.afterCompaction} compaction
-                </text>
-              </Show>
-              <Show when={point.tools.length > 0}>
-                <text fg={context.theme.text.muted} truncate wrapMode="none">
-                  Called tools: {point.tools.join(", ")}
-                </text>
-              </Show>
-              <text fg={context.theme.text.muted}>
-                Finish: {point.finish ?? "unknown"}
-                {point.retryAttempt ? ` · retry ${point.retryAttempt}` : ""}
-              </text>
-              <text fg={context.theme.text.muted}>
-                Cache writes {count(point.write)} · cumulative{" "}
-                {percent(point.cumulativeRate)}
-              </text>
+              <box
+                border={["top"]}
+                borderColor={context.theme.border.base}
+                height={1}
+                width="100%"
+              />
+              <For each={turn.points}>
+                {(point, responseIndex) => (
+                  <box flexDirection="column" width="100%">
+                    <Show when={responseIndex() > 0}>
+                      <box
+                        border={["top"]}
+                        borderColor={context.theme.border.base}
+                        height={1}
+                        width="100%"
+                      />
+                    </Show>
+                    <box
+                      flexDirection="column"
+                      paddingLeft={1}
+                      paddingRight={1}
+                      width="100%"
+                    >
+                      <box flexDirection="row" gap={1}>
+                        <text fg={rateColor(point)}>
+                          <b>
+                            Response {responseIndex() + 1} ·{" "}
+                            {percent(point.rate)}
+                          </b>
+                        </text>
+                        <Show when={point.previousRead !== undefined}>
+                          <text
+                            fg={
+                              context.theme.text.feedback?.warning?.base ??
+                              context.theme.hue.yellow[500]
+                            }
+                          >
+                            <b>
+                              ⚠ Possible cache loss (
+                              {count(point.previousRead ?? 0)} →{" "}
+                              {count(point.read)} cached)
+                            </b>
+                          </text>
+                        </Show>
+                        <text
+                          fg={context.theme.text.base}
+                          truncate
+                          wrapMode="none"
+                        >
+                          {new Date(point.time).toLocaleTimeString()} ·{" "}
+                          {point.providerID}/{point.modelID}
+                        </text>
+                      </box>
+                      <text
+                        fg={context.theme.text.muted}
+                        truncate
+                        wrapMode="none"
+                      >
+                        {point.sessionID ===
+                        context.data.session.root(props.panel.sessionID)
+                          ? "Parent"
+                          : `Subagent (${point.agent})`}{" "}
+                        · In {count(point.read)} cached / {count(point.input)}{" "}
+                        new · Out {count(point.output)}
+                      </text>
+                      <Show when={point.afterTools.length > 0}>
+                        <text
+                          fg={context.theme.text.muted}
+                          truncate
+                          wrapMode="none"
+                        >
+                          After tools: {point.afterTools.join(", ")}
+                        </text>
+                      </Show>
+                      <Show when={point.afterCompaction}>
+                        <text fg={context.theme.text.muted}>
+                          After {point.afterCompaction} compaction
+                        </text>
+                      </Show>
+                      <Show when={point.tools.length > 0}>
+                        <text
+                          fg={context.theme.text.muted}
+                          truncate
+                          wrapMode="none"
+                        >
+                          Called tools: {point.tools.join(", ")}
+                        </text>
+                      </Show>
+                      <text fg={context.theme.text.muted}>
+                        Finish: {point.finish ?? "unknown"}
+                        {point.retryAttempt
+                          ? ` · retry ${point.retryAttempt}`
+                          : ""}
+                      </text>
+                      <text fg={context.theme.text.muted}>
+                        Cache writes {count(point.write)} · cumulative{" "}
+                        {percent(point.cumulativeRate)}
+                      </text>
+                    </box>
+                  </box>
+                )}
+              </For>
             </box>
           )}
         </For>
