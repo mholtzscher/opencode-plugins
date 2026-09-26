@@ -165,12 +165,6 @@ export function CacheHistoryPanel(props: {
       refresh();
     }
   });
-  createEffect(() => {
-    turns();
-    if (follow()) {
-      scrollbox?.scrollTo(scrollbox.scrollHeight);
-    }
-  });
   const stopStepStarted = context.data.on("session.step.started", (event) => {
     trace("step started", {
       inScope: inScope(event.data.sessionID),
@@ -265,6 +259,12 @@ export function CacheHistoryPanel(props: {
 
   const history = createMemo(() => buildCacheHistory(snapshots()));
   const turns = createMemo(() => groupCacheHistoryTurns(history()));
+  createEffect(() => {
+    turns();
+    if (follow()) {
+      scrollbox?.scrollTo(scrollbox.scrollHeight);
+    }
+  });
   createEffect(() => {
     const points = history();
     const groups = turns();
