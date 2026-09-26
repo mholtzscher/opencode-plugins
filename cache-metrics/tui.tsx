@@ -184,7 +184,6 @@ export default Plugin.define({
               id: "cache-metrics.history.open",
               palette: true,
               run: openCacheHistory,
-              slash: { name: "cache-history" },
               title: "Open cache history",
             },
           ],
