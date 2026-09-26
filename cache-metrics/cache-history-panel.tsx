@@ -261,9 +261,15 @@ export function CacheHistoryPanel(props: {
   const turns = createMemo(() => groupCacheHistoryTurns(history()));
   createEffect(() => {
     turns();
-    if (follow()) {
-      scrollbox?.scrollTo(scrollbox.scrollHeight);
+    if (!follow()) {
+      return;
     }
+    const timer = setTimeout(() => {
+      if (follow()) {
+        scrollbox?.scrollTo(scrollbox.scrollHeight);
+      }
+    }, 0);
+    onCleanup(() => clearTimeout(timer));
   });
   createEffect(() => {
     const points = history();
@@ -390,6 +396,11 @@ export function CacheHistoryPanel(props: {
           }
         >
           Could not refresh history. Press r to retry.
+        </text>
+      </Show>
+      <Show when={streamingInScope()}>
+        <text fg={context.theme.text.muted}>
+          Response streaming… cache metrics appear when the response completes.
         </text>
       </Show>
       <scrollbox
@@ -538,12 +549,6 @@ export function CacheHistoryPanel(props: {
             </box>
           )}
         </For>
-        <Show when={streamingInScope()}>
-          <text fg={context.theme.text.muted}>
-            Response streaming… cache metrics appear when the response
-            completes.
-          </text>
-        </Show>
         <Show when={history().length === 0}>
           <text fg={context.theme.text.muted}>{emptyHistoryMessage()}</text>
         </Show>
