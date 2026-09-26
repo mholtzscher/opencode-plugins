@@ -1,5 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 
+import { appendFileSync } from "node:fs";
 import type { SessionMessageInfo } from "@opencode/client";
 import type { Plugin } from "@opencode/plugin/tui";
 import type { PanelInput } from "@opencode/plugin/tui/context";
@@ -48,7 +49,14 @@ export function CacheHistoryPanel(props: {
   const debug = process.env.OPENCODE_CACHE_METRICS_DEBUG === "1";
   const trace = (message: string, details: Record<string, unknown>) => {
     if (debug) {
-      console.error("[cache-metrics.history]", message, details);
+      try {
+        appendFileSync(
+          "/tmp/opencode/cache-metrics-history.log",
+          `${JSON.stringify({ message, time: new Date().toISOString(), ...details })}\n`
+        );
+      } catch {
+        // Diagnostics must not interfere with the panel when the log is unavailable.
+      }
     }
   };
 
@@ -275,18 +283,21 @@ export function CacheHistoryPanel(props: {
     commands: [
       {
         bind: "s",
+        enabled: () => props.panel.focused,
         id: "cache-metrics.history.scope",
         run: () => setFamily(!family()),
         title: "Toggle cache history session scope",
       },
       {
         bind: "t",
+        enabled: () => props.panel.focused,
         id: "cache-metrics.history.follow",
         run: () => setFollow(!follow()),
         title: "Toggle cache history follow mode",
       },
       {
         bind: "r",
+        enabled: () => props.panel.focused,
         id: "cache-metrics.history.refresh",
         run: () => {
           refresh("manual");
@@ -295,6 +306,7 @@ export function CacheHistoryPanel(props: {
       },
       {
         bind: "e",
+        enabled: () => props.panel.focused,
         id: "cache-metrics.history.export",
         run: () => {
           try {
@@ -321,15 +333,18 @@ export function CacheHistoryPanel(props: {
       },
       {
         bind: "f",
+        enabled: () => props.panel.focused,
         id: "cache-metrics.history.fullscreen",
         run: props.panel.toggleFullscreen,
       },
       {
         bind: "escape",
+        enabled: () => props.panel.focused,
         id: "cache-metrics.history.close",
         run: props.panel.close,
       },
     ],
+    mode: "global",
   }));
 
   return (

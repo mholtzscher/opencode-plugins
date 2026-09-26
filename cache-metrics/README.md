@@ -12,7 +12,7 @@ The history marks **Possible cache loss** with before-and-after cached-read coun
 
 Add `"./cache-metrics"` to the `plugins` array in your `opencode.jsonc` (use an absolute path if installing outside this repository), then restart or reload OpenCode. The TUI entrypoint loads automatically.
 
-For refresh troubleshooting, launch the TUI with `OPENCODE_CACHE_METRICS_DEBUG=1`. While the history panel is open, the CLI logs event names, session IDs, refresh triggers, message counts, and sync errors (not message contents). Search the CLI log for `[cache-metrics.history]`. The flag must be set on the TUI process, not just the server; it is off by default. A GitHub-installed copy needs to include this diagnostic code before the flag has any effect.
+For refresh troubleshooting, launch the TUI with `OPENCODE_CACHE_METRICS_DEBUG=1`. While the history panel is open, event names, session IDs, refresh triggers, message counts, and sync errors (not message contents) are written to `/tmp/opencode/cache-metrics-history.log`. The flag must be set on the TUI process, not just the server; it is off by default. A GitHub-installed copy needs to include this diagnostic code before the flag has any effect.
 
 Cache hit rate is `cache.read / (input + cache.read)` over assistant messages with token usage. “In” separates cached and new input tokens; “Out” is generated output tokens. Cache writes are listed separately because they are input context saved for future reuse, not generated output. Neither output nor cache writes enter the hit-rate denominator. The card shows “No token usage yet” until the session has a measured request. Counts are for the current session only, not its child sessions.
 
