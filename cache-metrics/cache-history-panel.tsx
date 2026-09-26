@@ -12,7 +12,7 @@ import {
   For,
   onCleanup,
   Show,
-} from "solid-js";
+} from "solid-js/dist/solid.js";
 import type { CacheHistoryPoint } from "./cache-history.js";
 import {
   buildCacheHistory,
