@@ -322,6 +322,16 @@ export function CacheHistoryPanel(props: {
         title: "Refresh cache history",
       },
       {
+        bind: "shift+r",
+        enabled: () => props.panel.focused,
+        id: "cache-metrics.history.redraw",
+        run: () => {
+          trace("redraw requested", { sessionID: props.panel.sessionID });
+          context.renderer.requestRender();
+        },
+        title: "Redraw cache history UI",
+      },
+      {
         bind: "e",
         enabled: () => props.panel.focused,
         id: "cache-metrics.history.export",
@@ -554,8 +564,8 @@ export function CacheHistoryPanel(props: {
         </Show>
       </scrollbox>
       <text fg={context.theme.text.muted}>
-        s Scope · t Follow · r Refresh · e Export JSON · f Fullscreen · Esc
-        Close
+        s Scope · t Follow · r Refresh · Shift+R Redraw · e Export JSON · f
+        Fullscreen · Esc Close
       </text>
     </box>
   );
