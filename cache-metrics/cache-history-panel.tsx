@@ -45,6 +45,12 @@ export function CacheHistoryPanel(props: {
     scrollbox = element;
   };
   let generation = 0;
+  const debug = process.env.OPENCODE_CACHE_METRICS_DEBUG === "1";
+  const trace = (message: string, details: Record<string, unknown>) => {
+    if (debug) {
+      console.error("[cache-metrics.history]", message, details);
+    }
+  };
 
   const inScope = (sessionID: string) =>
     sessionID === props.panel.sessionID ||
@@ -74,7 +80,7 @@ export function CacheHistoryPanel(props: {
     return "No completed responses with token usage yet.";
   };
 
-  const refresh = async () => {
+  const refresh = async (trigger = "initial") => {
     generation += 1;
     const current = generation;
     const { sessionID } = props.panel;
@@ -82,6 +88,12 @@ export function CacheHistoryPanel(props: {
     const ids = family()
       ? [...new Set([root, ...context.data.session.family(root)])]
       : [sessionID];
+    trace("refresh started", {
+      ids,
+      scope: family() ? "family" : "session",
+      sessionID,
+      trigger,
+    });
     setSnapshots(
       new Map(
         ids.map((id) => [id, context.data.session.message.list(id) ?? []])
@@ -109,10 +121,26 @@ export function CacheHistoryPanel(props: {
       );
       if (generation === current) {
         setSnapshots(new Map(entries));
+        trace("refresh completed", {
+          counts: entries.map(([id, messages]) => ({
+            messages: messages.length,
+            sessionID: id,
+          })),
+          sessionID,
+          trigger,
+        });
       }
-    } catch {
+    } catch (cause) {
       if (generation === current) {
         setError(true);
+        trace("refresh failed", {
+          error:
+            cause instanceof Error
+              ? `${cause.name}: ${cause.message}`
+              : String(cause),
+          sessionID,
+          trigger,
+        });
       }
     } finally {
       if (generation === current) {
@@ -135,28 +163,41 @@ export function CacheHistoryPanel(props: {
     }
   });
   const stopStepStarted = context.data.on("session.step.started", (event) => {
+    trace("step started", {
+      inScope: inScope(event.data.sessionID),
+      sessionID: event.data.sessionID,
+    });
     if (inScope(event.data.sessionID)) {
       updateStreamingSession(event.data.sessionID, true);
     }
   });
   const stopStepEnded = context.data.on("session.step.ended", (event) => {
+    trace("step ended", {
+      inScope: inScope(event.data.sessionID),
+      sessionID: event.data.sessionID,
+    });
     if (inScope(event.data.sessionID)) {
       updateStreamingSession(event.data.sessionID, false);
-      refresh();
+      refresh("step ended");
     }
   });
   const stopStepFailed = context.data.on("session.step.failed", (event) => {
+    trace("step failed", {
+      inScope: inScope(event.data.sessionID),
+      sessionID: event.data.sessionID,
+    });
     if (inScope(event.data.sessionID)) {
       updateStreamingSession(event.data.sessionID, false);
-      refresh();
+      refresh("step failed");
     }
   });
   const stopExecution = context.data.on(
     "session.execution.succeeded",
     (event) => {
       if (inScope(event.data.sessionID)) {
+        trace("execution succeeded", { sessionID: event.data.sessionID });
         updateStreamingSession(event.data.sessionID, false);
-        refresh();
+        refresh("execution succeeded");
       }
     }
   );
@@ -164,8 +205,9 @@ export function CacheHistoryPanel(props: {
     "session.execution.failed",
     (event) => {
       if (inScope(event.data.sessionID)) {
+        trace("execution failed", { sessionID: event.data.sessionID });
         updateStreamingSession(event.data.sessionID, false);
-        refresh();
+        refresh("execution failed");
       }
     }
   );
@@ -173,8 +215,9 @@ export function CacheHistoryPanel(props: {
     "session.execution.interrupted",
     (event) => {
       if (inScope(event.data.sessionID)) {
+        trace("execution interrupted", { sessionID: event.data.sessionID });
         updateStreamingSession(event.data.sessionID, false);
-        refresh();
+        refresh("execution interrupted");
       }
     }
   );
@@ -187,8 +230,17 @@ export function CacheHistoryPanel(props: {
     ) {
       context.data.session
         .sync(event.data.sessionID)
-        .then(refresh)
-        .catch(() => setError(true));
+        .then(() => refresh("session created"))
+        .catch((cause: unknown) => {
+          setError(true);
+          trace("child session sync failed", {
+            error:
+              cause instanceof Error
+                ? `${cause.name}: ${cause.message}`
+                : String(cause),
+            sessionID: event.data.sessionID,
+          });
+        });
     }
   });
   onCleanup(() => {
@@ -237,7 +289,7 @@ export function CacheHistoryPanel(props: {
         bind: "r",
         id: "cache-metrics.history.refresh",
         run: () => {
-          refresh();
+          refresh("manual");
         },
         title: "Refresh cache history",
       },
