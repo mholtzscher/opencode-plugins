@@ -166,6 +166,7 @@ export function CacheHistoryPanel(props: {
     }
   });
   createEffect(() => {
+    turns();
     if (follow()) {
       scrollbox?.scrollTo(scrollbox.scrollHeight);
     }
@@ -264,6 +265,16 @@ export function CacheHistoryPanel(props: {
 
   const history = createMemo(() => buildCacheHistory(snapshots()));
   const turns = createMemo(() => groupCacheHistoryTurns(history()));
+  createEffect(() => {
+    const points = history();
+    const groups = turns();
+    trace("view updated", {
+      lastResponseID: points.at(-1)?.id,
+      responses: points.length,
+      sessionID: props.panel.sessionID,
+      turns: groups.length,
+    });
+  });
   const rateColor = (point: CacheHistoryPoint) => {
     if (point.rate === undefined || point.rate < 0.3) {
       return context.theme.text.muted;
