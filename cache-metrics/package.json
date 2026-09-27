@@ -8,8 +8,7 @@
     "./tui": "./dist/tui.js"
   },
   "scripts": {
-    "build": "bun run build.ts",
-    "prepack": "bun run build",
+    "build:tui": "bun run build.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

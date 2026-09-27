@@ -25,7 +25,7 @@ if (check) {
   ]);
   if (saved !== compiled) {
     throw new Error(
-      "TUI build is stale. Run bun run build and commit dist/tui.js."
+      "TUI build is stale. Run bun run build:tui and commit dist/tui.js."
     );
   }
 }
