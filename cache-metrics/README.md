@@ -16,4 +16,6 @@ For refresh troubleshooting, launch the TUI with `OPENCODE_CACHE_METRICS_DEBUG=1
 
 Cache hit rate is `cache.read / (input + cache.read)` over assistant messages with token usage. “In” separates cached and new input tokens; “Out” is generated output tokens. Cache writes are listed separately because they are input context saved for future reuse, not generated output. Neither output nor cache writes enter the hit-rate denominator. The card shows “No token usage yet” until the session has a measured request. Counts are for the current session only, not its child sessions.
 
-Run `bun install`, `bun run typecheck`, and `bun test` from this directory to check the plugin.
+Run `bun install`, `bun run build`, `bun run typecheck`, and `bun test` from this directory to check the plugin.
+
+The TUI export points to `dist/tui.js`, compiled with Solid's universal JSX transform. OpenTUI skips that transform for raw TSX inside `node_modules`, so exporting the source works locally but produces nonreactive UI after installation. The build keeps OpenCode, OpenTUI, and Solid imports external to share the host's runtimes. Commit the rebuilt `dist/tui.js` whenever TUI source changes: GitHub subdirectory installs use this checked-in artifact. `prepack` also rebuilds it for package archives. Local development uses the same compiled export; run `bun run build` after editing the TUI.

@@ -1,3 +1,6 @@
 {
-  "extends": ["ultracite/biome/core", "ultracite/biome/solid"]
+  "extends": ["ultracite/biome/core", "ultracite/biome/solid"],
+  "files": {
+    "includes": ["!!cache-metrics/dist"]
+  }
 }

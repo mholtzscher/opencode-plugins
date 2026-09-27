@@ -5,9 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
-    "./tui": "./tui.tsx"
+    "./tui": "./dist/tui.js"
   },
   "scripts": {
+    "build": "bun run build.ts",
+    "prepack": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
