@@ -5,6 +5,7 @@ import type { SessionMessageInfo } from "@opencode/client";
 import type { Plugin } from "@opencode/plugin/tui";
 import type { PanelInput } from "@opencode/plugin/tui/context";
 import type { ScrollBoxRenderable } from "@opentui/core";
+import type { JSX } from "solid-js";
 import {
   createEffect,
   createMemo,
@@ -374,7 +375,8 @@ export function CacheHistoryPanel(props: {
     mode: "global",
   }));
 
-  return (
+  // The JSX runtime evaluates props eagerly; an accessor lets OpenTUI track signal reads.
+  return (() => (
     <box
       flexDirection="column"
       gap={1}
@@ -568,5 +570,5 @@ export function CacheHistoryPanel(props: {
         Fullscreen · Esc Close
       </text>
     </box>
-  );
+  )) as unknown as JSX.Element;
 }
