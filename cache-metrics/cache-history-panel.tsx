@@ -5,7 +5,6 @@ import type { SessionMessageInfo } from "@opencode/client";
 import type { Plugin } from "@opencode/plugin/tui";
 import type { PanelInput } from "@opencode/plugin/tui/context";
 import type { ScrollBoxRenderable } from "@opentui/core";
-import type { JSX } from "solid-js";
 import {
   createEffect,
   createMemo,
@@ -13,7 +12,7 @@ import {
   For,
   onCleanup,
   Show,
-} from "solid-js/dist/solid.js";
+} from "solid-js";
 import type { CacheHistoryPoint } from "./cache-history.js";
 import {
   buildCacheHistory,
@@ -375,8 +374,7 @@ export function CacheHistoryPanel(props: {
     mode: "global",
   }));
 
-  // The JSX runtime evaluates props eagerly; an accessor lets OpenTUI track signal reads.
-  return (() => (
+  return (
     <box
       flexDirection="column"
       gap={1}
@@ -408,11 +406,6 @@ export function CacheHistoryPanel(props: {
           }
         >
           Could not refresh history. Press r to retry.
-        </text>
-      </Show>
-      <Show when={streamingInScope()}>
-        <text fg={context.theme.text.muted}>
-          Response streaming… cache metrics appear when the response completes.
         </text>
       </Show>
       <scrollbox
@@ -570,5 +563,5 @@ export function CacheHistoryPanel(props: {
         Fullscreen · Esc Close
       </text>
     </box>
-  )) as unknown as JSX.Element;
+  );
 }

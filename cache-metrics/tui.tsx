@@ -1,12 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode/plugin/tui";
 import type { BoxRenderable, TextRenderable } from "@opentui/core";
-import {
-  createEffect,
-  createSignal,
-  onCleanup,
-  Show,
-} from "solid-js/dist/solid.js";
+import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { CacheHistoryPanel } from "./cache-history-panel.js";
 import { calculateSessionCacheRate } from "./cache-rate.js";
 
