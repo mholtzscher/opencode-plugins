@@ -1,15 +1,14 @@
 /** @jsxImportSource @opentui/solid */
 
-import { appendFileSync } from "node:fs";
 import type { SessionMessageInfo } from "@opencode/client";
-import type { Plugin } from "@opencode/plugin/tui";
-import type { PanelInput } from "@opencode/plugin/tui/context";
+import type { Context, PanelInput } from "@opencode/plugin/tui/context";
 import type { ScrollBoxRenderable } from "@opentui/core";
 import {
   createEffect,
   createMemo,
   createSignal,
   For,
+  on,
   onCleanup,
   Show,
 } from "solid-js";
@@ -28,7 +27,7 @@ const count = (tokens: number) => tokens.toLocaleString();
 /** Session panel showing chronological cache history for the current session and its subagents. */
 export function CacheHistoryPanel(props: {
   panel: PanelInput;
-  context: Parameters<Parameters<typeof Plugin.define>[0]["setup"]>[0];
+  context: Context;
 }) {
   const { context } = props;
   const [family, setFamily] = createSignal(true);
@@ -46,19 +45,6 @@ export function CacheHistoryPanel(props: {
     scrollbox = element;
   };
   let generation = 0;
-  const debug = process.env.OPENCODE_CACHE_METRICS_DEBUG === "1";
-  const trace = (message: string, details: Record<string, unknown>) => {
-    if (debug) {
-      try {
-        appendFileSync(
-          "/tmp/opencode/cache-metrics-history.log",
-          `${JSON.stringify({ message, time: new Date().toISOString(), ...details })}\n`
-        );
-      } catch {
-        // Diagnostics must not interfere with the panel when the log is unavailable.
-      }
-    }
-  };
 
   const inScope = (sessionID: string) =>
     sessionID === props.panel.sessionID ||
@@ -88,40 +74,33 @@ export function CacheHistoryPanel(props: {
     return "No completed responses with token usage yet.";
   };
 
-  const refresh = async (trigger = "initial") => {
+  const sessionIDs = (sessionID: string, includeFamily: boolean) => {
+    if (!includeFamily) {
+      return [sessionID];
+    }
+    const root = context.data.session.root(sessionID);
+    return [...new Set([root, ...context.data.session.family(root)])];
+  };
+
+  const refresh = async () => {
     generation += 1;
     const current = generation;
     const { sessionID } = props.panel;
-    const root = context.data.session.root(sessionID);
-    const ids = family()
-      ? [...new Set([root, ...context.data.session.family(root)])]
-      : [sessionID];
-    trace("refresh started", {
-      ids,
-      scope: family() ? "family" : "session",
-      sessionID,
-      trigger,
-    });
+    const includeFamily = family();
     setSnapshots(
       new Map(
-        ids.map((id) => [id, context.data.session.message.list(id) ?? []])
+        sessionIDs(sessionID, includeFamily).map((id) => [
+          id,
+          context.data.session.message.list(id) ?? [],
+        ])
       )
     );
     setLoading(true);
     setError(false);
     try {
       await context.data.session.sync(sessionID);
-      const refreshedRoot = context.data.session.root(sessionID);
-      const refreshedIDs = family()
-        ? [
-            ...new Set([
-              refreshedRoot,
-              ...context.data.session.family(refreshedRoot),
-            ]),
-          ]
-        : [sessionID];
       const entries = await Promise.all(
-        refreshedIDs.map(async (id) => {
+        sessionIDs(sessionID, includeFamily).map(async (id) => {
           context.data.session.message.invalidate(id);
           await context.data.session.message.sync(id);
           return [id, context.data.session.message.list(id) ?? []] as const;
@@ -129,26 +108,10 @@ export function CacheHistoryPanel(props: {
       );
       if (generation === current) {
         setSnapshots(new Map(entries));
-        trace("refresh completed", {
-          counts: entries.map(([id, messages]) => ({
-            messages: messages.length,
-            sessionID: id,
-          })),
-          sessionID,
-          trigger,
-        });
       }
-    } catch (cause) {
+    } catch {
       if (generation === current) {
         setError(true);
-        trace("refresh failed", {
-          error:
-            cause instanceof Error
-              ? `${cause.name}: ${cause.message}`
-              : String(cause),
-          sessionID,
-          trigger,
-        });
       }
     } finally {
       if (generation === current) {
@@ -157,104 +120,63 @@ export function CacheHistoryPanel(props: {
     }
   };
 
-  createEffect(() => {
-    const { sessionID } = props.panel;
-    family();
-    setStreamingSessions(new Set<string>());
-    if (sessionID) {
-      refresh();
-    }
-  });
-  const stopStepStarted = context.data.on("session.step.started", (event) => {
-    trace("step started", {
-      inScope: inScope(event.data.sessionID),
-      sessionID: event.data.sessionID,
-    });
-    if (inScope(event.data.sessionID)) {
-      updateStreamingSession(event.data.sessionID, true);
-    }
-  });
-  const stopStepEnded = context.data.on("session.step.ended", (event) => {
-    trace("step ended", {
-      inScope: inScope(event.data.sessionID),
-      sessionID: event.data.sessionID,
-    });
-    if (inScope(event.data.sessionID)) {
-      updateStreamingSession(event.data.sessionID, false);
-      refresh("step ended");
-    }
-  });
-  const stopStepFailed = context.data.on("session.step.failed", (event) => {
-    trace("step failed", {
-      inScope: inScope(event.data.sessionID),
-      sessionID: event.data.sessionID,
-    });
-    if (inScope(event.data.sessionID)) {
-      updateStreamingSession(event.data.sessionID, false);
-      refresh("step failed");
-    }
-  });
-  const stopExecution = context.data.on(
+  createEffect(
+    on([() => props.panel.sessionID, family], ([sessionID]) => {
+      setStreamingSessions(new Set<string>());
+      if (sessionID) {
+        refresh();
+      }
+    })
+  );
+  onCleanup(
+    context.data.on("session.step.started", (event) => {
+      if (inScope(event.data.sessionID)) {
+        updateStreamingSession(event.data.sessionID, true);
+      }
+    })
+  );
+  for (const type of [
+    "session.step.ended",
+    "session.step.failed",
     "session.execution.succeeded",
-    (event) => {
-      if (inScope(event.data.sessionID)) {
-        trace("execution succeeded", { sessionID: event.data.sessionID });
-        updateStreamingSession(event.data.sessionID, false);
-        refresh("execution succeeded");
-      }
-    }
-  );
-  const stopExecutionFailed = context.data.on(
     "session.execution.failed",
-    (event) => {
-      if (inScope(event.data.sessionID)) {
-        trace("execution failed", { sessionID: event.data.sessionID });
-        updateStreamingSession(event.data.sessionID, false);
-        refresh("execution failed");
-      }
-    }
-  );
-  const stopExecutionInterrupted = context.data.on(
     "session.execution.interrupted",
-    (event) => {
-      if (inScope(event.data.sessionID)) {
-        trace("execution interrupted", { sessionID: event.data.sessionID });
-        updateStreamingSession(event.data.sessionID, false);
-        refresh("execution interrupted");
-      }
-    }
-  );
-  const stopCreated = context.data.on("session.created", (event) => {
-    if (
-      family() &&
-      event.data.parentID &&
-      context.data.session.root(event.data.parentID) ===
-        context.data.session.root(props.panel.sessionID)
-    ) {
-      context.data.session
-        .sync(event.data.sessionID)
-        .then(() => refresh("session created"))
-        .catch((cause: unknown) => {
-          setError(true);
-          trace("child session sync failed", {
-            error:
-              cause instanceof Error
-                ? `${cause.name}: ${cause.message}`
-                : String(cause),
-            sessionID: event.data.sessionID,
+  ] as const) {
+    onCleanup(
+      context.data.on(type, (event) => {
+        if (inScope(event.data.sessionID)) {
+          updateStreamingSession(event.data.sessionID, false);
+          refresh();
+        }
+      })
+    );
+  }
+  onCleanup(
+    context.data.on("session.created", (event) => {
+      if (
+        family() &&
+        event.data.parentID &&
+        context.data.session.root(event.data.parentID) ===
+          context.data.session.root(props.panel.sessionID)
+      ) {
+        const current = generation;
+        context.data.session
+          .sync(event.data.sessionID)
+          .then(() => {
+            if (generation === current) {
+              return refresh();
+            }
+          })
+          .catch(() => {
+            if (generation === current) {
+              setError(true);
+            }
           });
-        });
-    }
-  });
+      }
+    })
+  );
   onCleanup(() => {
     generation += 1;
-    stopStepStarted();
-    stopStepEnded();
-    stopStepFailed();
-    stopExecution();
-    stopExecutionFailed();
-    stopExecutionInterrupted();
-    stopCreated();
   });
 
   const history = createMemo(() => buildCacheHistory(snapshots()));
@@ -264,22 +186,13 @@ export function CacheHistoryPanel(props: {
     if (!follow()) {
       return;
     }
+    // Scroll after OpenTUI has laid out the newly inserted rows.
     const timer = setTimeout(() => {
       if (follow()) {
         scrollbox?.scrollTo(scrollbox.scrollHeight);
       }
     }, 0);
     onCleanup(() => clearTimeout(timer));
-  });
-  createEffect(() => {
-    const points = history();
-    const groups = turns();
-    trace("view updated", {
-      lastResponseID: points.at(-1)?.id,
-      responses: points.length,
-      sessionID: props.panel.sessionID,
-      turns: groups.length,
-    });
   });
   const rateColor = (point: CacheHistoryPoint) => {
     if (point.rate === undefined || point.rate < 0.3) {
@@ -316,20 +229,8 @@ export function CacheHistoryPanel(props: {
         bind: "r",
         enabled: () => props.panel.focused,
         id: "cache-metrics.history.refresh",
-        run: () => {
-          refresh("manual");
-        },
+        run: refresh,
         title: "Refresh cache history",
-      },
-      {
-        bind: "shift+r",
-        enabled: () => props.panel.focused,
-        id: "cache-metrics.history.redraw",
-        run: () => {
-          trace("redraw requested", { sessionID: props.panel.sessionID });
-          context.renderer.requestRender();
-        },
-        title: "Redraw cache history UI",
       },
       {
         bind: "e",
@@ -559,8 +460,8 @@ export function CacheHistoryPanel(props: {
         </Show>
       </scrollbox>
       <text fg={context.theme.text.muted}>
-        s Scope · t Follow · r Refresh · Shift+R Redraw · e Export JSON · f
-        Fullscreen · Esc Close
+        s Scope · t Follow · r Refresh · e Export JSON · f Fullscreen · Esc
+        Close
       </text>
     </box>
   );
