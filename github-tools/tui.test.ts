@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { parsePullRequestCommandArguments } from "./tui.js";
+import { parsePullRequestCommandArguments } from "./pr.js";
 
 describe("parsePullRequestCommandArguments", () => {
   test("separates control flags from user guidance", () => {
