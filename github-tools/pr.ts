@@ -37,7 +37,13 @@ A compact, visual outline — not prose and not a file-by-file changelog. Includ
 Prefer \`diff\` blocks for edits to an existing shape; show the complete target shape when most of it is new or when diff notation would obscure ownership or order.
 Write as one human talking to another: simple, coherent, concise.`;
 
-const PR_DESCRIPTION_PUBLISH_INSTRUCTIONS = `Publish the description with \`gh pr edit {number} --body "..."\`; for long bodies, write the body to a file under \`/tmp/\` (for example \`/tmp/pr-{number}-body.md\`) and publish with \`gh pr edit {number} --body-file <path>\`. Confirm the update succeeded.`;
+const PR_DESCRIPTION_PUBLISH_INSTRUCTIONS = `Publish the description with \`gh pr edit {number} --body "..."\`; for long bodies, write the body to a file under \`/tmp/\` (for example \`/tmp/pr-{number}-body.md\`) and publish with \`gh pr edit {number} --body-file <path>\`. Verify the published body by comparing the parsed \`gh pr view {number} --json body\` string with the intended text (allowing for a terminal newline), not raw CLI output bytes.`;
+
+const PR_DIFF_REVIEW_INSTRUCTIONS =
+  "Inventory changed paths first, then account for every path in the complete relevant diff before drafting. For large diffs, read it file by file or in bounded chunks and track which paths are done; a test-name list or a diff summary is not a substitute for reading the changed content. Read surrounding code where needed to understand behavior and ownership. If you cannot finish reviewing the diff, say so and stop before publishing.";
+
+const PR_SCOPE_INSTRUCTIONS =
+  "Classify the change from the diff before writing: new user-visible capability is a feature, while a behavior-preserving internal rewrite is a refactor. Check whether the existing PR title describes that scope. For a description-only update, leave the title alone unless the user asks to change it; call out a misleading title in the report instead of adopting its framing in the body.";
 
 export const parsePullRequestCommandArguments = (
   args: string
@@ -61,7 +67,7 @@ export const buildPullRequestPrompt = (args: string): string => {
 
   return `Package the current working-tree changes into a GitHub pull request. Follow these steps in order:
 
-1. **Review the repository and changes** — inspect the current branch, working-tree status, and relevant staged, unstaged, and untracked changes. Discover the default branch from GitHub (for example, \`gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'\`) or the remote's symbolic HEAD; never assume \`main\` or \`master\`. Do not commit anything unrelated or pre-existing. Read the complete diff and enough surrounding code to understand behavior and ownership.
+1. **Review the repository and changes** — inspect the current branch, working-tree status, and relevant staged, unstaged, and untracked changes. Discover the default branch from GitHub (for example, \`gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'\`) or the remote's symbolic HEAD; never assume \`main\` or \`master\`. Do not commit anything unrelated or pre-existing. ${PR_DIFF_REVIEW_INSTRUCTIONS} ${PR_SCOPE_INSTRUCTIONS}
 
 2. **Choose a branch** — if the current branch is a non-default branch, including a branch already checked out in a linked worktree, use it as-is; do not create or switch branches. If it is the default branch or HEAD is detached, derive a short, kebab-case branch name from the change, unless the request below provides one, and create it from the current HEAD with \`git switch -c <branch>\`.
 
@@ -72,7 +78,7 @@ export const buildPullRequestPrompt = (args: string): string => {
    - Add a body only if the "what" or "why" is not obvious from the subject.
 
 4. **Push and open a PR** — push the selected branch with \`git push -u origin <branch>\`, then open a PR against the discovered default branch using \`gh pr create --base <default-branch>\`:
-   - Title: the same as the commit subject.
+   - Title: the same as the commit subject; choose its type from the actual scope, not the branch name or an earlier commit.
    - ${PR_BODY_TEMPLATE_INSTRUCTIONS}
    - Publish the body with \`gh\`'s \`--body\` flag or a heredoc; for long bodies, write to a file under \`/tmp/\` and use \`--body-file\`.
    - ${PR_DESCRIPTION_PUBLISH_INSTRUCTIONS.replaceAll("{number}", "<PR-NUMBER>")}
@@ -99,7 +105,7 @@ export const buildPrDescribePrompt = (
 
 1. **Identify the PR** — confirm state with \`gh pr view --json url,number,title,state,baseRefName,headRefName\`. The target is PR #${pr.number} on \`${pr.headRefName}\` → \`${pr.baseRefName}\`. Do not commit, push, or switch branches.
 
-2. **Gather context** — read the complete PR diff (\`gh pr diff ${pr.number}\` plus \`gh pr view\` metadata) and enough surrounding code to understand behavior and ownership. Collect any ticket, task, or plan URLs only when already known from the branch or conversation.
+2. **Gather context** — inspect \`gh pr diff ${pr.number}\` and \`gh pr view\` metadata. ${PR_DIFF_REVIEW_INSTRUCTIONS} ${PR_SCOPE_INSTRUCTIONS} Collect any ticket, task, or plan URLs only when already known from the branch or conversation.
 
 3. **Write the description** — ${PR_BODY_TEMPLATE_INSTRUCTIONS}
 
