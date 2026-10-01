@@ -1,6 +1,6 @@
 // biome-ignore-all lint/performance/noAwaitInLoops: Stream reads and retry attempts must be sequential.
 // biome-ignore-all lint/style/useErrorCause: Raw fetch and JSON errors can contain credentials or submitted state.
-import { MAX_BYTES } from "./schema.js";
+import { MAX_BYTES } from "./limits.js";
 import { ClassificationError } from "./types.js";
 
 export interface TransportOptions {

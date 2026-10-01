@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
 import { parseOptions } from "../config.js";
+import { MAX_BYTES } from "../limits.js";
 import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
 import { createAdapter } from "../providers/adapter.js";
-import { MAX_BYTES, validateResponse } from "../schema.js";
+import { buildToolInputSchema, validateResponse } from "../schema.js";
 import { createClassifier } from "../service.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
@@ -140,6 +141,11 @@ test("output parser preserves special choice labels and structured legends", () 
     probabilities: JSON.parse('{"__proto__":0.9,"constructor":0.1}'),
     type: "choice",
   };
+  Reflect.set(output.result.answers.severity, "legend", {
+    "0": "None",
+    "1": { impact: "Some users" },
+    "2": ["Production", { status: "Unavailable" }],
+  });
   expect(parseClassifyOutput(JSON.stringify(output))).toEqual(output);
 });
 
@@ -166,6 +172,186 @@ test("output parser allows envelope overhead at native byte and depth boundaries
     };
     expect(parseClassifyOutput(JSON.stringify(output))).toEqual(output);
   }
+});
+
+test("public answers enforce standalone bounds without synthetic request data", () => {
+  const cases: unknown[] = [
+    {},
+    Object.fromEntries(
+      Array.from({ length: 65 }, (_, i) => [
+        `q${i}`,
+        { noul: 0.5, type: "noul" },
+      ])
+    ),
+    { "bad/name": { noul: 0.5, type: "noul" } },
+    { q: { noul: 0.5, type: "unknown" } },
+    { q: { noul: -0.1, type: "noul" } },
+    {
+      q: {
+        choice: "only",
+        confidence: 0.5,
+        probabilities: { only: 1 },
+        type: "choice",
+      },
+    },
+    {
+      q: {
+        choice: " ",
+        confidence: 0.5,
+        probabilities: { " ": 0.5, other: 0.5 },
+        type: "choice",
+      },
+    },
+    {
+      q: {
+        choice: "x".repeat(129),
+        confidence: 0.5,
+        probabilities: { ["x".repeat(129)]: 0.5, other: 0.5 },
+        type: "choice",
+      },
+    },
+    {
+      q: {
+        choice: "l0",
+        confidence: 0.5,
+        probabilities: Object.fromEntries(
+          Array.from({ length: 256 }, (_, i) => [`l${i}`, 1 / 256])
+        ),
+        type: "choice",
+      },
+    },
+    {
+      q: {
+        confidence: 0.5,
+        legend: { "0": "Only" },
+        probabilities: { "0": 1 },
+        scale: { max: 0, min: 0 },
+        score: 0,
+        type: "score",
+      },
+    },
+    {
+      q: {
+        confidence: 0.5,
+        legend: Object.fromEntries(
+          Array.from({ length: 11 }, (_, i) => [String(i), "Level"])
+        ),
+        probabilities: Object.fromEntries(
+          Array.from({ length: 11 }, (_, i) => [String(i), 1 / 11])
+        ),
+        scale: { max: 10, min: 0 },
+        score: 0,
+        type: "score",
+      },
+    },
+  ];
+  for (const answers of cases) {
+    const output = success();
+    Reflect.set(output.result, "answers", answers);
+    expect(() => parseClassifyOutput(output)).toThrow(
+      "Invalid classification output."
+    );
+  }
+  const maximum = success();
+  Reflect.set(
+    maximum.result,
+    "answers",
+    Object.fromEntries(
+      Array.from({ length: 64 }, (_, i) => [
+        `q${i}`,
+        { noul: 0.5, type: "noul" },
+      ])
+    )
+  );
+  expect(parseClassifyOutput(maximum)).toBe(maximum);
+});
+
+test("public output rejects extras that native response validation strips", () => {
+  const native = response();
+  Object.assign(native.answers.category, { explanation: "private" });
+  Object.assign(native.usage, { extra: 1 });
+  const result = validateResponse(native, input, "typesafe");
+  const output = {
+    ok: true as const,
+    result: { ...result, durationMs: 0, provider: "typesafe" as const },
+  };
+  expect(parseClassifyOutput(output)).toBe(output);
+  for (const target of [
+    output.result.answers.category,
+    output.result.usage,
+    output.result,
+  ]) {
+    Object.assign(target, { extra: 1 });
+    expect(() => parseClassifyOutput(output)).toThrow(
+      "Invalid classification output."
+    );
+    Reflect.deleteProperty(target, "extra");
+  }
+});
+
+test("public output retains the native response byte limit", () => {
+  const native = response();
+  native.answers.severity.legend["2"] = "x".repeat(
+    MAX_BYTES - Buffer.byteLength(JSON.stringify(native)) + "Unavailable".length
+  );
+  const output = {
+    ok: true as const,
+    result: {
+      ...validateResponse(native, input, "typesafe"),
+      durationMs: 0,
+      provider: "typesafe" as const,
+    },
+  };
+  expect(parseClassifyOutput(output)).toBe(output);
+  const score = output.result.answers.severity;
+  if (score.type !== "score") {
+    throw new Error("Expected score");
+  }
+  score.legend["2"] += "x";
+  expect(() => parseClassifyOutput(output)).toThrow(
+    "Invalid classification output."
+  );
+});
+
+test("advertised input and output limits match at each contract boundary", () => {
+  const schema = buildToolInputSchema({});
+  if (!("properties" in schema)) {
+    throw new Error("Expected ad hoc schema");
+  }
+  const inputQuestions = schema.properties.questions;
+  const outputAnswers = "oneOf.0.properties.result.properties.answers";
+  expect(inputQuestions).toHaveProperty("maxProperties", 64);
+  expect(classifyOutputSchema).toHaveProperty(
+    `${outputAnswers}.maxProperties`,
+    64
+  );
+  const inputTypes = inputQuestions.additionalProperties.oneOf;
+  const outputTypes = `${outputAnswers}.additionalProperties.oneOf`;
+  expect(inputTypes[1]).toHaveProperty(
+    "properties.criteria.anyOf.0.maxProperties",
+    255
+  );
+  expect(classifyOutputSchema).toHaveProperty(
+    `${outputTypes}.1.properties.probabilities.maxProperties`,
+    255
+  );
+  expect(inputTypes[1]).toHaveProperty(
+    "properties.criteria.anyOf.1.items.properties.label.maxLength",
+    128
+  );
+  expect(classifyOutputSchema).toHaveProperty(
+    `${outputTypes}.1.properties.choice.maxLength`,
+    128
+  );
+  expect(inputTypes[2]).toHaveProperty("properties.criteria.maxItems", 10);
+  expect(classifyOutputSchema).toHaveProperty(
+    `${outputTypes}.2.properties.legend.maxProperties`,
+    10
+  );
+  expect(classifyOutputSchema).toHaveProperty(
+    `${outputTypes}.2.properties.scale.properties.max.maximum`,
+    9
+  );
 });
 
 test("failure parser validates optional diagnostics and rejects partial answers", () => {

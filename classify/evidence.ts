@@ -4,7 +4,8 @@ import { type FileHandle, lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
-import { boundedJson, MAX_BYTES } from "./schema.js";
+import { MAX_BYTES } from "./limits.js";
+import { boundedJson } from "./schema.js";
 import {
   ClassificationError,
   type Content,

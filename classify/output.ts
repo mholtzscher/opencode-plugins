@@ -1,25 +1,30 @@
 import {
+  DISTRIBUTION_TOLERANCE,
+  MAX_BYTES,
+  MAX_CHOICES,
+  MAX_JSON_DEPTH,
+  MAX_LABEL_LENGTH,
+  MAX_QUESTIONS,
+  MAX_SCORE_LEVELS,
+  MIN_CHOICES,
+  MIN_SCORE_LEVELS,
+  NAME_PATTERN,
+} from "./limits.js";
+import {
   boundedJson,
   fields,
-  MAX_BYTES,
-  NAME_PATTERN,
   nonblank,
-  parseQuestions,
   record,
-  validateResponse,
+  validateAnswer,
+  validateUsage,
 } from "./schema.js";
-import {
-  type ClassifyOutput,
-  type Content,
-  ERROR_CODES,
-  type Question,
-} from "./types.js";
+import { type ClassifyOutput, ERROR_CODES } from "./types.js";
 
 const probability = { maximum: 1, minimum: 0, type: "number" };
 const nonnegative = { minimum: 0, type: "number" };
 const count = { minimum: 0, type: "integer" };
 const provider = { enum: ["typesafe", "laya", "openai-decisions"] };
-const name = { pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$", type: "string" };
+const name = { pattern: NAME_PATTERN.source, type: "string" };
 const requestID = { pattern: "^[A-Za-z0-9._:-]{1,256}$", type: "string" };
 const REQUEST_ID_PATTERN = new RegExp(requestID.pattern, "u");
 const POINTER_PATTERN = /^(?:\/(?:[^~]|~[01])*)*$/u;
@@ -33,14 +38,17 @@ const content = {
 };
 const probabilities = {
   additionalProperties: probability,
-  maxProperties: 255,
-  minProperties: 2,
+  maxProperties: MAX_CHOICES,
+  minProperties: MIN_CHOICES,
   type: "object",
 };
 const confidence = {
   ...probability,
   description:
     "Provider-native uncertainty metric; not probability of correctness or necessarily comparable across providers.",
+};
+const scoreIndices = {
+  enum: Array.from({ length: MAX_SCORE_LEVELS }, (_, index) => String(index)),
 };
 const answer = {
   oneOf: [
@@ -59,11 +67,11 @@ const answer = {
     {
       additionalProperties: false,
       properties: {
-        choice: { ...text, maxLength: 128 },
+        choice: { ...text, maxLength: MAX_LABEL_LENGTH },
         confidence,
         probabilities: {
           ...probabilities,
-          propertyNames: { ...text, maxLength: 128 },
+          propertyNames: { ...text, maxLength: MAX_LABEL_LENGTH },
         },
         type: { const: "choice" },
       },
@@ -76,26 +84,31 @@ const answer = {
         confidence,
         legend: {
           additionalProperties: content,
-          maxProperties: 10,
-          minProperties: 2,
-          propertyNames: { pattern: "^[0-9]$" },
+          maxProperties: MAX_SCORE_LEVELS,
+          minProperties: MIN_SCORE_LEVELS,
+          propertyNames: scoreIndices,
           type: "object",
         },
         probabilities: {
           ...probabilities,
-          maxProperties: 10,
-          propertyNames: { pattern: "^[0-9]$" },
+          maxProperties: MAX_SCORE_LEVELS,
+          minProperties: MIN_SCORE_LEVELS,
+          propertyNames: scoreIndices,
         },
         scale: {
           additionalProperties: false,
           properties: {
-            max: { maximum: 9, minimum: 1, type: "integer" },
+            max: {
+              maximum: MAX_SCORE_LEVELS - 1,
+              minimum: MIN_SCORE_LEVELS - 1,
+              type: "integer",
+            },
             min: { const: 0 },
           },
           required: ["min", "max"],
           type: "object",
         },
-        score: { maximum: 9, minimum: 0, type: "number" },
+        score: { maximum: MAX_SCORE_LEVELS - 1, minimum: 0, type: "number" },
         type: { const: "score" },
       },
       required: [
@@ -114,8 +127,7 @@ const answer = {
 /** Structural schema. The parser also checks distribution sums and cross-field consistency. */
 export const classifyOutputSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  description:
-    "Classification output. Distributions have absolute sum error below 0.02. Choice must belong to its distribution. Score scale, legend, and distribution use the same contiguous zero-based indices; score is within scale bounds. Native values are never rounded or renormalized.",
+  description: `Classification output. Distributions have absolute sum error below ${DISTRIBUTION_TOLERANCE}. Choice must belong to its distribution. Score scale, legend, and distribution use the same contiguous zero-based indices; score is within scale bounds. Native values are never rounded or renormalized.`,
   oneOf: [
     {
       additionalProperties: false,
@@ -126,7 +138,7 @@ export const classifyOutputSchema = {
           properties: {
             answers: {
               additionalProperties: answer,
-              maxProperties: 64,
+              maxProperties: MAX_QUESTIONS,
               minProperties: 1,
               propertyNames: name,
               type: "object",
@@ -218,22 +230,20 @@ function metadata(value: Record<string, unknown>, minAttempts: number): void {
     );
   }
 }
-function outputQuestion(value: unknown): Question {
+function validateOutputAnswer(value: unknown): void {
   const a = record(value);
-  const instructions = "Validate classification output.";
   if (a.type === "noul") {
     fields(a, ["type", "noul"]);
-    return { instructions, type: "noul" };
+    validateAnswer(a, { type: "noul" });
+    return;
   }
   if (a.type === "choice") {
     fields(a, ["type", "choice", "confidence", "probabilities"]);
-    return {
-      criteria: Object.fromEntries(
-        Object.keys(record(a.probabilities)).map((key) => [key, null])
-      ),
-      instructions,
+    validateAnswer(a, {
+      labels: Object.keys(record(a.probabilities)),
       type: "choice",
-    };
+    });
+    return;
   }
   assert(a.type === "score");
   fields(a, [
@@ -248,13 +258,10 @@ function outputQuestion(value: unknown): Question {
   const scale = record(a.scale);
   fields(scale, ["min", "max"]);
   assert(scale.min === 0 && scale.max === Object.keys(legend).length - 1);
-  return {
-    criteria: Object.keys(legend).map(
-      (_, index) => legend[String(index)]
-    ) as Content[],
-    instructions,
+  validateAnswer(a, {
+    levels: Object.keys(legend).length,
     type: "score",
-  };
+  });
 }
 
 function validateSuccess(value: unknown): void {
@@ -277,30 +284,29 @@ function validateSuccess(value: unknown): void {
     );
   }
   fields(record(result.usage), ["input_tokens", "output_tokens"]);
+  validateUsage(result.usage);
+  assert(nonblank(result.model));
   const answers = record(result.answers);
-  const questions = parseQuestions(
-    Object.fromEntries(
-      Object.entries(answers).map(([id, a]) => [id, outputQuestion(a)])
-    ),
-    // Synthetic questions can be larger than native probability maps (null vs 0).
-    { maxBytes: MAX_BYTES * 2, maxDepth: 32 }
-  );
-  const nativeAnswers = Object.fromEntries(
-    Object.entries(answers).map(([id, a]) => {
-      const native = record(a);
-      return [
-        id,
-        Object.fromEntries(
-          Object.entries(native).filter(([key]) => key !== "scale")
-        ),
-      ];
-    })
-  );
-  validateResponse(
-    { answers: nativeAnswers, model: result.model, usage: result.usage },
-    { questions, state: "Output validation" },
-    result.provider === "laya" ? "laya" : "typesafe"
-  );
+  const entries = Object.entries(answers);
+  assert(entries.length >= 1 && entries.length <= MAX_QUESTIONS);
+  let nativeBytes = Buffer.byteLength(JSON.stringify(answers));
+  for (const [id, answerValue] of entries) {
+    assert(NAME_PATTERN.test(id));
+    validateOutputAnswer(answerValue);
+    // Exclude the public score scale from the native response byte budget.
+    const a = record(answerValue);
+    if (a.type === "score") {
+      nativeBytes -=
+        Buffer.byteLength(',"scale":') +
+        Buffer.byteLength(JSON.stringify(a.scale));
+    }
+  }
+  // Keep the native byte limit without reconstructing a response or request.
+  nativeBytes +=
+    Buffer.byteLength('{"answers":,"model":,"usage":}') +
+    Buffer.byteLength(JSON.stringify(result.model)) +
+    Buffer.byteLength(JSON.stringify(result.usage));
+  assert(nativeBytes <= MAX_BYTES);
 }
 function validateFailure(value: unknown): void {
   const error = record(value);
@@ -338,7 +344,10 @@ export function parseClassifyOutput(raw: unknown): ClassifyOutput {
   try {
     const value: unknown = typeof raw === "string" ? JSON.parse(raw) : raw;
     // Allow the envelope and additive metadata around a maximum-size native response.
-    boundedJson(value, { maxBytes: MAX_BYTES + 8192, maxDepth: 33 });
+    boundedJson(value, {
+      maxBytes: MAX_BYTES + 8192,
+      maxDepth: MAX_JSON_DEPTH + 1,
+    });
     const output = record(value);
     assert(typeof output.ok === "boolean");
     fields(output, output.ok ? ["ok", "result"] : ["ok", "error"]);

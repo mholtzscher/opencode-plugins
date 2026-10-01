@@ -1,0 +1,12 @@
+export const MAX_BYTES = 1024 * 1024;
+export const MAX_JSON_DEPTH = 32;
+export const MAX_QUESTIONS = 64;
+export const MIN_CHOICES = 2;
+export const MAX_CHOICES = 255;
+export const MAX_LABEL_LENGTH = 128;
+export const MIN_SCORE_LEVELS = 2;
+export const MAX_SCORE_LEVELS = 10;
+export const DISTRIBUTION_TOLERANCE = 0.02;
+export const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u;
+export const MAX_EVIDENCE_PATHS = 64;
+export const MAX_EVIDENCE_DIFFS = 16;

@@ -1,5 +1,19 @@
 import type { ClassifierDefinition } from "./config.js";
 import {
+  DISTRIBUTION_TOLERANCE,
+  MAX_BYTES,
+  MAX_CHOICES,
+  MAX_EVIDENCE_DIFFS,
+  MAX_EVIDENCE_PATHS,
+  MAX_JSON_DEPTH,
+  MAX_LABEL_LENGTH,
+  MAX_QUESTIONS,
+  MAX_SCORE_LEVELS,
+  MIN_CHOICES,
+  MIN_SCORE_LEVELS,
+  NAME_PATTERN,
+} from "./limits.js";
+import {
   type Answer,
   ClassificationError,
   type ClassifyInput,
@@ -11,8 +25,6 @@ import {
   type Questions,
 } from "./types.js";
 
-export const MAX_BYTES = 1024 * 1024;
-export const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u;
 function invalid(
   path = "",
   message = "Input does not satisfy the classification contract."
@@ -47,7 +59,7 @@ export function nonblank(value: unknown): value is string {
 // cannot reach JSON.stringify. The byte budget also bounds wide traversals.
 export function boundedJson(
   value: unknown,
-  limits = { maxBytes: MAX_BYTES, maxDepth: 32 }
+  limits = { maxBytes: MAX_BYTES, maxDepth: MAX_JSON_DEPTH }
 ): void {
   const ancestors = new Set<object>();
   let budget = 0;
@@ -136,8 +148,11 @@ function normalizeQuestion(value: unknown, path: string): Question {
     validateQuestion(q, path);
     return q as Question;
   }
-  if (q.criteria.length < 2 || q.criteria.length > 255) {
-    invalid(`${path}/criteria`, "Choice requires 2–255 distinct labels.");
+  if (q.criteria.length < MIN_CHOICES || q.criteria.length > MAX_CHOICES) {
+    invalid(
+      `${path}/criteria`,
+      `Choice requires ${MIN_CHOICES}–${MAX_CHOICES} distinct labels.`
+    );
   }
   const labels = new Set<string>();
   const entries = q.criteria.map((item, index) => {
@@ -146,12 +161,12 @@ function normalizeQuestion(value: unknown, path: string): Question {
     fields(entry, ["label", "description"], entryPath);
     if (
       !nonblank(entry.label) ||
-      entry.label.length > 128 ||
+      entry.label.length > MAX_LABEL_LENGTH ||
       labels.has(entry.label)
     ) {
       invalid(
         `${entryPath}/label`,
-        "Choice labels must be distinct nonblank strings of at most 128 characters."
+        `Choice labels must be distinct nonblank strings of at most ${MAX_LABEL_LENGTH} characters.`
       );
     }
     labels.add(entry.label);
@@ -171,13 +186,13 @@ function normalizeQuestion(value: unknown, path: string): Question {
 function questionMap(value: unknown, path = "/questions"): Questions {
   const map = record(value, path);
   const entries = Object.entries(map);
-  if (entries.length < 1 || entries.length > 64) {
-    invalid(path, "Supply 1–64 independent questions.");
+  if (entries.length < 1 || entries.length > MAX_QUESTIONS) {
+    invalid(path, `Supply 1–${MAX_QUESTIONS} independent questions.`);
   }
   return Object.fromEntries(
     entries.map(([id, item]) => {
       if (!NAME_PATTERN.test(id)) {
-        invalid(path, "Question IDs must match ^[A-Za-z][A-Za-z0-9_-]{0,63}$.");
+        invalid(path, `Question IDs must match ${NAME_PATTERN.source}.`);
       }
       return [id, normalizeQuestion(item, `${path}/${id}`)];
     })
@@ -186,14 +201,17 @@ function questionMap(value: unknown, path = "/questions"): Questions {
 function validateChoiceCriteria(value: unknown, path: string): void {
   const criteria = record(value, path);
   const labels = Object.keys(criteria);
-  if (labels.length < 2 || labels.length > 255) {
-    invalid(path, "Choice requires 2–255 distinct labels.");
+  if (labels.length < MIN_CHOICES || labels.length > MAX_CHOICES) {
+    invalid(
+      path,
+      `Choice requires ${MIN_CHOICES}–${MAX_CHOICES} distinct labels.`
+    );
   }
   for (const label of labels) {
-    if (!nonblank(label) || label.length > 128) {
+    if (!nonblank(label) || label.length > MAX_LABEL_LENGTH) {
       invalid(
         path,
-        "Choice labels must be nonblank strings of at most 128 characters."
+        `Choice labels must be nonblank strings of at most ${MAX_LABEL_LENGTH} characters.`
       );
     }
     if (criteria[label] !== null) {
@@ -231,10 +249,13 @@ function validateQuestion(value: unknown, path: string): void {
     case "score": {
       if (
         !Array.isArray(q.criteria) ||
-        q.criteria.length < 2 ||
-        q.criteria.length > 10
+        q.criteria.length < MIN_SCORE_LEVELS ||
+        q.criteria.length > MAX_SCORE_LEVELS
       ) {
-        invalid(criteriaPath, "Score requires 2 to 10 ordered levels.");
+        invalid(
+          criteriaPath,
+          `Score requires ${MIN_SCORE_LEVELS} to ${MAX_SCORE_LEVELS} ordered levels.`
+        );
       }
       q.criteria.forEach((level, index) => {
         content(level, `${criteriaPath}/${index}`);
@@ -268,12 +289,12 @@ function paths(value: unknown, path: string): void {
   if (
     !Array.isArray(value) ||
     value.length === 0 ||
-    value.length > 64 ||
+    value.length > MAX_EVIDENCE_PATHS ||
     value.some((item) => !nonblank(item) || item.includes("\0"))
   ) {
     invalid(
       path,
-      "Expected 1–64 nonblank literal paths without null characters."
+      `Expected 1–${MAX_EVIDENCE_PATHS} nonblank literal paths without null characters.`
     );
   }
 }
@@ -295,8 +316,12 @@ export function validateState(value: unknown, path = "/state"): void {
   }
   if (Object.hasOwn(state, "diffs")) {
     const { diffs } = state;
-    if (!Array.isArray(diffs) || diffs.length === 0 || diffs.length > 16) {
-      invalid(`${path}/diffs`, "Expected 1–16 Git diffs.");
+    if (
+      !Array.isArray(diffs) ||
+      diffs.length === 0 ||
+      diffs.length > MAX_EVIDENCE_DIFFS
+    ) {
+      invalid(`${path}/diffs`, `Expected 1–${MAX_EVIDENCE_DIFFS} Git diffs.`);
     }
     for (const [index, item] of diffs.entries()) {
       const diffPath = `${path}/diffs/${index}`;
@@ -337,7 +362,7 @@ export function parseInput(value: unknown): ClassifyInput {
   if (!(nonblank(input.classifier) && NAME_PATTERN.test(input.classifier))) {
     invalid(
       "/classifier",
-      "Classifier names must match ^[A-Za-z][A-Za-z0-9_-]{0,63}$."
+      `Classifier names must match ${NAME_PATTERN.source}.`
     );
   }
   if (Object.hasOwn(input, "state")) {
@@ -373,22 +398,38 @@ function distribution(value: unknown, keys: string[]): Record<string, number> {
   if (
     Math.abs(
       entries.reduce((sum, [, probability]) => sum + probability, 0) - 1
-    ) >= 0.02
+    ) >= DISTRIBUTION_TOLERANCE
   ) {
     invalid();
   }
   return Object.fromEntries(entries);
 }
-function validateAnswer(value: unknown, question: Question): Answer {
+export type AnswerContract =
+  | { type: "noul" }
+  | { type: "choice"; labels: string[] }
+  | { type: "score"; levels: number };
+
+// Shared measurements; callers own field policies and request agreement.
+export function validateAnswer(
+  value: unknown,
+  contract: AnswerContract
+): Answer {
   const answer = record(value);
-  if (answer.type !== question.type) {
+  if (answer.type !== contract.type) {
     invalid();
   }
-  if (question.type === "noul") {
+  if (contract.type === "noul") {
     return { noul: numberIn(answer.noul), type: "noul" };
   }
-  if (question.type === "choice") {
-    const keys = Object.keys(question.criteria);
+  if (contract.type === "choice") {
+    const keys = contract.labels;
+    if (
+      keys.length < MIN_CHOICES ||
+      keys.length > MAX_CHOICES ||
+      keys.some((key) => !nonblank(key) || key.length > MAX_LABEL_LENGTH)
+    ) {
+      invalid();
+    }
     if (typeof answer.choice !== "string" || !keys.includes(answer.choice)) {
       invalid();
     }
@@ -399,7 +440,16 @@ function validateAnswer(value: unknown, question: Question): Answer {
       type: "choice",
     };
   }
-  const keys = question.criteria.map((_, index) => String(index));
+  if (
+    !Number.isInteger(contract.levels) ||
+    contract.levels < MIN_SCORE_LEVELS ||
+    contract.levels > MAX_SCORE_LEVELS
+  ) {
+    invalid();
+  }
+  const keys = Array.from({ length: contract.levels }, (_, index) =>
+    String(index)
+  );
   const legend = record(answer.legend);
   exactKeys(legend, keys);
   return {
@@ -411,6 +461,22 @@ function validateAnswer(value: unknown, question: Question): Answer {
     scale: { max: keys.length - 1, min: 0 },
     score: numberIn(answer.score, keys.length - 1),
     type: "score",
+  };
+}
+export function validateUsage(value: unknown): DecisionResponse["usage"] {
+  const usage = record(value);
+  for (const field of ["input_tokens", "output_tokens"]) {
+    if (
+      typeof usage[field] !== "number" ||
+      !Number.isInteger(usage[field]) ||
+      (usage[field] as number) < 0
+    ) {
+      invalid();
+    }
+  }
+  return {
+    input_tokens: usage.input_tokens as number,
+    output_tokens: usage.output_tokens as number,
   };
 }
 export function validateResponse(
@@ -435,26 +501,28 @@ export function validateResponse(
     exactKeys(upstream, Object.keys(request.questions));
     const answers: Record<string, Answer> = Object.create(null);
     for (const [id, question] of Object.entries(request.questions)) {
-      answers[id] = validateAnswer(upstream[id], question);
-    }
-    const usage = record(response.usage);
-    for (const field of ["input_tokens", "output_tokens"]) {
-      if (
-        typeof usage[field] !== "number" ||
-        !Number.isInteger(usage[field]) ||
-        (usage[field] as number) < 0
-      ) {
-        invalid();
+      let contract: AnswerContract;
+      switch (question.type) {
+        case "choice":
+          contract = {
+            labels: Object.keys(question.criteria),
+            type: question.type,
+          };
+          break;
+        case "score":
+          contract = { levels: question.criteria.length, type: question.type };
+          break;
+        default:
+          contract = { type: question.type };
       }
+      answers[id] = validateAnswer(upstream[id], contract);
     }
+    const usage = validateUsage(response.usage);
     return {
       answers,
       attempts,
       model: response.model as string,
-      usage: {
-        input_tokens: usage.input_tokens as number,
-        output_tokens: usage.output_tokens as number,
-      },
+      usage,
     };
   } catch (error) {
     if (
@@ -484,9 +552,9 @@ export function buildToolInputSchema(
       "A nonblank string, nonempty JSON object, or nonempty JSON array. Nested values must be JSON (finite numbers only).",
   };
   const pathList = {
-    description: "1–64 literal paths; no glob expansion or URL fetching.",
+    description: `1–${MAX_EVIDENCE_PATHS} literal paths; no glob expansion or URL fetching.`,
     items: { minLength: 1, type: "string" },
-    maxItems: 64,
+    maxItems: MAX_EVIDENCE_PATHS,
     minItems: 1,
     type: "array",
   };
@@ -509,8 +577,7 @@ export function buildToolInputSchema(
         ],
         properties: {
           diffs: {
-            description:
-              "1–16 Git diffs against the tracked working tree, including staged and unstaged changes but excluding untracked files.",
+            description: `1–${MAX_EVIDENCE_DIFFS} Git diffs against the tracked working tree, including staged and unstaged changes but excluding untracked files.`,
             items: {
               additionalProperties: false,
               properties: {
@@ -529,14 +596,13 @@ export function buildToolInputSchema(
               required: ["base"],
               type: "object",
             },
-            maxItems: 16,
+            maxItems: MAX_EVIDENCE_DIFFS,
             minItems: 1,
             type: "array",
           },
           files: {
             ...pathList,
-            description:
-              "1–64 regular UTF-8 text files on the server. Paths are absolute or relative to the session directory; native read permissions apply. Contents are read in full, never truncated.",
+            description: `1–${MAX_EVIDENCE_PATHS} regular UTF-8 text files on the server. Paths are absolute or relative to the session directory; native read permissions apply. Contents are read in full, never truncated.`,
           },
           text: c,
           type: { const: "evidence" },
@@ -579,9 +645,13 @@ export function buildToolInputSchema(
             anyOf: [
               {
                 additionalProperties: { anyOf: [c, { type: "null" }] },
-                maxProperties: 255,
-                minProperties: 2,
-                propertyNames: { maxLength: 128, minLength: 1, type: "string" },
+                maxProperties: MAX_CHOICES,
+                minProperties: MIN_CHOICES,
+                propertyNames: {
+                  maxLength: MAX_LABEL_LENGTH,
+                  minLength: 1,
+                  type: "string",
+                },
                 type: "object",
               },
               {
@@ -589,18 +659,21 @@ export function buildToolInputSchema(
                   additionalProperties: false,
                   properties: {
                     description: { anyOf: [c, { type: "null" }] },
-                    label: { maxLength: 128, minLength: 1, type: "string" },
+                    label: {
+                      maxLength: MAX_LABEL_LENGTH,
+                      minLength: 1,
+                      type: "string",
+                    },
                   },
                   required: ["label", "description"],
                   type: "object",
                 },
-                maxItems: 255,
-                minItems: 2,
+                maxItems: MAX_CHOICES,
+                minItems: MIN_CHOICES,
                 type: "array",
               },
             ],
-            description:
-              '2–255 distinct nonblank labels of at most 128 characters, mapped to descriptions or null, or listed as { label, description }. Use the list form for __proto__. Include an explicit "unknown" option if needed; there is no automatic abstention. Backend limits may be tighter.',
+            description: `${MIN_CHOICES}–${MAX_CHOICES} distinct nonblank labels of at most ${MAX_LABEL_LENGTH} characters, mapped to descriptions or null, or listed as { label, description }. Use the list form for __proto__. Include an explicit "unknown" option if needed; there is no automatic abstention. Backend limits may be tighter.`,
           },
           instructions,
           type: { const: "choice" },
@@ -612,11 +685,10 @@ export function buildToolInputSchema(
         additionalProperties: false,
         properties: {
           criteria: {
-            description:
-              "2–10 ordered level descriptions, lowest to highest. The answer is a possibly fractional score in [0, criteria.length - 1], not a percentage.",
+            description: `${MIN_SCORE_LEVELS}–${MAX_SCORE_LEVELS} ordered level descriptions, lowest to highest. The answer is a possibly fractional score in [0, criteria.length - 1], not a percentage.`,
             items: c,
-            maxItems: 10,
-            minItems: 2,
+            maxItems: MAX_SCORE_LEVELS,
+            minItems: MIN_SCORE_LEVELS,
             type: "array",
           },
           instructions,
@@ -632,9 +704,8 @@ export function buildToolInputSchema(
     properties: {
       questions: {
         additionalProperties: question,
-        description:
-          "1–64 independent judgments against the shared state. IDs are response keys matching ^[A-Za-z][A-Za-z0-9_-]{0,63}$. Do not also supply classifier.",
-        maxProperties: 64,
+        description: `1–${MAX_QUESTIONS} independent judgments against the shared state. IDs are response keys matching ${NAME_PATTERN.source}. Do not also supply classifier.`,
+        maxProperties: MAX_QUESTIONS,
         minProperties: 1,
         propertyNames: { pattern: NAME_PATTERN.source },
         type: "object",

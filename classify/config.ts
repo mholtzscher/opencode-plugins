@@ -1,8 +1,8 @@
 import { isAbsolute } from "node:path";
+import { NAME_PATTERN } from "./limits.js";
 import {
   boundedJson,
   fields,
-  NAME_PATTERN,
   nonblank,
   parseQuestions,
   record,
