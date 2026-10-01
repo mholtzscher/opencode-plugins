@@ -431,8 +431,11 @@ export function buildToolInputSchema(
       { minProperties: 1, type: "object" },
       { minItems: 1, type: "array" },
     ],
+    description:
+      "A nonblank string, nonempty JSON object, or nonempty JSON array. Nested values must be JSON (finite numbers only).",
   };
   const pathList = {
+    description: "1–64 literal paths; no glob expansion or URL fetching.",
     items: { minLength: 1, type: "string" },
     maxItems: 64,
     minItems: 1,
@@ -457,11 +460,22 @@ export function buildToolInputSchema(
         ],
         properties: {
           diffs: {
+            description:
+              "1–16 Git diffs against the tracked working tree, including staged and unstaged changes but excluding untracked files.",
             items: {
               additionalProperties: false,
               properties: {
-                base: { minLength: 1, pattern: "^[^-]", type: "string" },
-                paths: pathList,
+                base: {
+                  description: "Git revision to compare, for example HEAD.",
+                  minLength: 1,
+                  pattern: "^[^-]",
+                  type: "string",
+                },
+                paths: {
+                  ...pathList,
+                  description:
+                    "Optional literal paths relative to the session directory; cannot escape it. Omit for all tracked changes in the session's Git scope.",
+                },
               },
               required: ["base"],
               type: "object",
@@ -470,7 +484,11 @@ export function buildToolInputSchema(
             minItems: 1,
             type: "array",
           },
-          files: pathList,
+          files: {
+            ...pathList,
+            description:
+              "1–64 regular UTF-8 text files on the server. Paths are absolute or relative to the session directory; native read permissions apply. Contents are read in full, never truncated.",
+          },
           text: c,
           type: { const: "evidence" },
         },
@@ -478,6 +496,13 @@ export function buildToolInputSchema(
         type: "object",
       },
     ],
+    description:
+      'Self-contained content to judge: a nonblank string, nonempty JSON object, or nonempty JSON array. No conversation history is included. Plain paths and URLs are inert; use { type: "evidence", text?, files?, diffs? } to resolve server-local evidence. In that wrapper, supply at least one of text, files, or diffs. The top-level type: "evidence" marker is reserved; put literal data with that marker under text.',
+  };
+  const instructions = {
+    ...c,
+    description:
+      "The judgment to make against the shared state. Make each question independent of other answers; question IDs are response keys, not instructions.",
   };
   const question = {
     oneOf: [
@@ -486,11 +511,13 @@ export function buildToolInputSchema(
         properties: {
           criteria: {
             additionalProperties: false,
+            description:
+              "Optional descriptions defining yes (true), no (false), or both. The answer is the probability of yes in [0, 1], not a boolean.",
             minProperties: 1,
             properties: { false: c, true: c },
             type: "object",
           },
-          instructions: c,
+          instructions,
           type: { const: "noul" },
         },
         required: ["type", "instructions"],
@@ -523,8 +550,10 @@ export function buildToolInputSchema(
                 type: "array",
               },
             ],
+            description:
+              '2–255 distinct nonblank labels of at most 128 characters, mapped to descriptions or null, or listed as { label, description }. Use the list form for __proto__. Include an explicit "unknown" option if needed; there is no automatic abstention. Backend limits may be tighter.',
           },
-          instructions: c,
+          instructions,
           type: { const: "choice" },
         },
         required: ["type", "instructions", "criteria"],
@@ -533,8 +562,15 @@ export function buildToolInputSchema(
       {
         additionalProperties: false,
         properties: {
-          criteria: { items: c, maxItems: 10, minItems: 2, type: "array" },
-          instructions: c,
+          criteria: {
+            description:
+              "2–10 ordered level descriptions, lowest to highest. The answer is a possibly fractional score in [0, criteria.length - 1], not a percentage.",
+            items: c,
+            maxItems: 10,
+            minItems: 2,
+            type: "array",
+          },
+          instructions,
           type: { const: "score" },
         },
         required: ["type", "instructions", "criteria"],
@@ -547,6 +583,8 @@ export function buildToolInputSchema(
     properties: {
       questions: {
         additionalProperties: question,
+        description:
+          "1–64 independent judgments against the shared state. IDs are response keys matching ^[A-Za-z][A-Za-z0-9_-]{0,63}$. Do not also supply classifier.",
         maxProperties: 64,
         minProperties: 1,
         propertyNames: { pattern: NAME_PATTERN.source },
@@ -566,7 +604,12 @@ export function buildToolInputSchema(
           {
             additionalProperties: false,
             properties: {
-              classifier: { enum: names, type: "string" },
+              classifier: {
+                description:
+                  "Configured classifier name. Uses its stored questions unchanged; do not also supply questions.",
+                enum: names,
+                type: "string",
+              },
               state,
             },
             required: ["state", "classifier"],

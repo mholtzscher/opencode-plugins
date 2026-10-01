@@ -26,6 +26,39 @@ test("both modes and mixed native questions pass unchanged", () => {
     buildToolInputSchema({ named: { description: "Named", questions } })
   ).toHaveProperty("oneOf.1.properties.classifier.enum", ["named"]);
 });
+test("input schema describes constraints and semantics for agent discovery", () => {
+  const schema = buildToolInputSchema({});
+  if (!("properties" in schema)) {
+    throw new Error("Expected ad hoc schema");
+  }
+  const { state, questions: questionMap } = schema.properties;
+  expect(state.description).toContain("nonblank string");
+  expect(state.description).toContain("No conversation history");
+  expect(state.description).toContain("Plain paths and URLs are inert");
+  expect(questionMap.description).toContain("1–64 independent judgments");
+  expect(questionMap.description).toContain("^[A-Za-z][A-Za-z0-9_-]{0,63}$");
+  const [noul, choice, score] = questionMap.additionalProperties.oneOf;
+  expect(noul.properties.criteria.description).toContain("not a boolean");
+  expect(choice.properties.criteria.description).toContain("2–255");
+  expect(choice.properties.criteria.description).toContain(
+    "no automatic abstention"
+  );
+  expect(score.properties.criteria.description).toContain("2–10");
+  expect(score.properties.criteria.description).toContain(
+    "[0, criteria.length - 1]"
+  );
+  for (const question of [noul, choice, score]) {
+    expect(question.properties.instructions.description).toContain(
+      "independent of other answers"
+    );
+  }
+  expect(
+    buildToolInputSchema({ named: { description: "Named", questions } })
+  ).toHaveProperty(
+    "oneOf.1.properties.classifier.description",
+    "Configured classifier name. Uses its stored questions unchanged; do not also supply questions."
+  );
+});
 test("invalid selectors, content, fields and native criteria fail", () => {
   for (const value of [
     { state: "x" },

@@ -10,6 +10,7 @@ import type {
 } from "@opencode/plugin/promise/tool";
 import { file, serve } from "bun";
 import plugin from "../index.js";
+import { parseInput } from "../schema.js";
 import { input, questions, response } from "./fixtures.js";
 
 async function register(
@@ -67,6 +68,48 @@ test("real entry registers one unnamespaced tool with concrete discoverable sche
   await expect(
     tool.execute(input, { signal: controller.signal } as ToolContext)
   ).rejects.toThrow();
+});
+test("tool teaches self-contained requests, result interpretation, and Code Mode handling", async () => {
+  const [tool] = await register({ backend: { provider: "openai-decisions" } });
+  for (const guidance of [
+    "not conversation history",
+    "Plain paths and embedded URLs are inert",
+    "1–64 questions",
+    "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+    "2–255 distinct nonblank labels",
+    "no automatic abstention",
+    "2–10 ordered rubric levels",
+    "possibly fractional",
+    "zero-based scale",
+    "not probability of correctness",
+    "parse it and check ok",
+    "result.answers[id]",
+    "retryable",
+    "no partial answers",
+    "JSON.parse(raw)",
+  ]) {
+    expect(tool.description).toContain(guidance);
+  }
+  const prefix = "Example input: ";
+  const example = tool.description
+    .split("\n")
+    .find((line) => line.startsWith(prefix));
+  if (example === undefined) {
+    throw new Error("Missing discoverable example");
+  }
+  const parsed = parseInput(JSON.parse(example.slice(prefix.length)));
+  expect(Object.values(parsed.questions ?? {}).map((q) => q.type)).toEqual([
+    "noul",
+    "choice",
+    "score",
+  ]);
+  const output = await tool.execute(parsed, {
+    signal: new AbortController().signal,
+  } as ToolContext);
+  expect(JSON.parse(output.content as string)).toMatchObject({
+    error: { code: "PROVIDER_UNAVAILABLE", retryable: false },
+    ok: false,
+  });
 });
 test("executor resolves evidence in the session location before provider HTTP", async () => {
   await mkdir("/tmp/opencode", { recursive: true });

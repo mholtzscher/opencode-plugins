@@ -203,6 +203,8 @@ The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.t
 
 Tool arguments are exactly one of `{ state, questions }` or `{ state, classifier }`, never both. Without named classifiers only the ad hoc branch is advertised. The named branch enumerates configured names. Both reject extra fields. Tool arguments cannot override backend, endpoint, model, credentials, or headers.
 
+The agent-facing description includes a mixed-type request, Code Mode JSON-string parsing and `ok` handling, answer fields, scale/confidence semantics, and the self-contained evidence boundary. Input-schema field descriptions repeat constraints that Code Mode's generated TypeScript signature may otherwise omit. Agents do not need to read this README to make and interpret a call.
+
 Put content to evaluate in `state` and the judgment in each question's `instructions`. Both accept nonblank strings, nonempty JSON objects, or nonempty JSON arrays. `state` also supports the explicit evidence wrapper below, which reads files and generates Git diffs on the server. Nested JSON permits null, booleans, and finite numbers. Question IDs are response keys, not model instructions. Each call evaluates 1–64 independent questions against one shared state. For judgments depending on prior answers, make another call.
 
 | Type | Criteria | Native result |
