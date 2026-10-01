@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
+import { validateResponse } from "../protocols/response.js";
 import { providers } from "../providers/registry.js";
-import { validateResponse } from "../providers/response.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
 test("mixed native responses pass unchanged with derived score bounds", () => {

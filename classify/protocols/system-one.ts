@@ -1,12 +1,17 @@
-import type { ClassifyOptions } from "../config.js";
+import type { BackendOptions, ClassifyOptions } from "../config.js";
 import { resolveKey } from "../credentials.js";
+import type { DecisionAdapter } from "../providers/adapter.js";
+import type { ProviderDefinition } from "../providers/definition.js";
+import { createPreflight } from "../providers/preflight.js";
 import { systemOneFetch } from "../transport.js";
 import { ClassificationError } from "../types.js";
 import { boundedJson } from "../validation/json.js";
-import type { DecisionAdapter } from "./adapter.js";
-import type { SystemOneDefinition } from "./definition.js";
-import { createPreflight } from "./preflight.js";
 import { validateResponse } from "./response.js";
+
+export interface SystemOneDefinition extends ProviderDefinition {
+  endpoint: (backend: BackendOptions) => string;
+  readonly requestIDHeader?: string;
+}
 
 export const createSystemOneAdapter = (
   options: ClassifyOptions,

@@ -1,4 +1,4 @@
-import type { BackendOptions, ClassifyOptions } from "../config.js";
+import type { ClassifyOptions } from "../config.js";
 import type { JsonValue } from "../types.js";
 import type { DecisionAdapter } from "./adapter.js";
 
@@ -9,9 +9,4 @@ export interface ProviderDefinition {
   configure?: (backend: Record<string, JsonValue>) => void;
   createAdapter: (options: ClassifyOptions) => DecisionAdapter;
   decode: (value: JsonValue) => JsonValue;
-}
-
-export interface SystemOneDefinition extends ProviderDefinition {
-  endpoint: (backend: BackendOptions) => string;
-  readonly requestIDHeader?: string;
 }

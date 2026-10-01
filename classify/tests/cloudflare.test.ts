@@ -2,9 +2,9 @@ import { expect, test } from "bun:test";
 
 import { parseOptions } from "../config.js";
 import { parseClassifyOutput } from "../output.js";
+import { validateResponse } from "../protocols/response.js";
 import { createAdapter } from "../providers/adapter.js";
 import { providers } from "../providers/registry.js";
-import { validateResponse } from "../providers/response.js";
 import { createClassifier } from "../service.js";
 import type { ClassifyOutput, JsonValue } from "../types.js";
 import { input, normalizedResponse, response } from "./fixtures.js";

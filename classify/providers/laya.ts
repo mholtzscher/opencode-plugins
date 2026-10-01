@@ -1,7 +1,7 @@
+import type { SystemOneDefinition } from "../protocols/system-one.js";
+import { createSystemOneAdapter } from "../protocols/system-one.js";
 import { ClassificationError } from "../types.js";
 import { invalid, nonblank, record } from "../validation/json.js";
-import type { SystemOneDefinition } from "./definition.js";
-import { createSystemOneAdapter } from "./system-one.js";
 
 const ORIGIN = /^https?:\/\/[^/?#\\\s]+\/?$/u;
 const PROTOCOL = /^https?:\/\//u;

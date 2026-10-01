@@ -1,5 +1,5 @@
-import type { SystemOneDefinition } from "./definition.js";
-import { createSystemOneAdapter } from "./system-one.js";
+import type { SystemOneDefinition } from "../protocols/system-one.js";
+import { createSystemOneAdapter } from "../protocols/system-one.js";
 
 export const typesafe: SystemOneDefinition = {
   createAdapter: (options) => createSystemOneAdapter(options, typesafe),
