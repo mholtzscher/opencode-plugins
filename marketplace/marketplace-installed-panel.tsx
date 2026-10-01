@@ -3,6 +3,7 @@ import { usePlugin } from "@opencode/plugin/tui";
 import type { PanelInput } from "@opencode/plugin/tui/context";
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+
 import { marketplaceItemKey, marketplaceItems } from "./marketplace-catalog.js";
 import { MarketplaceKeyHints } from "./marketplace-key-hints.js";
 import type { MarketplaceUIState } from "./marketplace-ui-state.js";

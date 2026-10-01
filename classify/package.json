@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
     "./output": "./output.ts",
     "./types": "./types.ts",
     "./tui": "./tui.ts"
   },
-  "main": "./index.ts",
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit"

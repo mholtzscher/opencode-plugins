@@ -1,10 +1,10 @@
-import { ClassificationError, type QuestionType } from "../types.js";
+import { ClassificationError } from "../types.js";
+import type { QuestionType } from "../types.js";
 import type { DecisionAdapter } from "./adapter.js";
 
-export function createPreflight(
-  supportedTypes: readonly QuestionType[]
-): DecisionAdapter["preflight"] {
-  return (questions, signal) => {
+export const createPreflight =
+  (supportedTypes: readonly QuestionType[]): DecisionAdapter["preflight"] =>
+  (questions, signal) => {
     signal.throwIfAborted();
     if (
       Object.values(questions).some(
@@ -17,4 +17,3 @@ export function createPreflight(
       );
     }
   };
-}

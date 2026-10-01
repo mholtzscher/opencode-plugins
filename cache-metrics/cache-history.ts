@@ -42,9 +42,9 @@ export interface CacheHistoryTurn {
 }
 
 /** Build a chronological cache history from saved messages, deduplicated by session and message ID. */
-export function buildCacheHistory(
+export const buildCacheHistory = (
   sessions: ReadonlyMap<string, readonly SessionMessageInfo[]>
-): CacheHistoryPoint[] {
+): CacheHistoryPoint[] => {
   const points = new Map<string, CacheHistoryPoint>();
   for (const [sessionID, messages] of sessions) {
     let prompt: string | undefined;
@@ -57,7 +57,8 @@ export function buildCacheHistory(
         userIndex += 1;
         turnID = `${sessionID}:user:${message.id ?? userIndex}`;
         prompt =
-          message.text.replace(/\s+/g, " ").trim().slice(0, 90) || undefined;
+          message.text.replaceAll(/\s+/gu, " ").trim().slice(0, 90) ||
+          undefined;
         afterTools = [];
         continue;
       }
@@ -103,7 +104,7 @@ export function buildCacheHistory(
       afterCompaction = undefined;
     }
   }
-  const sorted = [...points.values()].sort(
+  const sorted = [...points.values()].toSorted(
     (a, b) =>
       a.time - b.time ||
       a.sessionID.localeCompare(b.sessionID) ||
@@ -133,12 +134,12 @@ export function buildCacheHistory(
       previousRead,
     };
   });
-}
+};
 
 /** Group measured assistant responses by the user message that preceded them in their own session. */
-export function groupCacheHistoryTurns(
+export const groupCacheHistoryTurns = (
   points: readonly CacheHistoryPoint[]
-): CacheHistoryTurn[] {
+): CacheHistoryTurn[] => {
   const turns = new Map<string, CacheHistoryTurn>();
   for (const point of points) {
     let turn = turns.get(point.turnID);
@@ -169,13 +170,13 @@ export function groupCacheHistoryTurns(
           ? turn.read / (turn.input + turn.read)
           : undefined,
     }))
-    .sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
-}
+    .toSorted((a, b) => a.time - b.time || a.id.localeCompare(b.id));
+};
 
 /** Compact chronological cache-hit trend for up to the latest 40 responses; dots have no measured input. */
-export function formatCacheHistoryTrend(
+export const formatCacheHistoryTrend = (
   points: readonly CacheHistoryPoint[]
-): string {
+): string => {
   const bars = "▁▂▃▄▅▆▇█";
   return points
     .slice(-40)
@@ -185,24 +186,21 @@ export function formatCacheHistoryTrend(
         : bars[Math.min(bars.length - 1, Math.floor(point.rate * bars.length))]
     )
     .join("");
-}
+};
 
 /** Serialize the currently displayed scope and its per-response token timeline. */
-export function exportCacheHistory(
+export const exportCacheHistory = (
   sessionID: string,
   scope: "session" | "family",
   points: readonly CacheHistoryPoint[]
-): string {
-  const totals = points.reduce(
-    (result, point) => {
-      result.input += point.input;
-      result.output += point.output;
-      result.cacheRead += point.read;
-      result.cacheWrite += point.write;
-      return result;
-    },
-    { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 }
-  );
+): string => {
+  const totals = { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 };
+  for (const point of points) {
+    totals.input += point.input;
+    totals.output += point.output;
+    totals.cacheRead += point.read;
+    totals.cacheWrite += point.write;
+  }
   return JSON.stringify(
     {
       exportedAt: new Date().toISOString(),
@@ -224,4 +222,4 @@ export function exportCacheHistory(
     null,
     2
   );
-}
+};

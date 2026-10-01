@@ -1,14 +1,12 @@
-import {
-  type Answer,
-  ClassificationError,
-  type DecisionRequest,
-  type DecisionResponse,
+import { ClassificationError } from "../types.js";
+import type {
+  Answer,
+  DecisionRequest,
+  DecisionResponse,
+  JsonValue,
 } from "../types.js";
-import {
-  type AnswerContract,
-  validateAnswer,
-  validateUsage,
-} from "../validation/answers.js";
+import { validateAnswer, validateUsage } from "../validation/answers.js";
+import type { AnswerContract } from "../validation/answers.js";
 import {
   boundedJson,
   exactKeys,
@@ -17,12 +15,12 @@ import {
   record,
 } from "../validation/json.js";
 
-export function validateResponse(
-  value: unknown,
+export const validateResponse = (
+  value: JsonValue,
   request: DecisionRequest,
   provider: "typesafe" | "laya",
   attempts = 1
-): DecisionResponse {
+): DecisionResponse => {
   try {
     boundedJson(value);
     const response = record(value);
@@ -33,7 +31,7 @@ export function validateResponse(
       );
     }
     if (!nonblank(response.model)) {
-      invalid();
+      return invalid();
     }
     const upstream = record(response.answers);
     exactKeys(upstream, Object.keys(request.questions));
@@ -41,17 +39,20 @@ export function validateResponse(
     for (const [id, question] of Object.entries(request.questions)) {
       let contract: AnswerContract;
       switch (question.type) {
-        case "choice":
+        case "choice": {
           contract = {
             labels: Object.keys(question.criteria),
             type: question.type,
           };
           break;
-        case "score":
+        }
+        case "score": {
           contract = { levels: question.criteria.length, type: question.type };
           break;
-        default:
+        }
+        default: {
           contract = { type: question.type };
+        }
       }
       answers[id] = validateAnswer(upstream[id], contract);
     }
@@ -59,7 +60,7 @@ export function validateResponse(
     return {
       answers,
       attempts,
-      model: response.model as string,
+      model: response.model,
       usage,
     };
   } catch (error) {
@@ -69,10 +70,10 @@ export function validateResponse(
     ) {
       throw error;
     }
-    // biome-ignore lint/style/useErrorCause: Causes can contain upstream payloads and must not escape validation.
+    // Upstream parse errors may contain provider response data; expose only the sanitized classification error.
     throw new ClassificationError(
       "INVALID_RESPONSE",
       "Provider returned an invalid classification response."
     );
   }
-}
+};

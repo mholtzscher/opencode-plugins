@@ -68,8 +68,8 @@ Add the plugins you want to the `plugins` array in your global `~/.config/openco
     "github:mholtzscher/opencode-plugins#main::path:cache-metrics",
     "github:mholtzscher/opencode-plugins#main::path:quota-usage",
     "github:mholtzscher/opencode-plugins#main::path:github-tools",
-    "github:mholtzscher/opencode-plugins#main::path:spec-tools"
-  ]
+    "github:mholtzscher/opencode-plugins#main::path:spec-tools",
+  ],
 }
 ```
 
@@ -85,6 +85,6 @@ opencode plugin add 'github:mholtzscher/opencode-plugins#main::path:cache-metric
 
 For a local checkout, run `bun install` inside each plugin directory you use and configure its absolute directory path in `plugins`. This repository's [`opencode.jsonc`](./opencode.jsonc) loads all six plugins. Classify uses TypeSafe AI and requires `TYPESAFE_API_KEY` in the OpenCode server environment; see its README.
 
-Run `bun run typecheck` in the affected plugin directory. Also run `bun test` for `classify`, `cache-metrics`, `github-tools`, and `spec-tools`. Classify's typecheck includes both entries, nested providers, and tests; live provider checks are opt-in manual checks. For cache metrics TUI changes, run `bun run build:tui` and commit the updated `dist/tui.js`.
+Run `bun run typecheck` in the affected plugin directory. Also run `bun test` for `classify`, `cache-metrics`, `github-tools`, `quota-usage`, and `spec-tools`. Classify's typecheck includes both entries, nested providers, and tests; live provider checks are opt-in manual checks. For cache metrics TUI changes, run `bun run build:tui` and commit the updated `dist/tui.js`.
 
-Run `bun install` at the root to install the lint tooling, then `bun run check` for repository-wide lint and formatting checks.
+Run `bun install` at the root to install the lint tooling, then `bun run check` for repository-wide Oxlint (including anti-slop) and Oxfmt checks. Run `bun run fix` to apply fixes and formatting. Generated/build output is excluded.

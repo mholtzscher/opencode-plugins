@@ -1,9 +1,11 @@
 /** @jsxImportSource @opentui/solid */
 import { usePlugin } from "@opencode/plugin/tui";
-import { measureText, type ScrollBoxRenderable } from "@opentui/core";
+import { measureText } from "@opentui/core";
+import type { ScrollBoxRenderable } from "@opentui/core";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+
+import type { MarketplaceItem } from "./marketplace-catalog.js";
 import {
-  type MarketplaceItem,
   marketplaceItemAction,
   marketplaceItemKey,
   marketplaceItems,
@@ -259,11 +261,11 @@ export const MarketplaceCatalogPage = (props: {
           <scrollbox flexGrow={1} ref={setScroll}>
             <For each={visible()}>
               {(item, index) => (
-                // biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles.
+                // OpenTUI boxes handle mouse events without DOM roles.
                 <box
                   flexDirection="row"
                   id={`marketplace-catalog-${marketplaceItemKey(item)}`}
-                  // biome-ignore lint/performance/noJsxPropsBind: Each row captures its own item and index.
+                  // Each row captures its own item and index.
                   onMouseDown={() => {
                     setCursor(index());
                     marketplace.applyItemAction(item);

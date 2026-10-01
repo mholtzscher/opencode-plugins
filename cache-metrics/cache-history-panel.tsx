@@ -12,6 +12,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
+
 import type { CacheHistoryPoint } from "./cache-history.js";
 import {
   buildCacheHistory,
@@ -25,10 +26,10 @@ const percent = (rate: number | undefined) =>
 const count = (tokens: number) => tokens.toLocaleString();
 
 /** Session panel showing chronological cache history for the current session and its subagents. */
-export function CacheHistoryPanel(props: {
+export const CacheHistoryPanel = (props: {
   panel: PanelInput;
   context: Context;
-}) {
+}) => {
   const { context } = props;
   const [family, setFamily] = createSignal(true);
   const [snapshots, setSnapshots] = createSignal<
@@ -152,7 +153,7 @@ export function CacheHistoryPanel(props: {
     );
   }
   onCleanup(
-    context.data.on("session.created", (event) => {
+    context.data.on("session.created", async (event) => {
       if (
         family() &&
         event.data.parentID &&
@@ -160,18 +161,16 @@ export function CacheHistoryPanel(props: {
           context.data.session.root(props.panel.sessionID)
       ) {
         const current = generation;
-        context.data.session
-          .sync(event.data.sessionID)
-          .then(() => {
-            if (generation === current) {
-              return refresh();
-            }
-          })
-          .catch(() => {
-            if (generation === current) {
-              setError(true);
-            }
-          });
+        try {
+          await context.data.session.sync(event.data.sessionID);
+          if (generation === current) {
+            await refresh();
+          }
+        } catch {
+          if (generation === current) {
+            setError(true);
+          }
+        }
       }
     })
   );
@@ -311,7 +310,7 @@ export function CacheHistoryPanel(props: {
       </Show>
       <scrollbox
         flexGrow={1}
-        // biome-ignore lint/performance/noJsxPropsBind: Solid mounts this ref once for the panel's scrollbox.
+        // Solid mounts this ref once for the panel's scrollbox.
         ref={setScrollbox}
         stickyScroll={follow()}
         stickyStart="bottom"
@@ -465,4 +464,4 @@ export function CacheHistoryPanel(props: {
       </text>
     </box>
   );
-}
+};

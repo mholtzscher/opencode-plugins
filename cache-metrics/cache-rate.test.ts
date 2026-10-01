@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
+
 import type { SessionMessageInfo } from "@opencode/client";
+
 import { calculateSessionCacheRate } from "./cache-rate.js";
 
 const assistant = (input: number, read: number, write: number) =>
+  // SAFETY: This fixture populates every assistant field read by cache-rate aggregation.
   ({
     tokens: { cache: { read, write }, input, output: 20, reasoning: 0 },
     type: "assistant",
@@ -30,6 +33,7 @@ describe("session cache read rate", () => {
     expect(
       calculateSessionCacheRate([
         assistant(0, 0, 4),
+        // SAFETY: A user message is intentionally minimal because aggregation skips it by type.
         { type: "user" } as SessionMessageInfo,
       ])
     ).toEqual({

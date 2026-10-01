@@ -13,6 +13,7 @@ import type {
   ClassifyInput,
   Content,
   EvidenceState,
+  JsonValue,
   Question,
   Questions,
 } from "../types.js";
@@ -21,68 +22,16 @@ import {
   content,
   fields,
   invalid,
+  isBoundedJsonValue,
   nonblank,
   record,
 } from "./json.js";
 
-function normalizeQuestion(value: unknown, path: string): Question {
-  const q = record(value, path);
-  if (q.type !== "choice" || !Array.isArray(q.criteria)) {
-    validateQuestion(q, path);
-    return q as Question;
-  }
-  if (q.criteria.length < MIN_CHOICES || q.criteria.length > MAX_CHOICES) {
-    invalid(
-      `${path}/criteria`,
-      `Choice requires ${MIN_CHOICES}–${MAX_CHOICES} distinct labels.`
-    );
-  }
-  const labels = new Set<string>();
-  const entries = q.criteria.map((item, index) => {
-    const entryPath = `${path}/criteria/${index}`;
-    const entry = record(item, entryPath);
-    fields(entry, ["label", "description"], entryPath);
-    if (
-      !nonblank(entry.label) ||
-      entry.label.length > MAX_LABEL_LENGTH ||
-      labels.has(entry.label)
-    ) {
-      invalid(
-        `${entryPath}/label`,
-        `Choice labels must be distinct nonblank strings of at most ${MAX_LABEL_LENGTH} characters.`
-      );
-    }
-    labels.add(entry.label);
-    return [
-      entry.label,
-      entry.description === null
-        ? null
-        : content(entry.description, `${entryPath}/description`),
-    ] as const;
-  });
-  // Object.fromEntries defines own properties, including __proto__, without
-  // invoking Object.prototype setters. Never assign these labels with map[key].
-  const normalized = { ...q, criteria: Object.fromEntries(entries) };
-  validateQuestion(normalized, path);
-  return normalized as Question;
-}
-function questionMap(value: unknown, path = "/questions"): Questions {
-  const map = record(value, path);
-  const entries = Object.entries(map);
-  if (entries.length < 1 || entries.length > MAX_QUESTIONS) {
-    invalid(path, `Supply 1–${MAX_QUESTIONS} independent questions.`);
-  }
-  return Object.fromEntries(
-    entries.map(([id, item]) => {
-      if (!NAME_PATTERN.test(id)) {
-        invalid(path, `Question IDs must match ${NAME_PATTERN.source}.`);
-      }
-      return [id, normalizeQuestion(item, `${path}/${id}`)];
-    })
-  );
-}
-function validateChoiceCriteria(value: unknown, path: string): void {
-  const criteria = record(value, path);
+const validateChoiceCriteria = (
+  criteriaInput: JsonValue,
+  path: string
+): void => {
+  const criteria = record(criteriaInput, path);
   const labels = Object.keys(criteria);
   if (labels.length < MIN_CHOICES || labels.length > MAX_CHOICES) {
     invalid(
@@ -101,9 +50,8 @@ function validateChoiceCriteria(value: unknown, path: string): void {
       content(criteria[label], path);
     }
   }
-}
-function validateQuestion(value: unknown, path: string): void {
-  const q = record(value, path);
+};
+const validateQuestion = (q: Record<string, JsonValue>, path: string): void => {
   fields(q, ["type", "instructions", "criteria"], path);
   content(q.instructions, `${path}/instructions`);
   const criteriaPath = `${path}/criteria`;
@@ -135,58 +83,124 @@ function validateQuestion(value: unknown, path: string): void {
         q.criteria.length < MIN_SCORE_LEVELS ||
         q.criteria.length > MAX_SCORE_LEVELS
       ) {
-        invalid(
+        return invalid(
           criteriaPath,
           `Score requires ${MIN_SCORE_LEVELS} to ${MAX_SCORE_LEVELS} ordered levels.`
         );
       }
-      q.criteria.forEach((level, index) => {
+      for (const [index, level] of q.criteria.entries()) {
         content(level, `${criteriaPath}/${index}`);
-      });
+      }
       return;
     }
-    default:
+    default: {
       invalid(
         `${path}/type`,
         'Question type must be "noul", "choice", or "score".'
       );
+    }
   }
-}
-export function parseQuestions(
-  value: unknown,
-  limits?: { maxBytes: number; maxDepth: number }
-): Questions {
-  boundedJson(value, limits);
-  return questionMap(value);
-}
-export function isEvidence(value: unknown): value is EvidenceState {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.hasOwn(value, "type") &&
-    (value as Record<string, unknown>).type === "evidence"
+};
+const normalizeQuestion = (
+  questionInput: JsonValue,
+  path: string
+): Question => {
+  const q = record(questionInput, path);
+  if (q.type !== "choice" || !Array.isArray(q.criteria)) {
+    validateQuestion(q, path);
+    // SAFETY: validateQuestion checks the discriminant, exact fields, criteria shape, and content before this validated record crosses the boundary.
+    return q as Question;
+  }
+  if (q.criteria.length < MIN_CHOICES || q.criteria.length > MAX_CHOICES) {
+    invalid(
+      `${path}/criteria`,
+      `Choice requires ${MIN_CHOICES}–${MAX_CHOICES} distinct labels.`
+    );
+  }
+  const labels = new Set<string>();
+  const entries = q.criteria.map((item, index) => {
+    const entryPath = `${path}/criteria/${index}`;
+    const entry = record(item, entryPath);
+    fields(entry, ["label", "description"], entryPath);
+    if (
+      !nonblank(entry.label) ||
+      entry.label.length > MAX_LABEL_LENGTH ||
+      labels.has(entry.label)
+    ) {
+      return invalid(
+        `${entryPath}/label`,
+        `Choice labels must be distinct nonblank strings of at most ${MAX_LABEL_LENGTH} characters.`
+      );
+    }
+    labels.add(entry.label);
+    return [
+      entry.label,
+      entry.description === null
+        ? null
+        : content(entry.description, `${entryPath}/description`),
+    ] as const;
+  });
+  // Object.fromEntries defines own properties, including __proto__, without
+  // invoking Object.prototype setters. Never assign these labels with map[key].
+  const normalized = { ...q, criteria: Object.fromEntries(entries) };
+  validateQuestion(normalized, path);
+  // SAFETY: validateQuestion checks the normalized discriminant, exact fields, and every criterion value before the cast.
+  return normalized as Question;
+};
+const questionMap = (
+  questionsInput: JsonValue,
+  path = "/questions"
+): Questions => {
+  const map = record(questionsInput, path);
+  const entries = Object.entries(map);
+  if (entries.length < 1 || entries.length > MAX_QUESTIONS) {
+    invalid(path, `Supply 1–${MAX_QUESTIONS} independent questions.`);
+  }
+  return Object.fromEntries(
+    entries.map(([id, item]) => {
+      if (!NAME_PATTERN.test(id)) {
+        invalid(path, `Question IDs must match ${NAME_PATTERN.source}.`);
+      }
+      return [id, normalizeQuestion(item, `${path}/${id}`)];
+    })
   );
-}
-function paths(value: unknown, path: string): void {
+};
+export const parseQuestions = (
+  questionsInput: JsonValue,
+  limits?: { maxBytes: number; maxDepth: number }
+): Questions => {
+  if (!isBoundedJsonValue(questionsInput, limits)) {
+    return invalid("/questions");
+  }
+  return questionMap(questionsInput);
+};
+export const isEvidence = (
+  stateInput: JsonValue | EvidenceState | undefined
+): stateInput is EvidenceState =>
+  stateInput !== null &&
+  stateInput !== undefined &&
+  !Array.isArray(stateInput) &&
+  [Object.prototype, null].includes(Object.getPrototypeOf(stateInput)) &&
+  Object.getOwnPropertyDescriptor(stateInput, "type")?.value === "evidence";
+const paths = (pathsInput: JsonValue, path: string): void => {
   if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    value.length > MAX_EVIDENCE_PATHS ||
-    value.some((item) => !nonblank(item) || item.includes("\0"))
+    !Array.isArray(pathsInput) ||
+    pathsInput.length === 0 ||
+    pathsInput.length > MAX_EVIDENCE_PATHS ||
+    pathsInput.some((item) => !nonblank(item) || item.includes("\0"))
   ) {
     invalid(
       path,
       `Expected 1–${MAX_EVIDENCE_PATHS} nonblank literal paths without null characters.`
     );
   }
-}
-export function validateState(value: unknown, path = "/state"): void {
-  if (!isEvidence(value)) {
-    content(value, path);
+};
+export const validateState = (stateInput: JsonValue, path = "/state"): void => {
+  if (!isEvidence(stateInput)) {
+    content(stateInput, path);
     return;
   }
-  const state = record(value, path);
+  const state = record(stateInput, path);
   fields(state, ["type", "text", "files", "diffs"], path);
   if (!["text", "files", "diffs"].some((key) => Object.hasOwn(state, key))) {
     invalid(path, "Evidence requires text, files, or diffs.");
@@ -204,7 +218,10 @@ export function validateState(value: unknown, path = "/state"): void {
       diffs.length === 0 ||
       diffs.length > MAX_EVIDENCE_DIFFS
     ) {
-      invalid(`${path}/diffs`, `Expected 1–${MAX_EVIDENCE_DIFFS} Git diffs.`);
+      return invalid(
+        `${path}/diffs`,
+        `Expected 1–${MAX_EVIDENCE_DIFFS} Git diffs.`
+      );
     }
     for (const [index, item] of diffs.entries()) {
       const diffPath = `${path}/diffs/${index}`;
@@ -215,7 +232,7 @@ export function validateState(value: unknown, path = "/state"): void {
         diff.base.startsWith("-") ||
         diff.base.includes("\0")
       ) {
-        invalid(
+        return invalid(
           `${diffPath}/base`,
           "Expected a nonblank Git revision not starting with a hyphen or containing null characters."
         );
@@ -225,10 +242,18 @@ export function validateState(value: unknown, path = "/state"): void {
       }
     }
   }
-}
-export function parseInput(value: unknown): ClassifyInput {
-  boundedJson(value);
-  const input = record(value);
+};
+export const parseState = (
+  stateInput: JsonValue,
+  path = "/state"
+): Content | EvidenceState => {
+  validateState(stateInput, path);
+  // SAFETY: validateState establishes either nonblank Content or the complete evidence object contract before returning the unchanged JSON value.
+  return stateInput as Content | EvidenceState;
+};
+export const parseInput = (rawInput: JsonValue): ClassifyInput => {
+  boundedJson(rawInput);
+  const input = record(rawInput);
   fields(input, ["state", "questions", "classifier"]);
   if (
     Object.hasOwn(input, "questions") === Object.hasOwn(input, "classifier")
@@ -236,20 +261,22 @@ export function parseInput(value: unknown): ClassifyInput {
     invalid("", "Supply exactly one of questions or classifier.");
   }
   if (Object.hasOwn(input, "questions")) {
-    validateState(input.state);
+    if (!Object.hasOwn(input, "state")) {
+      return invalid("/state", "Ad hoc classification requires state.");
+    }
     return {
       questions: questionMap(input.questions),
-      state: input.state as Content | EvidenceState,
+      state: parseState(input.state),
     };
   }
   if (!(nonblank(input.classifier) && NAME_PATTERN.test(input.classifier))) {
-    invalid(
+    return invalid(
       "/classifier",
       `Classifier names must match ${NAME_PATTERN.source}.`
     );
   }
   if (Object.hasOwn(input, "state")) {
-    validateState(input.state);
+    return { classifier: input.classifier, state: parseState(input.state) };
   }
-  return input as ClassifyInput;
-}
+  return { classifier: input.classifier };
+};

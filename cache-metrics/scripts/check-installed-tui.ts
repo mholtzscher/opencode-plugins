@@ -2,47 +2,52 @@ import { mock } from "bun:test";
 import assert from "node:assert/strict";
 import { copyFile, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
+
 import type { SessionMessageInfo } from "@opencode/client";
-import type { Context } from "@opencode/plugin/tui/context";
+import type { Context, PanelInput } from "@opencode/plugin/tui/context";
 import { testRender } from "@opentui/solid";
 import type { JSX } from "solid-js";
+
 import manifest from "../package.json" with { type: "json" };
 
 type EventHandler = (event: { data: { sessionID: string } }) => void;
 
-const directory = await mkdtemp(join(tmpdir(), "cache-metrics-installed-"));
-const modules = join(directory, "node_modules");
-const installed = join(modules, manifest.name);
+const directory = await mkdtemp(
+  path.join(tmpdir(), "cache-metrics-installed-")
+);
+const modules = path.join(directory, "node_modules");
+const installed = path.join(modules, manifest.name);
 let destroy: (() => void) | undefined;
 let cleanup: (() => void) | undefined;
 
 try {
-  await mkdir(join(installed, "dist"), { recursive: true });
+  await mkdir(path.join(installed, "dist"), { recursive: true });
   await copyFile(
     new URL(`../${manifest.exports["./tui"]}`, import.meta.url),
-    join(installed, manifest.exports["./tui"])
+    path.join(installed, manifest.exports["./tui"])
   );
   await Promise.all(
     ["@opentui", "@opencode", "solid-js"].map((dependency) =>
       symlink(
         new URL(`../node_modules/${dependency}`, import.meta.url).pathname,
-        join(modules, dependency),
+        path.join(modules, dependency),
         "dir"
       )
     )
   );
   const { default: plugin } = await import(
-    pathToFileURL(join(installed, manifest.exports["./tui"])).href
+    pathToFileURL(path.join(installed, manifest.exports["./tui"])).href
   );
   const handlers = new Map<string, EventHandler>();
-  const commands = new Map<string, () => unknown>();
+  const commands = new Map<string, () => void | Promise<void>>();
   let messages: SessionMessageInfo[] = [];
   let renderPanel: (() => JSX.Element) | undefined;
   let renderSidebar: (() => JSX.Element) | undefined;
+  let invalidationCount = 0;
   const syncMessages = mock(() => Promise.resolve());
-  const context = {
+  const mockContext = {
     data: {
       on(name: string, handler: EventHandler) {
         handlers.set(name, handler);
@@ -51,7 +56,9 @@ try {
       session: {
         family: () => ["session"],
         message: {
-          invalidate: () => undefined,
+          invalidate() {
+            invalidationCount += 1;
+          },
           list: () => messages,
           sync: syncMessages,
         },
@@ -61,7 +68,9 @@ try {
     },
     keymap: {
       layer: (
-        layer: () => { commands: { id: string; run: () => unknown }[] }
+        layer: () => {
+          commands: { id: string; run: () => void | Promise<void> }[];
+        }
       ) => {
         for (const command of layer().commands) {
           commands.set(command.id, command.run);
@@ -79,22 +88,44 @@ try {
       text: { base: "#ffffff", muted: "#888888" },
     },
     ui: {
-      slot(input: { append: string; render: (panel: object) => JSX.Element }) {
+      slot(input: {
+        append: string;
+        render: (panel: PanelInput | { sessionID: string }) => JSX.Element;
+      }) {
         if (input.append === "session.panel") {
           renderPanel = () =>
+            // SAFETY: The history panel reads only these three fields from its PanelInput.
             input.render({
               focused: true,
               name: "cache-metrics.history",
               sessionID: "session",
-            });
+            } as PanelInput);
         }
         if (input.append === "sidebar.content") {
           renderSidebar = () => input.render({ sessionID: "session" });
         }
-        return () => undefined;
+        return () => {
+          renderPanel = undefined;
+          renderSidebar = undefined;
+        };
       },
     },
-  } as unknown as Context;
+  };
+  type TestContextFixture = Omit<
+    Partial<Context>,
+    "data" | "keymap" | "theme" | "ui"
+  > & {
+    data: typeof mockContext.data;
+    keymap: typeof mockContext.keymap;
+    theme: typeof mockContext.theme;
+    ui: typeof mockContext.ui;
+  };
+  const testContextFixture: TestContextFixture = mockContext;
+  const adaptHarnessContext = (fixture: TestContextFixture): Context =>
+    // SAFETY: setup and these renders call data.on; session.family/root/sync and message.invalidate/list/sync; keymap.layer; ui.slot; and read theme.border.base, hue.blue/green/red/yellow, and text.base/muted. The fixture implements each accessed member; other host APIs are deliberately outside this test's contract.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- TypeScript requires an unknown bridge for this intentional partial host fixture at its named adapter boundary.
+    fixture as unknown as Context;
+  const context = adaptHarnessContext(testContextFixture);
   cleanup = plugin.setup(context);
   assert.ok(renderPanel);
   const view = await testRender(renderPanel, { height: 35, width: 100 });
@@ -105,6 +136,7 @@ try {
   stepStarted({ data: { sessionID: "session" } });
   await view.waitForFrame((frame) => frame.includes("Waiting for token usage"));
   messages = [
+    // SAFETY: This complete assistant fixture populates the message fields used by the TUI history.
     {
       agent: "build",
       content: [],
@@ -126,6 +158,7 @@ try {
   await view.waitForFrame(
     (frame) => frame.includes("1 responses") && frame.includes("Response 1")
   );
+  assert.ok(invalidationCount > 0);
   const refresh = commands.get("cache-metrics.history.refresh");
   assert.ok(refresh);
   syncMessages.mockRejectedValueOnce(new Error("Offline"));

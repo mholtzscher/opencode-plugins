@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { parseOptions } from "../config.js";
 import { MAX_BYTES } from "../limits.js";
 import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
@@ -6,20 +7,19 @@ import { createAdapter } from "../providers/adapter.js";
 import { validateResponse } from "../providers/response.js";
 import { createClassifier } from "../service.js";
 import { buildToolInputSchema } from "../tool-schema.js";
+import type { ClassifyOutput, JsonValue } from "../types.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
-function success() {
-  return {
-    ok: true as const,
-    result: {
-      ...normalizedResponse(),
-      classifier: "triage",
-      durationMs: 12.345_678,
-      provider: "typesafe" as const,
-      requestID: "req-123",
-    },
-  };
-}
+const success = () => ({
+  ok: true as const,
+  result: {
+    ...normalizedResponse(),
+    classifier: "triage",
+    durationMs: 12.345678,
+    provider: "typesafe" as const,
+    requestID: "req-123",
+  },
+});
 
 test("output parser accepts JSON strings and objects without changing native values", () => {
   const output = success();
@@ -35,7 +35,23 @@ test("output parser accepts JSON strings and objects without changing native val
   });
   expect(parsed.result.answers.severity).toHaveProperty("score", 1.6);
   expect(parsed.result.answers.urgent).not.toHaveProperty("confidence");
-  expect(parsed.result.durationMs).toBe(12.345_678);
+  expect(parsed.result.durationMs).toBe(12.345678);
+});
+test("output parser accepts the empty pointer for root input errors", () => {
+  const output = {
+    error: {
+      attempts: 0,
+      code: "INVALID_INPUT",
+      durationMs: 0,
+      message: "Invalid input.",
+      path: "",
+      provider: "typesafe",
+      retryable: false,
+    },
+    ok: false,
+  } satisfies ClassifyOutput;
+  expect(parseClassifyOutput(output)).toBe(output);
+  expect(parseClassifyOutput(JSON.stringify(output))).toEqual(output);
 });
 
 test("output schema advertises required measurements and confidence semantics", () => {
@@ -62,7 +78,7 @@ test("output schema advertises required measurements and confidence semantics", 
 });
 
 test("output parser rejects malformed measurements, envelopes, and metadata safely", () => {
-  const mutations: Array<(output: ReturnType<typeof success>) => void> = [
+  const mutations: ((output: ReturnType<typeof success>) => void)[] = [
     (o) => {
       o.result.attempts = 0;
     },
@@ -157,7 +173,7 @@ test("output parser allows envelope overhead at native byte and depth boundaries
   );
   expect(Buffer.byteLength(JSON.stringify(large))).toBe(MAX_BYTES);
   const deep = response();
-  let level: unknown = "leaf";
+  let level: JsonValue = "leaf";
   for (let depth = 0; depth < 28; depth += 1) {
     level = [level];
   }
@@ -459,7 +475,7 @@ test("input errors give precise safe paths, no HTTP dispatches, and elapsed dura
       value: {
         questions: {
           severity: {
-            criteria: { other: null, SECRET: " " },
+            criteria: { SECRET: " ", other: null },
             instructions: "Pick",
             type: "choice",
           },

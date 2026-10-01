@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
-import { parseInput, parseQuestions } from "../validation/input.js";
+
+import type { JsonValue } from "../types.js";
+import { isEvidence, parseInput, parseQuestions } from "../validation/input.js";
 import { input, questions } from "./fixtures.js";
 
 test("both modes and mixed native questions pass unchanged", () => {
@@ -15,8 +17,19 @@ test("named input permits omitted preset state but rejects invalid supplied stat
   expect(() => parseInput({ questions })).toThrow();
   expect(() => parseInput({ classifier: "preset", state: null })).toThrow();
 });
+test("null-prototype evidence retains evidence validation", () => {
+  const state = { files: ["a.ts"], type: "evidence" };
+  Object.setPrototypeOf(state, null);
+  expect(isEvidence(state)).toBe(true);
+  expect(parseInput({ questions, state })).toHaveProperty("state", state);
+  const invalidState = { type: "evidence" };
+  Object.setPrototypeOf(invalidState, null);
+  expect(() => parseInput({ questions, state: invalidState })).toThrow(
+    "Evidence requires text, files, or diffs."
+  );
+});
 test("invalid selectors, content, fields and native criteria fail", () => {
-  for (const value of [
+  const invalidInputs: JsonValue[] = [
     { state: "x" },
     { ...input, classifier: "named" },
     { ...input, provider: "laya" },
@@ -26,10 +39,11 @@ test("invalid selectors, content, fields and native criteria fail", () => {
     { ...input, state: Number.NaN },
     { ...input, questions: {} },
     { ...input, questions: { "1bad": questions.urgent } },
-  ]) {
+  ];
+  for (const value of invalidInputs) {
     expect(() => parseInput(value)).toThrow();
   }
-  for (const q of [
+  const invalidQuestionDefinitions: JsonValue[] = [
     { instructions: " ", type: "noul" },
     { criteria: {}, instructions: "x", type: "noul" },
     { criteria: { yes: "x" }, instructions: "x", type: "noul" },
@@ -44,7 +58,8 @@ test("invalid selectors, content, fields and native criteria fail", () => {
     { criteria: ["one"], instructions: "x", type: "score" },
     { criteria: ["one", " "], instructions: "x", type: "score" },
     { instructions: "x", type: "boolean" },
-  ]) {
+  ];
+  for (const q of invalidQuestionDefinitions) {
     expect(() => parseQuestions({ q })).toThrow();
   }
 });
@@ -155,7 +170,7 @@ test("choice criteria lists enforce distinct labels, description shapes, and bou
   for (const criteria of [
     [],
     [valid],
-    new Array(256).fill(valid),
+    Array.from({ length: 256 }, () => valid),
     [valid, valid],
     [valid, { description: null, label: " " }],
     [valid, { description: null, label: "x".repeat(129) }],

@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+
+import type { JsonValue } from "../types.js";
 import { boundedJson } from "../validation/json.js";
 
 test("JSON byte boundary measures the serialized value exactly", () => {
@@ -17,7 +19,7 @@ test("JSON traversal rejects non-JSON values, getters, cycles, size and depth", 
     { a: undefined },
     { a: Number.POSITIVE_INFINITY },
     { a: () => 1 },
-    new Array(2),
+    Array.from({ length: 2 }),
     {
       get secret() {
         throw new Error("must not execute");
@@ -28,7 +30,7 @@ test("JSON traversal rejects non-JSON values, getters, cycles, size and depth", 
   ]) {
     expect(() => boundedJson(value)).toThrow();
   }
-  let deep: unknown = "leaf";
+  let deep: JsonValue = "leaf";
   for (let i = 0; i < 32; i += 1) {
     deep = [deep];
   }

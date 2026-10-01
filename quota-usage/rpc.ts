@@ -1,4 +1,5 @@
 import { Rpc } from "@opencode/plugin/rpc";
+import { Schema } from "effect";
 
 export interface QuotaWindow {
   display?: string;
@@ -16,6 +17,23 @@ export interface QuotaProvider {
   status: "ok" | "unavailable";
   windows: QuotaWindow[];
 }
+
+export const QuotaProviderSchema = Schema.Struct({
+  fetchedAt: Schema.Finite,
+  message: Schema.optionalKey(Schema.String),
+  name: Schema.String,
+  provider: Schema.Literals(["codex", "opencode-go"]),
+  status: Schema.Literals(["ok", "unavailable"]),
+  windows: Schema.Array(
+    Schema.Struct({
+      display: Schema.optionalKey(Schema.String),
+      id: Schema.String,
+      label: Schema.String,
+      remainingPercent: Schema.Finite,
+      resetAt: Schema.optionalKey(Schema.Finite),
+    })
+  ),
+});
 
 const quotaOutput = {
   additionalProperties: false,

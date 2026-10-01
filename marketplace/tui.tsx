@@ -1,6 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode/plugin/tui";
 import { Show } from "solid-js";
+
 import { MarketplaceCatalogPage } from "./marketplace-catalog-page.js";
 import { MarketplaceInstalledPanel } from "./marketplace-installed-panel.js";
 import { createMarketplaceUIState } from "./marketplace-ui-state.js";

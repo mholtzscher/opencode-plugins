@@ -6,9 +6,10 @@ import { boundedJson } from "../validation/json.js";
 import type { DecisionAdapter } from "./adapter.js";
 import { createPreflight } from "./preflight.js";
 import { validateResponse } from "./response.js";
-export function createSystemOneAdapter(
+
+export const createSystemOneAdapter = (
   options: ClassifyOptions
-): DecisionAdapter {
+): DecisionAdapter => {
   const { backend } = options;
   if (backend.provider === "openai-decisions") {
     throw new ClassificationError(
@@ -43,10 +44,9 @@ export function createSystemOneAdapter(
         },
         signal
       );
-      const metadata = {
-        attempts: response.attempts,
-        ...(response.requestID ? { requestID: response.requestID } : {}),
-      };
+      const metadata = response.requestID
+        ? { attempts: response.attempts, requestID: response.requestID }
+        : { attempts: response.attempts };
       try {
         return {
           ...validateResponse(
@@ -68,4 +68,4 @@ export function createSystemOneAdapter(
     provider: backend.provider,
     supportedTypes,
   };
-}
+};

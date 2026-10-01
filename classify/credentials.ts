@@ -1,27 +1,31 @@
-// biome-ignore-all lint/performance/noAwaitInLoops: Bounded file reads must be sequential and check cancellation between reads.
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import path from "node:path";
+
 import type { BackendOptions } from "./config.js";
 import { ClassificationError } from "./types.js";
 
 const MAX_KEY_BYTES = 16 * 1024;
-// biome-ignore lint/suspicious/noControlCharactersInRegex: Reject control characters before constructing a bearer header.
-const INVALID_KEY = /[\s\x00-\x1f\x7f]/u;
-function missingFile(): ClassificationError {
-  return new ClassificationError(
+// Reject whitespace and control characters before constructing a bearer header.
+// oxlint-disable-next-line eslint/no-control-regex -- Matching controls is the credential validation invariant.
+const INVALID_KEY = /[\s\u0000-\u001F\u007F]/u;
+const missingFile = (): ClassificationError =>
+  new ClassificationError(
     "MISSING_CREDENTIALS",
     "The configured API-key file must be a readable regular UTF-8 file containing one nonblank key, at most 16 KiB, on the OpenCode server."
   );
-}
-async function fileKey(path: string, signal: AbortSignal): Promise<string> {
+const fileKey = async (
+  keyPath: string,
+  signal: AbortSignal
+): Promise<string> => {
   signal.throwIfAborted();
   // Nonblocking open avoids waiting on a mistakenly configured FIFO. Only
   // regular files are accepted, and the read remains bounded if the file grows.
   const handle = await open(
-    path.startsWith("~/") ? join(homedir(), path.slice(2)) : path,
-    // biome-ignore lint/suspicious/noBitwiseOperators: Node filesystem flags are a bitmask.
+    keyPath.startsWith("~/") ? path.join(homedir(), keyPath.slice(2)) : keyPath,
+    // Node filesystem open flags are a bitmask; both flags are required.
+    // oxlint-disable-next-line eslint/no-bitwise -- Node's fs.open flags use bitwise composition.
     constants.O_RDONLY | constants.O_NONBLOCK
   );
   try {
@@ -33,7 +37,9 @@ async function fileKey(path: string, signal: AbortSignal): Promise<string> {
     signal.throwIfAborted();
     const buffer = Buffer.alloc(MAX_KEY_BYTES + 1);
     let size = 0;
+    // Reads stay sequential so each bounded chunk and cancellation check completes before the next read.
     for (;;) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Sequential bounded reads preserve cancellation and byte-limit checks.
       const { bytesRead } = await handle.read(
         buffer,
         size,
@@ -59,11 +65,11 @@ async function fileKey(path: string, signal: AbortSignal): Promise<string> {
   } finally {
     await handle.close();
   }
-}
-export async function resolveKey(
+};
+export const resolveKey = async (
   backend: BackendOptions,
   signal: AbortSignal
-): Promise<string | undefined> {
+): Promise<string | undefined> => {
   signal.throwIfAborted();
   if (backend.apiKeyFile !== undefined) {
     try {
@@ -72,7 +78,7 @@ export async function resolveKey(
       return key;
     } catch {
       signal.throwIfAborted();
-      // biome-ignore lint/style/useErrorCause: Filesystem errors expose secret-file paths and must not escape.
+      // Filesystem errors expose secret-file paths and must not escape.
       throw missingFile();
     }
   }
@@ -87,4 +93,4 @@ export async function resolveKey(
     );
   }
   return key;
-}
+};

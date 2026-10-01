@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { validateResponse } from "../providers/response.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
@@ -37,8 +38,9 @@ test("native responses preserve special own labels", () => {
   expect(JSON.stringify(result)).toContain('"__proto__":0.8');
 });
 test("malformed native responses fail atomically and extras are stripped", () => {
-  const mutations: Array<(r: ReturnType<typeof response>) => void> = [
+  const mutations: ((r: ReturnType<typeof response>) => void)[] = [
     (r) => {
+      // SAFETY: This mutation deliberately violates the response contract to verify atomic rejection.
       (r.answers as Partial<typeof r.answers>).urgent = undefined;
     },
     (r) => {
@@ -63,10 +65,12 @@ test("malformed native responses fail atomically and extras are stripped", () =>
       r.answers.category.probabilities.other = 0.5;
     },
     (r) => {
+      // SAFETY: This mutation deliberately removes a required native choice field to verify rejection.
       (r.answers.category as Partial<typeof r.answers.category>).probabilities =
         undefined;
     },
     (r) => {
+      // SAFETY: This mutation deliberately removes a required native score field to verify rejection.
       (r.answers.severity as Partial<typeof r.answers.severity>).legend =
         undefined;
     },

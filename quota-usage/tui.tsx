@@ -1,8 +1,10 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode/plugin/tui";
+import { Schema } from "effect";
 import { createSignal, For, Show } from "solid-js";
+
 import type { QuotaProvider, QuotaWindow } from "./rpc.js";
-import { CodexUsage, OpenCodeGoUsage } from "./rpc.js";
+import { CodexUsage, OpenCodeGoUsage, QuotaProviderSchema } from "./rpc.js";
 
 const fallbackProvider = (
   provider: QuotaProvider["provider"],
@@ -176,18 +178,30 @@ export default Plugin.define({
         const requests: Promise<QuotaProvider>[] = [];
         if (configured.has("openai")) {
           requests.push(
-            codex.get({}).then(
-              (value) => value as QuotaProvider,
-              () => fallbackProvider("codex", "Codex")
-            )
+            (async () => {
+              try {
+                const provider = Schema.decodeUnknownSync(QuotaProviderSchema)(
+                  await codex.get({})
+                );
+                return { ...provider, windows: [...provider.windows] };
+              } catch {
+                return fallbackProvider("codex", "Codex");
+              }
+            })()
           );
         }
         if (configured.has("opencode-go")) {
           requests.push(
-            openCodeGo.get({}).then(
-              (value) => value as QuotaProvider,
-              () => fallbackProvider("opencode-go", "OpenCode Go")
-            )
+            (async () => {
+              try {
+                const provider = Schema.decodeUnknownSync(QuotaProviderSchema)(
+                  await openCodeGo.get({})
+                );
+                return { ...provider, windows: [...provider.windows] };
+              } catch {
+                return fallbackProvider("opencode-go", "OpenCode Go");
+              }
+            })()
           );
         }
         setProviders(await Promise.all(requests));

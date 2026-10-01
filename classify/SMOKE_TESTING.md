@@ -1,35 +1,22 @@
 # Classify smoke-testing plan
 
-Use this plan after changing or reloading the plugin. It covers the public tool,
-evidence resolution, configuration, credentials, and provider transport.
+Use this plan after changing or reloading the plugin. It covers the public tool, evidence resolution, configuration, credentials, and provider transport.
 
-**A passing smoke test verifies connectivity and contracts, not model accuracy.**
-Record each case as PASS, FAIL, or NOT RUN. Do not count an expected rejection as
-a failure, or describe an untested backend as verified.
+**A passing smoke test verifies connectivity and contracts, not model accuracy.** Record each case as PASS, FAIL, or NOT RUN. Do not count an expected rejection as a failure, or describe an untested backend as verified.
 
 ## 1. Safety and prerequisites
 
-- Use a disposable Git repository and synthetic data. Never stage, commit,
-  delete, or rewrite files in the user's real working tree to prepare tests.
-- Successful hosted calls incur charges and send evidence to the configured
-  backend. Group independent questions into one request where practical.
-- Credentials must be available to the OpenCode **server**, not just the TUI.
-  Use an environment-variable name or private key-file path; do not copy keys
-  into fixtures, prompts, logs, or reports.
-- Install the plugin's dependencies and run its automated tests first. From
-  `classify/`, run `bun install`, `bun run typecheck`, and `bun test`. From the
-  repository root, run `bun run check classify` and `bun run check`.
-- Verify the effective plugin list: global/ancestor configuration can still
-  contribute plugins and permissions to the disposable project.
-- Prefer a separate interactive OpenCode client for the fixture. If moving an
-  existing session, record its original directory and restore it before cleanup.
-- Do not force authentication errors, rate limits, outages, or cancellation
-  against production merely to exercise an error path. Use controlled fixtures.
+- Use a disposable Git repository and synthetic data. Never stage, commit, delete, or rewrite files in the user's real working tree to prepare tests.
+- Successful hosted calls incur charges and send evidence to the configured backend. Group independent questions into one request where practical.
+- Credentials must be available to the OpenCode **server**, not just the TUI. Use an environment-variable name or private key-file path; do not copy keys into fixtures, prompts, logs, or reports.
+- Install the plugin's dependencies and run its automated tests first. From `classify/`, run `bun install`, `bun run typecheck`, and `bun test`. From the repository root, run `bun run check classify` and `bun run check`.
+- Verify the effective plugin list: global/ancestor configuration can still contribute plugins and permissions to the disposable project.
+- Prefer a separate interactive OpenCode client for the fixture. If moving an existing session, record its original directory and restore it before cleanup.
+- Do not force authentication errors, rate limits, outages, or cancellation against production merely to exercise an error path. Use controlled fixtures.
 
 ## 2. Prepare a disposable project
 
-Run the following from this repository's root. Node is only used to generate
-synthetic fixture files; it never reads credentials or calls the provider.
+Run the following from this repository's root. Node is only used to generate synthetic fixture files; it never reads credentials or calls the provider.
 
 ```sh
 export CLASSIFY_PLUGIN_DIR="$(pwd)/classify"
@@ -113,50 +100,29 @@ console.log(directory);
 JS
 ```
 
-Save the printed path as `SMOKE_DIR` and open OpenCode in that directory. If using
-a key file or Laya instead of the default TypeSafe environment source, change
-**only the disposable project's** backend using a configuration from
-[README.md](./README.md). Reload after changing options: they are an immutable
-setup snapshot. Do not overwrite an existing user's configuration.
+Save the printed path as `SMOKE_DIR` and open OpenCode in that directory. If using a key file or Laya instead of the default TypeSafe environment source, change **only the disposable project's** backend using a configuration from [README.md](./README.md). Reload after changing options: they are an immutable setup snapshot. Do not overwrite an existing user's configuration.
 
-On platforms without symlink support, mark symlink cases NOT RUN. Git must be
-installed for diff cases. Paths below are relative to the fixture session unless
-an absolute path is explicitly requested.
+On platforms without symlink support, mark symlink cases NOT RUN. Git must be installed for diff cases. Paths below are relative to the fixture session unless an absolute path is explicitly requested.
 
 ## 3. Calling the tool and judging results
 
-These examples are **tool arguments**, not provider HTTP bodies. Ask the agent
-to invoke `classify` exactly as specified, or call `tools.classify` in Code Mode.
-Do not have the agent read and copy file contents into `state` for evidence cases.
+These examples are **tool arguments**, not provider HTTP bodies. Ask the agent to invoke `classify` exactly as specified, or call `tools.classify` in Code Mode. Do not have the agent read and copy file contents into `state` for evidence cases.
 
-Check the `ok` discriminator before reading answers. In Code Mode, parse the
-returned JSON string before making assertions.
+Check the `ok` discriminator before reading answers. In Code Mode, parse the returned JSON string before making assertions.
 
 For successes, require:
 
 - Exactly the requested answer IDs and types, with no partial/missing answers.
 - `noul`: a finite probability in `[0, 1]`, not a boolean.
-- `choice`: an allowed label, every requested probability key, native confidence
-  in `[0, 1]`, and probability sum with absolute error **less than `0.02`**.
-- `score`: a finite value in `[0, levels.length - 1]`, every legend/distribution
-  index, and native confidence in `[0, 1]`. Structured legends stay structured.
-- Provider-reported model, nonnegative integer input/output token usage, and
-  nonnegative duration. A valid provider request-ID header is preserved when
-  present; its absence is not a failure.
+- `choice`: an allowed label, every requested probability key, native confidence in `[0, 1]`, and probability sum with absolute error **less than `0.02`**.
+- `score`: a finite value in `[0, levels.length - 1]`, every legend/distribution index, and native confidence in `[0, 1]`. Structured legends stay structured.
+- Provider-reported model, nonnegative integer input/output token usage, and nonnegative duration. A valid provider request-ID header is preserved when present; its absence is not a failure.
 - Named requests additionally contain the configured `result.classifier`.
 - No rounding, renormalization, invented confidence, or automatic action execution.
 
-Use clear synthetic facts to check that the backend received the evidence. High
-yes probabilities for present markers and low probabilities for absent markers
-are useful diagnostics, **not guaranteed numeric outputs**. Do not require an
-exact probability, confidence, or score. Fractional scores must remain fractional
-if returned; an integer result alone does not establish a bug.
+Use clear synthetic facts to check that the backend received the evidence. High yes probabilities for present markers and low probabilities for absent markers are useful diagnostics, **not guaranteed numeric outputs**. Do not require an exact probability, confidence, or score. Fractional scores must remain fractional if returned; an integer result alone does not establish a bug.
 
-For expected failures, require `ok: false`, a sanitized error, no `result`, and no
-partial answers. Input/evidence failures must not dispatch a provider request;
-verify this with a recording adapter or controlled HTTP fixture when necessary.
-Malformed calls may instead be rejected by the host's schema validator before
-the plugin runs. Record that separately as a host rejection.
+For expected failures, require `ok: false`, a sanitized error, no `result`, and no partial answers. Input/evidence failures must not dispatch a provider request; verify this with a recording adapter or controlled HTTP fixture when necessary. Malformed calls may instead be rejected by the host's schema validator before the plugin runs. Record that separately as a host rejection.
 
 ### Mixed answer-type baseline
 
@@ -172,16 +138,26 @@ the plugin runs. Record that separately as a host rejection.
     "category": {
       "type": "choice",
       "instructions": "Classify the event.",
-      "criteria": { "incident": "Active failure", "maintenance": "Planned maintenance", "other": null }
+      "criteria": {
+        "incident": "Active failure",
+        "maintenance": "Planned maintenance",
+        "other": null
+      }
     },
     "impact": {
       "type": "score",
       "instructions": "Rate customer impact.",
-      "criteria": ["No impact", "Some customers affected", "All customers affected"]
+      "criteria": [
+        "No impact",
+        "Some customers affected",
+        "All customers affected"
+      ]
     },
     "refund": {
       "type": "noul",
-      "instructions": { "question": "Does the customer explicitly request a refund?" }
+      "instructions": {
+        "question": "Does the customer explicitly request a refund?"
+      }
     }
   }
 }
@@ -189,8 +165,7 @@ the plugin runs. Record that separately as a host rejection.
 
 ## 4. Live success matrix
 
-Unless specified otherwise, use a `noul` question asking whether the relevant
-marker/fact occurs in the supplied evidence. Multiple rows can share a call.
+Unless specified otherwise, use a `noul` question asking whether the relevant marker/fact occurs in the supplied evidence. Multiple rows can share a call.
 
 | ID | Case / input | Expected result |
 | --- | --- | --- |
@@ -238,9 +213,7 @@ Use `state: { "type": "evidence", "files": [...] }`.
 
 ## 6. Git diff matrix
 
-Use `state: { "type": "evidence", "diffs": [{ "base": "HEAD", ... }] }`.
-These compare the base revision with the **tracked working tree**, not just the
-index or unstaged changes. Only mutate the disposable repository.
+Use `state: { "type": "evidence", "diffs": [{ "base": "HEAD", ... }] }`. These compare the base revision with the **tracked working tree**, not just the index or unstaged changes. Only mutate the disposable repository.
 
 | ID | Case | Expected result |
 | --- | --- | --- |
@@ -262,10 +235,7 @@ index or unstaged changes. Only mutate the disposable repository.
 | D16 | Session moved/nested directory; provider base/config stays unchanged | File/diff resolution uses the invoking session location, not plugin setup location. Confirm default diff scope does not include sibling directories. |
 | D17 | External diff, textconv, pager, or fsmonitor configured in fixture | Controlled fixture: no helper commands run. |
 
-Diffs follow native **shell** permissions, not per-file `read` rules on Git
-output. Do not interpret D09 as proof that broad `git diff` access protects
-read-denied files or historical secrets. Native display previews are discarded;
-the resolver performs a second bounded read/Git run after the native operation.
+Diffs follow native **shell** permissions, not per-file `read` rules on Git output. Do not interpret D09 as proof that broad `git diff` access protects read-denied files or historical secrets. Native display previews are discarded; the resolver performs a second bounded read/Git run after the native operation.
 
 ## 7. Regression cases
 
@@ -273,7 +243,10 @@ Run this through **Code Mode**, not just the service function:
 
 ```json
 {
-  "state": { "type": "evidence", "text": [{ "message": "Production is down for all customers." }] },
+  "state": {
+    "type": "evidence",
+    "text": [{ "message": "Production is down for all customers." }]
+  },
   "questions": {
     "impact": {
       "type": "score",
@@ -288,7 +261,10 @@ Run this through **Code Mode**, not just the service function:
       "type": "choice",
       "instructions": "Select __proto__ for an outage, constructor otherwise.",
       "criteria": [
-        { "label": "__proto__", "description": { "meaning": "Production outage" } },
+        {
+          "label": "__proto__",
+          "description": { "meaning": "Production outage" }
+        },
         { "label": "constructor", "description": null }
       ]
     }
@@ -308,9 +284,7 @@ Run this through **Code Mode**, not just the service function:
 
 ## 8. Limits and malformed inputs
 
-For accepted upper bounds, use repeated **empty** file references/patches so
-fixture size does not accidentally exceed the request budget. In Code Mode,
-generate arrays/maps programmatically rather than pasting hundreds of entries.
+For accepted upper bounds, use repeated **empty** file references/patches so fixture size does not accidentally exceed the request budget. In Code Mode, generate arrays/maps programmatically rather than pasting hundreds of entries.
 
 | ID | Boundary / malformed case | Expected result |
 | --- | --- | --- |
@@ -337,8 +311,7 @@ generate arrays/maps programmatically rather than pasting hundreds of entries.
 
 ## 9. Configuration, credentials, and registration
 
-Use disposable configuration/key fixtures. Negative configuration cases fail
-**setup** with sanitized `INVALID_CONFIG`, rather than returning a tool envelope.
+Use disposable configuration/key fixtures. Negative configuration cases fail **setup** with sanitized `INVALID_CONFIG`, rather than returning a tool envelope.
 
 | ID | Case | Expected result / execution mode |
 | --- | --- | --- |
@@ -363,9 +336,7 @@ Use disposable configuration/key fixtures. Negative configuration cases fail
 
 ## 10. Provider transport, output validation, and cancellation
 
-Run these with `bun test`, recording adapters, injected fetch, or a disposable
-System One HTTP server. Live TypeSafe tests do not establish live Laya behavior.
-Never configure an arbitrary OpenAI-compatible chat endpoint as Laya.
+Run these with `bun test`, recording adapters, injected fetch, or a disposable System One HTTP server. Live TypeSafe tests do not establish live Laya behavior. Never configure an arbitrary OpenAI-compatible chat endpoint as Laya.
 
 | ID | Case | Expected result |
 | --- | --- | --- |
@@ -390,9 +361,7 @@ Never configure an arbitrary OpenAI-compatible chat endpoint as Laya.
 | T19 | Abort before invocation, while resolving evidence/credentials, during fetch/body/retry wait, or just before adapter completion | Cancellation rejects to OpenCode, not a failure/success envelope; no late successful completion. |
 | T20 | Stop only a separately managed disposable Laya instance | Subsequent call fails with sanitized `NETWORK_ERROR`; plugin never starts/stops/downloads that service itself. |
 
-For interactive cancellation, use a **separate test client/session** and cancel
-its pending request. Do not interrupt the session coordinating this checklist.
-Timed-out or cancelled hosted requests may already have incurred charges.
+For interactive cancellation, use a **separate test client/session** and cancel its pending request. Do not interrupt the session coordinating this checklist. Timed-out or cancelled hosted requests may already have incurred charges.
 
 ### Automated coverage map
 
@@ -411,9 +380,7 @@ Timed-out or cancelled hosted requests may already have incurred charges.
 | `tests/transport.test.ts` | HTTP/auth/status handling, retries/deadlines/streams, native-response validation, request IDs, interruption. |
 | `tests/plugin.test.ts` | Real entry registration/execution, session-location evidence, named/ad hoc list normalization, structured legends, TUI separation. |
 
-Matrix rows describe required checks, not a claim that every row has an existing
-automated regression test. Document NOT RUN cases or add a controlled fixture
-where a check cannot be exercised safely through the public tool.
+Matrix rows describe required checks, not a claim that every row has an existing automated regression test. Document NOT RUN cases or add a controlled fixture where a check cannot be exercised safely through the public tool.
 
 ## 11. Report and cleanup
 
@@ -432,20 +399,8 @@ Request ID(s) for provider investigation:
 Fixture/session cleanup and original directory restored:
 ```
 
-Keep fixtures until failures have been diagnosed. Then restore the original
-session directory, close the disposable client, stop only servers started for
-the test, and delete **only the exact recorded disposable directory**. Check
-that the quoted-path fixture did not create `INJECTION_SHOULD_NOT_EXIST`. Do not
-delete broad `/tmp/opencode` paths, reset the user's Git tree, or retain secrets
-in the test report.
+Keep fixtures until failures have been diagnosed. Then restore the original session directory, close the disposable client, stop only servers started for the test, and delete **only the exact recorded disposable directory**. Check that the quoted-path fixture did not create `INJECTION_SHOULD_NOT_EXIST`. Do not delete broad `/tmp/opencode` paths, reset the user's Git tree, or retain secrets in the test report.
 
 ### Known verification baseline
 
-On 2026-09-30, live TypeSafe Code Mode checks against `jev-1.13.0` exercised the
-primary text/file/diff/named/limit/rejection paths. The subsequent structured
-legend and safe-label-list fixes passed a combined live regression call, plus
-52 automated tests and typecheck. The upstream `__proto__` **object-map** transport
-limitation remains; the entry-list form is the supported workaround. A subsequent
-local Laya adapter/service call verified `noul`, `choice`, and `score` on a short
-synthetic incident report. No separate Laya TUI/web smoke verification was claimed. Repeat this plan after
-changes rather than treating that historical run as verification of a new build.
+On 2026-09-30, live TypeSafe Code Mode checks against `jev-1.13.0` exercised the primary text/file/diff/named/limit/rejection paths. The subsequent structured legend and safe-label-list fixes passed a combined live regression call, plus 52 automated tests and typecheck. The upstream `__proto__` **object-map** transport limitation remains; the entry-list form is the supported workaround. A subsequent local Laya adapter/service call verified `noul`, `choice`, and `score` on a short synthetic incident report. No separate Laya TUI/web smoke verification was claimed. Repeat this plan after changes rather than treating that historical run as verification of a new build.

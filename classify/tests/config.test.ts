@@ -1,15 +1,22 @@
 import { expect, test } from "bun:test";
+
 import { file } from "bun";
+
 import { parseOptions } from "../config.js";
 import type { Content, EvidenceState } from "../types.js";
 import { examples } from "./fixtures.js";
 
-const CONFIG_BLOCK = /```jsonc\n([\s\S]*?)\n```/gu;
+const CONFIG_BLOCK = /```jsonc\n(?<config>[\s\S]*?)\n```/gu;
 test("README configuration blocks match validated example fixtures", async () => {
   const readme = await file(new URL("../README.md", import.meta.url)).text();
-  const configs = [...readme.matchAll(CONFIG_BLOCK)].map(
-    (match) => JSON.parse(match[1]).plugins[0].options
-  );
+  const configs = [...readme.matchAll(CONFIG_BLOCK)].map((match) => {
+    const jsonc = match.groups?.config;
+    if (jsonc === undefined) {
+      throw new TypeError("README JSONC block did not capture its contents.");
+    }
+    return JSON.parse(jsonc.replaceAll(/,\s*(?<close>[}\]])/gu, "$<close>"))
+      .plugins[0].options;
+  });
   expect(configs).toEqual(examples);
   for (const config of configs) {
     expect(() => parseOptions(config)).not.toThrow();
@@ -81,7 +88,7 @@ test("all five documented scenarios validate", () => {
   }
 });
 test("classifier state is validated, cloned and deeply frozen without evidence reads", () => {
-  const states: Array<Content | EvidenceState> = [
+  const states: (Content | EvidenceState)[] = [
     "Fixed input",
     { message: "Report" },
     [null, false, 2],
@@ -101,11 +108,19 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
     });
     const configured = options.classifiers?.review.state;
     expect(configured).toEqual(state);
-    if (typeof state === "object") {
+    if (
+      state !== null &&
+      (Array.isArray(state) ||
+        Object.getPrototypeOf(state) === Object.prototype)
+    ) {
       expect(configured).not.toBe(state);
       expect(Object.isFrozen(configured)).toBe(true);
       for (const child of Object.values(configured ?? {})) {
-        if (child !== null && typeof child === "object") {
+        if (
+          child !== null &&
+          (Array.isArray(child) ||
+            Object.getPrototypeOf(child) === Object.prototype)
+        ) {
           expect(Object.isFrozen(child)).toBe(true);
         }
       }

@@ -1,13 +1,15 @@
-import { isAbsolute } from "node:path";
+import path from "node:path";
+
 import { NAME_PATTERN } from "./limits.js";
+import { ClassificationError } from "./types.js";
+import type { Content, EvidenceState, JsonValue, Questions } from "./types.js";
+import { parseQuestions, parseState } from "./validation/input.js";
 import {
-  ClassificationError,
-  type Content,
-  type EvidenceState,
-  type Questions,
-} from "./types.js";
-import { parseQuestions, validateState } from "./validation/input.js";
-import { boundedJson, fields, nonblank, record } from "./validation/json.js";
+  fields,
+  isBoundedJsonValue,
+  nonblank,
+  record,
+} from "./validation/json.js";
 
 export type BackendOptions =
   | {
@@ -44,23 +46,26 @@ const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/u;
 const ORIGIN = /^https?:\/\/[^/?#\\\s]+\/?$/u;
 const PROTOCOL = /^https?:\/\//u;
 const TRAILING_SLASH = /\/$/u;
-const LOOPBACK = ["localhost", "127.0.0.1", "[::1]"];
-function configError(): never {
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const isInteger = (value: JsonValue): value is number =>
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Numeric limits must reject all non-number JSON primitives.
+  typeof value === "number" && Number.isInteger(value);
+const configError = (): never => {
   throw new ClassificationError(
     "INVALID_CONFIG",
     "Invalid classify options. Check backend, limits, and classifier definitions; use an environment variable name or key-file path, never literal credentials."
   );
-}
-function freeze(value: unknown): void {
-  if (value !== null && typeof value === "object") {
-    for (const child of Object.values(value)) {
+};
+const freeze = <Value>(value: Value): void => {
+  if (Object.isExtensible(value)) {
+    for (const child of Object.values(new Object(value))) {
       freeze(child);
     }
     Object.freeze(value);
   }
-}
-function layaOrigin(value: unknown): string {
-  if (typeof value !== "string" || !ORIGIN.test(value)) {
+};
+const layaOrigin = (value: JsonValue): string => {
+  if (!nonblank(value) || !ORIGIN.test(value)) {
     return configError();
   }
   const url = new URL(value);
@@ -68,7 +73,7 @@ function layaOrigin(value: unknown): string {
   const host = authority.startsWith("[")
     ? authority.slice(0, authority.indexOf("]") + 1)
     : authority.split(":")[0];
-  if (url.protocol === "http:" && !LOOPBACK.includes(host)) {
+  if (url.protocol === "http:" && !LOOPBACK.has(host)) {
     configError();
   }
   if (
@@ -81,13 +86,31 @@ function layaOrigin(value: unknown): string {
     configError();
   }
   return url.origin;
-}
-function parseBackend(value: unknown): BackendOptions {
+};
+const validateKeyFile = (backend: Record<string, JsonValue>): void => {
+  if (
+    Object.hasOwn(backend, "apiKeyFile") &&
+    Object.hasOwn(backend, "apiKeyEnv")
+  ) {
+    configError();
+  }
+  if (!nonblank(backend.apiKeyFile)) {
+    return;
+  }
+  if (
+    backend.apiKeyFile.includes("\0") ||
+    !(
+      path.isAbsolute(backend.apiKeyFile) || backend.apiKeyFile.startsWith("~/")
+    )
+  ) {
+    configError();
+  }
+};
+const parseBackend = (value: JsonValue): BackendOptions => {
   const backend = record(value);
   if (
-    !["typesafe", "laya", "openai-decisions"].includes(
-      backend.provider as string
-    )
+    !nonblank(backend.provider) ||
+    !["typesafe", "laya", "openai-decisions"].includes(backend.provider)
   ) {
     configError();
   }
@@ -102,10 +125,7 @@ function parseBackend(value: unknown): BackendOptions {
       configError();
     }
   }
-  if (
-    typeof backend.apiKeyEnv === "string" &&
-    !ENV_NAME.test(backend.apiKeyEnv)
-  ) {
+  if (nonblank(backend.apiKeyEnv) && !ENV_NAME.test(backend.apiKeyEnv)) {
     configError();
   }
   validateKeyFile(backend);
@@ -129,39 +149,18 @@ function parseBackend(value: unknown): BackendOptions {
         : "http://127.0.0.1:8000"
     );
   }
+  // SAFETY: Exact field validation and provider-specific checks above establish every field in the BackendOptions discriminated union.
   return backend as BackendOptions;
-}
-function validateKeyFile(backend: Record<string, unknown>): void {
-  if (
-    Object.hasOwn(backend, "apiKeyFile") &&
-    Object.hasOwn(backend, "apiKeyEnv")
-  ) {
-    configError();
-  }
-  if (typeof backend.apiKeyFile !== "string") {
-    return;
-  }
-  if (
-    backend.apiKeyFile.includes("\0") ||
-    !(isAbsolute(backend.apiKeyFile) || backend.apiKeyFile.startsWith("~/"))
-  ) {
-    configError();
-  }
-}
-function integer(value: unknown, min: number, max: number): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isInteger(value) ||
-    value < min ||
-    value > max
-  ) {
+};
+const integer = (value: JsonValue, min: number, max: number): number => {
+  if (!isInteger(value) || value < min || value > max) {
     return configError();
   }
   return value;
-}
-function parseClassifiers(
-  value: unknown
-): Record<string, ClassifierDefinition> {
+};
+const parseClassifiers = (
+  value: JsonValue | undefined
+): Record<string, ClassifierDefinition> => {
   const classifiers = value === undefined ? {} : record(value);
   if (Object.keys(classifiers).length > 32) {
     configError();
@@ -173,32 +172,35 @@ function parseClassifiers(
       }
       const definition = record(item);
       fields(definition, ["description", "questions", "state"]);
-      if (
-        !nonblank(definition.description) ||
-        definition.description.length > 512
-      ) {
-        configError();
+      const { description } = definition;
+      if (!nonblank(description) || description.length > 512) {
+        return configError();
       }
-      if (Object.hasOwn(definition, "state")) {
-        validateState(definition.state);
+      const state = Object.hasOwn(definition, "state")
+        ? parseState(definition.state)
+        : undefined;
+      const rawQuestions = definition.questions;
+      if (!isBoundedJsonValue(rawQuestions)) {
+        return configError();
       }
-      return [
-        name,
-        {
-          description: definition.description as string,
-          questions: parseQuestions(definition.questions),
-          ...(Object.hasOwn(definition, "state")
-            ? { state: definition.state as Content | EvidenceState }
-            : {}),
-        },
-      ];
+      const classifier: ClassifierDefinition = {
+        description,
+        questions: parseQuestions(rawQuestions),
+      };
+      if (state !== undefined) {
+        classifier.state = state;
+      }
+      return [name, classifier];
     })
   );
-}
-export function parseOptions(value: unknown): ClassifyOptions {
+};
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Plugin options are external input; this parser validates JSON safety before inspecting fields.
+export const parseOptions = (value: unknown): ClassifyOptions => {
   try {
-    boundedJson(value);
-    const options = record(JSON.parse(JSON.stringify(value)));
+    if (!isBoundedJsonValue(value)) {
+      return configError();
+    }
+    const options = record(structuredClone(value));
     fields(options, ["backend", "timeoutMs", "maxRetries", "classifiers"]);
     const result: ClassifyOptions = {
       backend: parseBackend(options.backend),
@@ -219,4 +221,4 @@ export function parseOptions(value: unknown): ClassifyOptions {
   } catch {
     return configError();
   }
-}
+};

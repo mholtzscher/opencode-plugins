@@ -154,6 +154,14 @@ interface SpecRecency {
   recency: number;
 }
 
+interface SubmissionError {
+  message: string;
+}
+
+const parseSubmissionError = (cause: unknown): SubmissionError => ({
+  message: cause instanceof Error ? cause.message : String(cause),
+});
+
 /** Runs git, resolving to null instead of rejecting so callers can treat failure as "no git". */
 const runGit = async (
   args: string[],
@@ -365,17 +373,17 @@ export default Plugin.define({
     const location = context.location ?? context.data.location.default();
     const commandAbortController = new AbortController();
     let submittedPrompt: Promise<unknown> | undefined;
-    const commands: Array<{
+    const commands: {
       name: string;
       description: string;
       handler: (args: string, context: CommandContext) => Promise<void>;
-    }> = [];
+    }[] = [];
     const commandContext: CommandContext = {
       cwd: location.directory,
       hasUI: true,
       signal: commandAbortController.signal,
       ui: {
-        input: async (title) =>
+        input: (title) =>
           context.ui.dialog.prompt({ placeholder: "Describe the idea", title }),
         notify: (message, level) => {
           context.ui.toast.show({
@@ -383,7 +391,7 @@ export default Plugin.define({
             variant: level === "warning" ? "warning" : level,
           });
         },
-        select: async (title, options) =>
+        select: (title, options) =>
           context.ui.dialog.select({
             options: options.map((option) => ({
               title: option,
@@ -402,14 +410,32 @@ export default Plugin.define({
         commands.push({ name, ...command });
       },
       sendUserMessage: (prompt) => {
-        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Session creation and model setup are part of one prompt transaction.
+        // Session creation and model setup are part of one prompt transaction.
         submittedPrompt = (async () => {
-          const route = context.ui.router.current();
-          let sessionID: string;
-          if (route.type === "session") {
-            ({ sessionID } = route);
-            const session = await context.client.session.get({ sessionID });
-            if (!session.model) {
+          try {
+            const route = context.ui.router.current();
+            let sessionID: string;
+            if (route.type === "session") {
+              ({ sessionID } = route);
+              const session = await context.client.session.get({ sessionID });
+              if (!session.model) {
+                const build = await context.client.agent.get({
+                  agentID: "build",
+                  location,
+                });
+                if (!build.data.model) {
+                  throw new Error("Build agent has no configured model");
+                }
+                await context.client.session.switchAgent({
+                  agent: "build",
+                  sessionID,
+                });
+                await context.client.session.switchModel({
+                  model: build.data.model,
+                  sessionID,
+                });
+              }
+            } else {
               const build = await context.client.agent.get({
                 agentID: "build",
                 location,
@@ -417,53 +443,37 @@ export default Plugin.define({
               if (!build.data.model) {
                 throw new Error("Build agent has no configured model");
               }
-              await context.client.session.switchAgent({
-                agent: "build",
-                sessionID,
-              });
-              await context.client.session.switchModel({
-                model: build.data.model,
-                sessionID,
-              });
-            }
-          } else {
-            const build = await context.client.agent.get({
-              agentID: "build",
-              location,
-            });
-            if (!build.data.model) {
-              throw new Error("Build agent has no configured model");
-            }
-            sessionID = (
-              await context.client.session.create({
+              const createdSession = await context.client.session.create({
                 agent: "build",
                 location,
                 model: build.data.model,
-              })
-            ).id;
-          }
+              });
+              sessionID = createdSession.id;
+            }
 
-          if (route.type !== "session") {
-            context.ui.router.navigate({ sessionID, type: "session" });
-          }
+            if (route.type !== "session") {
+              context.ui.router.navigate({ sessionID, type: "session" });
+            }
 
-          const command = COMMAND_PATTERN.exec(prompt);
-          // biome-ignore lint/suspicious/noUnnecessaryConditions: A user prompt need not be a slash command.
-          if (command?.groups?.name) {
-            await context.client.session.command({
-              name: command.groups.name,
-              sessionID,
-              text: command.groups.arguments ?? "",
+            const command = COMMAND_PATTERN.exec(prompt);
+            // A user prompt need not be a slash command.
+            if (command?.groups?.name) {
+              await context.client.session.command({
+                name: command.groups.name,
+                sessionID,
+                text: command.groups.arguments ?? "",
+              });
+              return;
+            }
+            await context.client.session.prompt({ sessionID, text: prompt });
+          } catch (error: unknown) {
+            const submissionError = parseSubmissionError(error);
+            context.ui.toast.show({
+              message: `Could not submit spec prompt: ${submissionError.message}`,
+              variant: "error",
             });
-            return;
           }
-          await context.client.session.prompt({ sessionID, text: prompt });
-        })().catch((error: unknown) => {
-          context.ui.toast.show({
-            message: `Could not submit spec prompt: ${error instanceof Error ? error.message : String(error)}`,
-            variant: "error",
-          });
-        });
+        })();
       },
     };
 
@@ -518,7 +528,7 @@ export default Plugin.define({
             group: "Spec tools",
             id: `spec-tools.${command.name}`,
             palette: true,
-            run: async (input) => command.handler(input ?? "", commandContext),
+            run: (input) => command.handler(input ?? "", commandContext),
             slash: { name: command.name },
             title: command.description,
           })),

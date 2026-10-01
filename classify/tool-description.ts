@@ -10,9 +10,9 @@ import {
   NAME_PATTERN,
 } from "./limits.js";
 
-export function buildToolDescription(
+export const buildToolDescription = (
   classifiers: Record<string, ClassifierDefinition>
-): string {
+): string => {
   const entries = Object.entries(classifiers);
   return [
     "Evaluate content against independent typed questions using the user's configured decision backend.",
@@ -39,4 +39,4 @@ export function buildToolDescription(
           ),
         ]),
   ].join("\n");
-}
+};

@@ -9,7 +9,7 @@ From this directory, run `bun install` and `bun run typecheck`. This repository'
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["./marketplace"]
+  "plugins": ["./marketplace"],
 }
 ```
 

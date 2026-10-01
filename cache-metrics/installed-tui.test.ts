@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { $ } from "bun";
 
 const directory = import.meta.dir;

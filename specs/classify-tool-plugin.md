@@ -1,8 +1,6 @@
 # Classify tool plugin
 
-Status: Reviewed with no feedback. Ready for task breakdown. Implementation has not started.
-Date: 2026-09-30
-Effort: L for the TypeSafe/Laya release. OpenAI implementation requires a separate estimate after its API contract is verified.
+Status: Reviewed with no feedback. Ready for task breakdown. Implementation has not started. Date: 2026-09-30 Effort: L for the TypeSafe/Laya release. OpenAI implementation requires a separate estimate after its API contract is verified.
 
 ## Problem
 
@@ -93,7 +91,12 @@ export default Plugin.define({
       "Returns native results and available uncertainty data, not explanations or permission to execute an action.",
       ...(classifiers.length === 0
         ? []
-        : ["Configured classifiers:", ...classifiers.map(([name, value]) => `${name}: ${value.description}`)]),
+        : [
+            "Configured classifiers:",
+            ...classifiers.map(
+              ([name, value]) => `${name}: ${value.description}`
+            ),
+          ]),
     ].join("\n");
 
     await ctx.tool.transform((editor) => {
@@ -164,7 +167,12 @@ export function buildToolInputSchema(
         properties: {
           type: { const: "score" },
           instructions: content,
-          criteria: { type: "array", items: content, minItems: 2, maxItems: 10 },
+          criteria: {
+            type: "array",
+            items: content,
+            minItems: 2,
+            maxItems: 10,
+          },
         },
         required: ["type", "instructions", "criteria"],
         additionalProperties: false,
@@ -195,7 +203,10 @@ export function buildToolInputSchema(
           adHoc,
           {
             type: "object",
-            properties: { state: content, classifier: { type: "string", enum: names } },
+            properties: {
+              state: content,
+              classifier: { type: "string", enum: names },
+            },
             required: ["state", "classifier"],
             additionalProperties: false,
           },
@@ -234,7 +245,10 @@ Read `result.answers.refund_requested.noul` as the probability of yes. A result 
 
 ```json
 {
-  "state": { "title": "Fix stale cache after deploy", "files": ["cache.ts", "cache.test.ts"] },
+  "state": {
+    "title": "Fix stale cache after deploy",
+    "files": ["cache.ts", "cache.test.ts"]
+  },
   "questions": {
     "change_kind": {
       "type": "choice",
@@ -261,7 +275,11 @@ Read `result.answers.change_kind.choice` as one of the supplied labels. `unknown
     "impact": {
       "type": "score",
       "instructions": "Rate the user impact described in this report.",
-      "criteria": ["No user impact", "Some users affected", "Most users cannot complete the task"]
+      "criteria": [
+        "No user impact",
+        "Some users affected",
+        "Most users cannot complete the task"
+      ]
     }
   }
 }
@@ -291,7 +309,11 @@ Read `result.answers.impact.score` on the supplied zero-based scale of 0–2. A 
     "severity": {
       "type": "score",
       "instructions": "How severe is the reported impact?",
-      "criteria": ["No user impact", "Some users affected", "Production unavailable"]
+      "criteria": [
+        "No user impact",
+        "Some users affected",
+        "Production unavailable"
+      ]
     }
   }
 }
@@ -323,13 +345,21 @@ This illustrative response matches the mixed incident example. The actual OpenCo
       "category": {
         "type": "choice",
         "choice": "incident",
-        "probabilities": { "incident": 0.9, "maintenance": 0.02, "other": 0.08 },
+        "probabilities": {
+          "incident": 0.9,
+          "maintenance": 0.02,
+          "other": 0.08
+        },
         "confidence": 0.85
       },
       "severity": {
         "type": "score",
         "score": 1.6,
-        "legend": { "0": "No user impact", "1": "Some users affected", "2": "Production unavailable" },
+        "legend": {
+          "0": "No user impact",
+          "1": "Some users affected",
+          "2": "Production unavailable"
+        },
         "probabilities": { "0": 0.1, "1": 0.2, "2": 0.7 },
         "confidence": 0.4
       }
@@ -364,12 +394,7 @@ All types below are new. `classify/types.ts` owns the public classification cont
 
 ```ts
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 export type Content = string | JsonValue[] | { [key: string]: JsonValue };
 export type ProviderID = "typesafe" | "laya" | "openai-decisions";
@@ -457,8 +482,7 @@ export interface Failure {
 }
 
 export type ClassifyOutput =
-  | { ok: true; result: ClassifyResult }
-  | { ok: false; error: Failure };
+  { ok: true; result: ClassifyResult } | { ok: false; error: Failure };
 ```
 
 TypeSafe and Laya require all their documented fields, including choice/score distributions and confidence, score legends, and token usage. The optional fields in the common response allow future OpenAI results without invented measurements. Missing native fields in TypeSafe/Laya are errors, not permission to omit them.
@@ -522,10 +546,10 @@ Each example is an alternative `opencode.jsonc` configuration. Merge its plugin 
     {
       "package": "./classify",
       "options": {
-        "backend": { "provider": "typesafe" }
-      }
-    }
-  ]
+        "backend": { "provider": "typesafe" },
+      },
+    },
+  ],
 }
 ```
 
@@ -542,7 +566,7 @@ Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest
       "options": {
         "backend": {
           "provider": "laya",
-          "baseURL": "http://127.0.0.1:8000"
+          "baseURL": "http://127.0.0.1:8000",
         },
         "classifiers": {
           "incident-triage": {
@@ -550,14 +574,14 @@ Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest
             "questions": {
               "active": {
                 "type": "noul",
-                "instructions": "Does state.message describe an active production incident?"
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
+                "instructions": "Does state.message describe an active production incident?",
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
 }
 ```
 
@@ -576,7 +600,7 @@ Run Laya separately on port 8000. This configuration sends no authorization head
           "provider": "laya",
           "baseURL": "http://127.0.0.1:8000",
           "model": "english",
-          "apiKeyEnv": "LAYA_API_KEY"
+          "apiKeyEnv": "LAYA_API_KEY",
         },
         "timeoutMs": 120000,
         "maxRetries": 0,
@@ -591,29 +615,33 @@ Run Laya separately on port 8000. This configuration sends no authorization head
                   "bugfix": "Corrects existing behavior",
                   "feature": "Adds a new capability",
                   "maintenance": "Upkeep without a behavior change",
-                  "unknown": "Insufficient evidence"
-                }
-              }
-            }
+                  "unknown": "Insufficient evidence",
+                },
+              },
+            },
           },
           "incident-triage": {
             "description": "Assess whether a report describes an incident and rate its impact.",
             "questions": {
               "active": {
                 "type": "noul",
-                "instructions": "Does this report describe an active production incident?"
+                "instructions": "Does this report describe an active production incident?",
               },
               "impact": {
                 "type": "score",
                 "instructions": "Rate the user impact described in the report.",
-                "criteria": ["No user impact", "Some users affected", "Production unavailable"]
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
+                "criteria": [
+                  "No user impact",
+                  "Some users affected",
+                  "Production unavailable",
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
 }
 ```
 
@@ -633,13 +661,13 @@ With this config, the agent can invoke `classify` with `{ "state": "Fix stale ca
         "backend": {
           "provider": "laya",
           "baseURL": "https://laya.example.com",
-          "apiKeyEnv": "COMPANY_LAYA_API_KEY"
+          "apiKeyEnv": "COMPANY_LAYA_API_KEY",
         },
         "timeoutMs": 60000,
-        "maxRetries": 0
-      }
-    }
-  ]
+        "maxRetries": 0,
+      },
+    },
+  ],
 }
 ```
 
@@ -654,10 +682,10 @@ Replace the example origin with the operator's endpoint and set `COMPANY_LAYA_AP
     {
       "package": "./classify",
       "options": {
-        "backend": { "provider": "openai-decisions" }
-      }
-    }
-  ]
+        "backend": { "provider": "openai-decisions" },
+      },
+    },
+  ],
 }
 ```
 
@@ -673,7 +701,10 @@ For any backend, environment variables belong on the OpenCode server. Keys on th
 export interface DecisionAdapter {
   readonly provider: ProviderID;
   readonly supportedTypes: readonly QuestionType[];
-  decide(request: DecisionRequest, signal: AbortSignal): Promise<DecisionResponse>;
+  decide(
+    request: DecisionRequest,
+    signal: AbortSignal
+  ): Promise<DecisionResponse>;
 }
 
 // config.ts

@@ -1,7 +1,6 @@
-// biome-ignore-all lint/performance/noAwaitInLoops: Stream reads and retry attempts must be sequential.
-// biome-ignore-all lint/style/useErrorCause: Raw fetch and JSON errors can contain credentials or submitted state.
 import { MAX_BYTES } from "./limits.js";
 import { ClassificationError } from "./types.js";
+import type { JsonValue } from "./types.js";
 
 export interface TransportOptions {
   body: string;
@@ -10,11 +9,23 @@ export interface TransportOptions {
   maxRetries: number;
   timeoutMs: number;
 }
+interface RequestMetadata {
+  requestID?: string;
+}
+interface TransportResult {
+  attempts: number;
+  requestID?: string;
+  value: JsonValue;
+}
+interface TransportErrorDetails extends RequestMetadata {
+  attempts: number;
+  retryAfterMs?: number;
+}
 const REQUEST_ID = /^[A-Za-z0-9._:-]{1,256}$/u;
 const RETRY_SECONDS = /^\d+(?:\.\d+)?$/u;
 const HTTP_DATE =
   /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/u;
-function retryAfterMs(response: Response): number | undefined {
+const retryAfterMs = (response: Response): number | undefined => {
   const retryAfter = response.headers.get("retry-after");
   if (
     retryAfter === null ||
@@ -26,12 +37,12 @@ function retryAfterMs(response: Response): number | undefined {
     ? Number(retryAfter) * 1000
     : Date.parse(retryAfter) - Date.now();
   return Number.isFinite(requested) ? Math.max(0, requested) : undefined;
-}
-function requestID(response: Response): { requestID?: string } {
+};
+const requestID = (response: Response): { requestID?: string } => {
   const id = response.headers.get("x-typesafe-request-id");
   return id && REQUEST_ID.test(id) ? { requestID: id } : {};
-}
-function httpError(status: number): ClassificationError {
+};
+const httpError = (status: number): ClassificationError => {
   if (status === 401 || status === 403) {
     return new ClassificationError(
       "AUTH_FAILED",
@@ -62,40 +73,48 @@ function httpError(status: number): ClassificationError {
     false,
     { status }
   );
-}
-function wait(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
+};
+const wait = (ms: number, signal: AbortSignal): Promise<void> =>
+  // This promise is the timer/abort race returned to the retry loop.
+  // oxlint-disable-next-line promise/avoid-new -- Neither source is an existing promise until its callback fires.
+  new Promise((resolve, reject) => {
     signal.throwIfAborted();
+    // The timer is assigned after the abort callback is created and is not reassigned afterward.
+    // oxlint-disable-next-line eslint/prefer-const -- The callback closes over the timer initialized immediately below.
+    let timer: ReturnType<typeof setTimeout>;
     const abort = () => {
       clearTimeout(timer);
       reject(signal.reason);
     };
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       signal.removeEventListener("abort", abort);
       resolve();
     }, ms);
     signal.addEventListener("abort", abort, { once: true });
   });
-}
 // Race stream reads as well as fetch, including injected implementations that
 // do not themselves honor AbortSignal.
-function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  return new Promise((resolve, reject) => {
+const abortable = <T>(promise: Promise<T>, signal: AbortSignal): Promise<T> =>
+  // Racing an injected fetch/reader requires a promise that observes abort independently.
+  // oxlint-disable-next-line promise/avoid-new -- A new abort branch is needed for injected operations that ignore AbortSignal.
+  new Promise<T>((resolve, reject) => {
     signal.throwIfAborted();
     const abort = () => {
       signal.removeEventListener("abort", abort);
       reject(signal.reason);
     };
     signal.addEventListener("abort", abort, { once: true });
+    // Both handlers are needed so the listener is cleaned up on either settlement path.
+    // oxlint-disable promise/prefer-await-to-then -- This promise must settle with the wrapped operation and remove its abort listener.
     promise
       .then(resolve, reject)
       .finally(() => signal.removeEventListener("abort", abort));
+    // oxlint-enable promise/prefer-await-to-then
   });
-}
-async function readJson(
+const readJson = async (
   response: Response,
   signal: AbortSignal
-): Promise<unknown> {
+): Promise<JsonValue> => {
   if (!response.body) {
     throw new ClassificationError(
       "INVALID_RESPONSE",
@@ -107,6 +126,8 @@ async function readJson(
   let size = 0;
   try {
     for (;;) {
+      // Stream chunks must be consumed sequentially to enforce the byte cap before the next read.
+      // oxlint-disable-next-line eslint/no-await-in-loop -- The next chunk cannot be read until the current chunk is bounded.
       const chunk = await abortable(reader.read(), signal);
       if (chunk.done) {
         break;
@@ -121,9 +142,12 @@ async function readJson(
       chunks.push(chunk.value);
     }
     try {
-      return JSON.parse(
-        new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks))
+      const jsonText = new TextDecoder("utf-8", { fatal: true }).decode(
+        Buffer.concat(chunks)
       );
+      const decoded: unknown = JSON.parse(jsonText);
+      // SAFETY: JSON.parse produces only JSON primitive/container shapes; provider validation subsequently rejects nonfinite numbers and enforces depth limits.
+      return decoded as JsonValue;
     } catch {
       throw new ClassificationError(
         "INVALID_RESPONSE",
@@ -131,19 +155,22 @@ async function readJson(
       );
     }
   } finally {
-    reader.cancel().catch(() => undefined);
+    // The body is already consumed or rejected; cleanup failure cannot replace the validated response result.
+    // oxlint-disable promise/prefer-await-to-then eslint/no-empty-function -- Awaiting cancellation can hang, and its cleanup rejection is intentionally consumed.
+    reader.cancel().catch(() => {});
+    // oxlint-enable promise/prefer-await-to-then eslint/no-empty-function
     reader.releaseLock();
   }
-}
+};
 export type Fetcher = (
   input: string | URL | Request,
   init?: RequestInit
 ) => Promise<Response>;
-export async function systemOneFetch(
+export const systemOneFetch = async (
   options: TransportOptions,
   sessionSignal: AbortSignal,
   fetcher: Fetcher = fetch
-): Promise<{ value: unknown; attempts: number; requestID?: string }> {
+): Promise<TransportResult> => {
   sessionSignal.throwIfAborted();
   if (Buffer.byteLength(options.body) > MAX_BYTES) {
     throw new ClassificationError(
@@ -160,20 +187,20 @@ export async function systemOneFetch(
   const timer = setTimeout(() => controller.abort(), options.timeoutMs);
   const { signal } = controller;
   let attempts = 0;
-  let responseID: { requestID?: string } = {};
+  let responseID: RequestMetadata = {};
   let retryAfter: number | undefined;
   try {
     for (let attempt = 0; ; attempt += 1) {
       signal.throwIfAborted();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      const headers = new Headers({ "Content-Type": "application/json" });
       if (options.key !== undefined) {
-        headers.Authorization = `Bearer ${options.key}`;
+        headers.set("Authorization", `Bearer ${options.key}`);
       }
       attempts += 1;
       responseID = {};
       retryAfter = undefined;
+      // Retrying is sequential: each response determines status, retry delay, and request ID.
+      // oxlint-disable-next-line eslint/no-await-in-loop -- A retry must wait for the preceding HTTP response and backoff.
       const response = await abortable(
         fetcher(options.endpoint, {
           body: options.body,
@@ -188,6 +215,8 @@ export async function systemOneFetch(
       retryAfter = retryAfterMs(response);
       signal.throwIfAborted();
       if (response.ok) {
+        // Consume the successful response before considering another request.
+        // oxlint-disable-next-line eslint/no-await-in-loop -- The response body belongs to this sequential retry attempt.
         const value = await readJson(response, signal);
         signal.throwIfAborted();
         return {
@@ -196,7 +225,10 @@ export async function systemOneFetch(
           ...responseID,
         };
       }
-      response.body?.cancel().catch(() => undefined);
+      // The response is discarded; cancellation rejection must not replace the sanitized HTTP error.
+      // oxlint-disable promise/prefer-await-to-then eslint/no-empty-function -- Awaiting cancellation could delay or mask the provider error.
+      response.body?.cancel().catch(() => {});
+      // oxlint-enable promise/prefer-await-to-then eslint/no-empty-function
       const error = httpError(response.status);
       if (
         ![429, 529].includes(response.status) ||
@@ -208,15 +240,19 @@ export async function systemOneFetch(
       if (delay >= deadline - performance.now()) {
         throw error;
       }
+      // Backoff is part of the ordered retry state machine.
+      // oxlint-disable-next-line eslint/no-await-in-loop -- The next HTTP attempt must wait for this backoff.
       await wait(delay, signal);
     }
   } catch (error) {
     sessionSignal.throwIfAborted();
-    const details = {
+    const details: TransportErrorDetails = {
       attempts,
       ...responseID,
-      ...(retryAfter === undefined ? {} : { retryAfterMs: retryAfter }),
     };
+    if (retryAfter !== undefined) {
+      details.retryAfterMs = retryAfter;
+    }
     if (signal.aborted) {
       throw new ClassificationError(
         "TIMEOUT",
@@ -239,4 +275,4 @@ export async function systemOneFetch(
     clearTimeout(timer);
     sessionSignal.removeEventListener("abort", interrupt);
   }
-}
+};

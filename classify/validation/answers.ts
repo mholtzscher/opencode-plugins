@@ -6,21 +6,24 @@ import {
   MIN_CHOICES,
   MIN_SCORE_LEVELS,
 } from "../limits.js";
-import type { Answer, DecisionResponse } from "../types.js";
+import type { Answer, DecisionResponse, JsonValue } from "../types.js";
 import { content, exactKeys, invalid, nonblank, record } from "./json.js";
 
-function numberIn(value: unknown, max = 1): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isFinite(value) ||
-    value < 0 ||
-    value > max
-  ) {
+const isFiniteNumber = (value: JsonValue): value is number =>
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Numeric answer fields require a runtime primitive check after JSON decoding.
+  typeof value === "number" && Number.isFinite(value);
+const isWholeNumber = (value: JsonValue): value is number =>
+  isFiniteNumber(value) && Number.isInteger(value);
+const numberIn = (value: JsonValue, max = 1): number => {
+  if (!isFiniteNumber(value) || value < 0 || value > max) {
     return invalid();
   }
   return value;
-}
-function distribution(value: unknown, keys: string[]): Record<string, number> {
+};
+const distribution = (
+  value: JsonValue,
+  keys: string[]
+): Record<string, number> => {
   const map = record(value);
   exactKeys(map, keys);
   const entries = Object.entries(map).map(
@@ -34,17 +37,17 @@ function distribution(value: unknown, keys: string[]): Record<string, number> {
     invalid();
   }
   return Object.fromEntries(entries);
-}
+};
 export type AnswerContract =
   | { type: "noul" }
   | { type: "choice"; labels: string[] }
   | { type: "score"; levels: number };
 
 // Shared measurements; callers own field policies and request agreement.
-export function validateAnswer(
-  value: unknown,
+export const validateAnswer = (
+  value: JsonValue,
   contract: AnswerContract
-): Answer {
+): Answer => {
   const answer = record(value);
   if (answer.type !== contract.type) {
     invalid();
@@ -61,11 +64,11 @@ export function validateAnswer(
     ) {
       invalid();
     }
-    if (typeof answer.choice !== "string" || !keys.includes(answer.choice)) {
-      invalid();
+    if (!nonblank(answer.choice) || !keys.includes(answer.choice)) {
+      return invalid();
     }
     return {
-      choice: answer.choice as string,
+      choice: answer.choice,
       confidence: numberIn(answer.confidence),
       probabilities: distribution(answer.probabilities, keys),
       type: "choice",
@@ -93,20 +96,18 @@ export function validateAnswer(
     score: numberIn(answer.score, keys.length - 1),
     type: "score",
   };
-}
-export function validateUsage(value: unknown): DecisionResponse["usage"] {
+};
+export const validateUsage = (value: JsonValue): DecisionResponse["usage"] => {
   const usage = record(value);
-  for (const field of ["input_tokens", "output_tokens"]) {
-    if (
-      typeof usage[field] !== "number" ||
-      !Number.isInteger(usage[field]) ||
-      (usage[field] as number) < 0
-    ) {
-      invalid();
-    }
+  const { input_tokens, output_tokens } = usage;
+  if (!isWholeNumber(input_tokens) || input_tokens < 0) {
+    return invalid();
+  }
+  if (!isWholeNumber(output_tokens) || output_tokens < 0) {
+    return invalid();
   }
   return {
-    input_tokens: usage.input_tokens as number,
-    output_tokens: usage.output_tokens as number,
+    input_tokens,
+    output_tokens,
   };
-}
+};

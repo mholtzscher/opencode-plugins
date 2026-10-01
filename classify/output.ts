@@ -10,9 +10,15 @@ import {
   MIN_SCORE_LEVELS,
   NAME_PATTERN,
 } from "./limits.js";
-import { type ClassifyOutput, ERROR_CODES } from "./types.js";
+import { ERROR_CODES } from "./types.js";
+import type { ClassifyOutput, JsonValue } from "./types.js";
 import { validateAnswer, validateUsage } from "./validation/answers.js";
-import { boundedJson, fields, nonblank, record } from "./validation/json.js";
+import {
+  fields,
+  isBoundedJsonValue,
+  nonblank,
+  record,
+} from "./validation/json.js";
 
 const probability = { maximum: 1, minimum: 0, type: "number" };
 const nonnegative = { minimum: 0, type: "number" };
@@ -199,32 +205,32 @@ export const classifyOutputSchema = {
   ],
 };
 
-function assert(condition: boolean): asserts condition {
+const assert: (condition: boolean) => asserts condition = (condition) => {
   if (!condition) {
     throw new TypeError("Invalid classification output.");
   }
-}
-function isCount(value: unknown, min = 0): boolean {
-  return typeof value === "number" && Number.isInteger(value) && value >= min;
-}
-function isNonnegative(value: unknown): boolean {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
-}
-function metadata(value: Record<string, unknown>, minAttempts: number): void {
+};
+const isCount = (value: JsonValue, min = 0): value is number =>
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Parsed JSON numbers must be distinguished to enforce integer metadata.
+  typeof value === "number" && Number.isInteger(value) && value >= min;
+const isNonnegative = (value: JsonValue): value is number =>
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Parsed JSON numbers must be distinguished to enforce finite nonnegative metadata.
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+const metadata = (
+  value: Record<string, JsonValue>,
+  minAttempts: number
+): void => {
   assert(
     isCount(value.attempts, minAttempts) && isNonnegative(value.durationMs)
   );
-  assert(
-    typeof value.provider === "string" && provider.enum.includes(value.provider)
-  );
+  assert(nonblank(value.provider) && provider.enum.includes(value.provider));
   if (Object.hasOwn(value, "requestID")) {
     assert(
-      typeof value.requestID === "string" &&
-        REQUEST_ID_PATTERN.test(value.requestID)
+      nonblank(value.requestID) && REQUEST_ID_PATTERN.test(value.requestID)
     );
   }
-}
-function validateOutputAnswer(value: unknown): void {
+};
+const validateOutputAnswer = (value: JsonValue): void => {
   const a = record(value);
   if (a.type === "noul") {
     fields(a, ["type", "noul"]);
@@ -256,9 +262,9 @@ function validateOutputAnswer(value: unknown): void {
     levels: Object.keys(legend).length,
     type: "score",
   });
-}
+};
 
-function validateSuccess(value: unknown): void {
+const validateSuccess = (value: JsonValue): void => {
   const result = record(value);
   fields(result, [
     "answers",
@@ -272,10 +278,7 @@ function validateSuccess(value: unknown): void {
   ]);
   metadata(result, 1);
   if (Object.hasOwn(result, "classifier")) {
-    assert(
-      typeof result.classifier === "string" &&
-        NAME_PATTERN.test(result.classifier)
-    );
+    assert(nonblank(result.classifier) && NAME_PATTERN.test(result.classifier));
   }
   fields(record(result.usage), ["input_tokens", "output_tokens"]);
   validateUsage(result.usage);
@@ -301,8 +304,8 @@ function validateSuccess(value: unknown): void {
     Buffer.byteLength(JSON.stringify(result.model)) +
     Buffer.byteLength(JSON.stringify(result.usage));
   assert(nativeBytes <= MAX_BYTES);
-}
-function validateFailure(value: unknown): void {
+};
+const validateFailure = (value: JsonValue): void => {
   const error = record(value);
   fields(error, [
     "attempts",
@@ -318,42 +321,65 @@ function validateFailure(value: unknown): void {
   ]);
   metadata(error, 0);
   assert(
-    typeof error.code === "string" &&
-      (ERROR_CODES as readonly string[]).includes(error.code)
+    nonblank(error.code) && ERROR_CODES.some((code) => code === error.code)
   );
-  assert(nonblank(error.message) && typeof error.retryable === "boolean");
+  assert(
+    nonblank(error.message) &&
+      (error.retryable === true || error.retryable === false)
+  );
   if (Object.hasOwn(error, "path")) {
-    assert(typeof error.path === "string" && POINTER_PATTERN.test(error.path));
+    assert(
+      error.path === "" ||
+        (nonblank(error.path) && POINTER_PATTERN.test(error.path))
+    );
   }
   if (Object.hasOwn(error, "status")) {
-    assert(isCount(error.status, 100) && (error.status as number) <= 599);
+    assert(isCount(error.status, 100) && error.status <= 599);
   }
   if (Object.hasOwn(error, "retryAfterMs")) {
     assert(isNonnegative(error.retryAfterMs));
   }
-}
+};
 
-/** Parse Code Mode's JSON string (or an already decoded object), validating without changing values. */
-export function parseClassifyOutput(raw: unknown): ClassifyOutput {
+const validateClassifyOutput = (
+  value: JsonValue
+): value is JsonValue & ClassifyOutput => {
   try {
-    const value: unknown = typeof raw === "string" ? JSON.parse(raw) : raw;
-    // Allow the envelope and additive metadata around a maximum-size native response.
-    boundedJson(value, {
-      maxBytes: MAX_BYTES + 8192,
-      maxDepth: MAX_JSON_DEPTH + 1,
-    });
     const output = record(value);
-    assert(typeof output.ok === "boolean");
+    assert(output.ok === true || output.ok === false);
     fields(output, output.ok ? ["ok", "result"] : ["ok", "error"]);
     if (output.ok) {
       validateSuccess(output.result);
     } else {
       validateFailure(output.error);
     }
-    return value as ClassifyOutput;
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/** Parse Code Mode's JSON string (or an already decoded object), validating without changing values. */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Code Mode supplies an untrusted value that this boundary must decode and validate.
+export const parseClassifyOutput = (raw: unknown): ClassifyOutput => {
+  try {
+    // String inputs are Code Mode's serialized output; structured values arrive as JSON-domain objects.
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The parser accepts both serialized and already-decoded JSON output.
+    const decoded: unknown = typeof raw === "string" ? JSON.parse(raw) : raw;
+    // Allow the envelope and additive metadata around a maximum-size native response.
+    if (
+      !isBoundedJsonValue(decoded, {
+        maxBytes: MAX_BYTES + 8192,
+        maxDepth: MAX_JSON_DEPTH + 1,
+      }) ||
+      !validateClassifyOutput(decoded)
+    ) {
+      throw new TypeError("Invalid classification output.");
+    }
+    return decoded;
   } catch {
     // Never include JSON parser errors, upstream values, or submitted content.
-    // biome-ignore lint/style/useErrorCause: Causes may contain private JSON or upstream values.
+    // Causes may contain private JSON or upstream values.
     throw new TypeError("Invalid classification output.");
   }
-}
+};

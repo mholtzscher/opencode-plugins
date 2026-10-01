@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+
 import type { SessionMessageInfo } from "@opencode/client";
+
 import {
   buildCacheHistory,
   exportCacheHistory,
@@ -14,15 +16,22 @@ const response = (
   read: number,
   completed = true
 ) =>
+  // SAFETY: This fixture populates every assistant field read by buildCacheHistory.
   ({
     agent: "build",
     content: [],
     id,
     model: { id: "gpt-6-sol", providerID: "openai" },
-    time: { created: time - 5, ...(completed ? { completed: time } : {}) },
+    time: completed
+      ? { completed: time, created: time - 5 }
+      : { created: time - 5 },
     tokens: { cache: { read, write: 0 }, input, output: 25, reasoning: 0 },
     type: "assistant",
   }) as SessionMessageInfo;
+
+const user = (id: string, text: string) =>
+  // SAFETY: This user fixture includes all fields consumed by history building.
+  ({ id, text, type: "user" }) as SessionMessageInfo;
 
 describe("cache history timeline", () => {
   test("exports scoped token totals and the chronological response timeline", () => {
@@ -97,7 +106,9 @@ describe("cache history timeline", () => {
           "parent",
           [
             response("zero", 100, 0, 0),
+            // SAFETY: This user fixture includes all fields consumed by history building.
             { id: "u", text: "hello", type: "user" } as SessionMessageInfo,
+            // SAFETY: This fixture tests that an assistant without usage is skipped.
             {
               ...response("no-usage", 200, 10, 20),
               tokens: undefined,
@@ -128,6 +139,7 @@ describe("cache history timeline", () => {
   });
 
   test("attaches request, tools, and compaction metadata to the right response", () => {
+    // SAFETY: This fixture adds assistant content and finish metadata read by the builder.
     const first = {
       ...response("first", 200, 10, 0),
       content: [{ name: "grep", type: "tool" }],
@@ -138,13 +150,16 @@ describe("cache history timeline", () => {
         [
           "parent",
           [
+            // SAFETY: This user fixture includes the text field consumed by history building.
             { text: "Find   the bug\nnow", type: "user" } as SessionMessageInfo,
             first,
+            // SAFETY: This compaction fixture includes the fields consumed by history building.
             {
               reason: "auto",
               status: "completed",
               type: "compaction",
             } as SessionMessageInfo,
+            // SAFETY: This fixture adds retry metadata read by the history builder.
             {
               ...response("second", 400, 20, 80),
               retry: { attempt: 2 },
@@ -168,8 +183,6 @@ describe("cache history timeline", () => {
   });
 
   test("groups tool continuations into turns without merging subagent requests", () => {
-    const user = (id: string, text: string) =>
-      ({ id, text, type: "user" }) as SessionMessageInfo;
     const history = buildCacheHistory(
       new Map([
         [
@@ -217,6 +230,7 @@ describe("cache history timeline", () => {
             response("low-again", 400, 16_500, 500),
             response("shrunk", 500, 100, 9000),
             response("tiny-context", 550, 100, 100),
+            // SAFETY: This fixture changes the model on an otherwise complete assistant response.
             {
               ...response("other-model", 600, 900, 100),
               model: { id: "other", providerID: "openai" },
@@ -245,6 +259,7 @@ describe("cache history timeline", () => {
           "parent",
           [
             response("warm", 100, 1000, 8000),
+            // SAFETY: This compaction fixture includes the fields consumed by history building.
             {
               reason: "auto",
               status: "completed",

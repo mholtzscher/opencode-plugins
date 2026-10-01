@@ -43,10 +43,12 @@ Laya serves `/v1/systemone`, and results report `provider: "laya"`. Laya's confi
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": [{
-    "package": "./classify",
-    "options": { "backend": { "provider": "typesafe" } }
-  }]
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": { "backend": { "provider": "typesafe" } },
+    },
+  ],
 }
 ```
 
@@ -74,20 +76,25 @@ Choose either `apiKeyFile` or `apiKeyEnv`, never both. Selecting a file disables
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": [{
-    "package": "./classify",
-    "options": {
-      "backend": { "provider": "laya", "baseURL": "http://127.0.0.1:8000" },
-      "classifiers": {
-        "incident-triage": {
-          "description": "Check whether a report describes an active production incident.",
-          "questions": {
-            "active": { "type": "noul", "instructions": "Does state.message describe an active production incident?" }
-          }
-        }
-      }
-    }
-  }]
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": {
+        "backend": { "provider": "laya", "baseURL": "http://127.0.0.1:8000" },
+        "classifiers": {
+          "incident-triage": {
+            "description": "Check whether a report describes an active production incident.",
+            "questions": {
+              "active": {
+                "type": "noul",
+                "instructions": "Does state.message describe an active production incident?",
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
 }
 ```
 
@@ -98,47 +105,56 @@ This sends no authorization header and uses `english`. Start Laya separately bef
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": [{
-    "package": "./classify",
-    "options": {
-      "backend": {
-        "provider": "laya",
-        "baseURL": "http://127.0.0.1:8000",
-        "model": "english",
-        "apiKeyEnv": "LAYA_API_KEY"
-      },
-      "timeoutMs": 120000,
-      "maxRetries": 0,
-      "classifiers": {
-        "change-kind": {
-          "description": "Categorize a code-change summary into one allowed label.",
-          "questions": {
-            "kind": {
-              "type": "choice",
-              "instructions": "Which category best describes this change?",
-              "criteria": {
-                "bugfix": "Corrects existing behavior",
-                "feature": "Adds a new capability",
-                "maintenance": "Upkeep without a behavior change",
-                "unknown": "Insufficient evidence"
-              }
-            }
-          }
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": {
+        "backend": {
+          "provider": "laya",
+          "baseURL": "http://127.0.0.1:8000",
+          "model": "english",
+          "apiKeyEnv": "LAYA_API_KEY",
         },
-        "incident-triage": {
-          "description": "Assess whether a report describes an incident and rate its impact.",
-          "questions": {
-            "active": { "type": "noul", "instructions": "Does this report describe an active production incident?" },
-            "impact": {
-              "type": "score",
-              "instructions": "Rate the user impact described in the report.",
-              "criteria": ["No user impact", "Some users affected", "Production unavailable"]
-            }
-          }
-        }
-      }
-    }
-  }]
+        "timeoutMs": 120000,
+        "maxRetries": 0,
+        "classifiers": {
+          "change-kind": {
+            "description": "Categorize a code-change summary into one allowed label.",
+            "questions": {
+              "kind": {
+                "type": "choice",
+                "instructions": "Which category best describes this change?",
+                "criteria": {
+                  "bugfix": "Corrects existing behavior",
+                  "feature": "Adds a new capability",
+                  "maintenance": "Upkeep without a behavior change",
+                  "unknown": "Insufficient evidence",
+                },
+              },
+            },
+          },
+          "incident-triage": {
+            "description": "Assess whether a report describes an incident and rate its impact.",
+            "questions": {
+              "active": {
+                "type": "noul",
+                "instructions": "Does this report describe an active production incident?",
+              },
+              "impact": {
+                "type": "score",
+                "instructions": "Rate the user impact described in the report.",
+                "criteria": [
+                  "No user impact",
+                  "Some users affected",
+                  "Production unavailable",
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  ],
 }
 ```
 
@@ -149,18 +165,20 @@ Set matching `LAYA_API_KEY` values for the Laya process and the OpenCode server.
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": [{
-    "package": "./classify",
-    "options": {
-      "backend": {
-        "provider": "laya",
-        "baseURL": "https://laya.example.com",
-        "apiKeyEnv": "COMPANY_LAYA_API_KEY"
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": {
+        "backend": {
+          "provider": "laya",
+          "baseURL": "https://laya.example.com",
+          "apiKeyEnv": "COMPANY_LAYA_API_KEY",
+        },
+        "timeoutMs": 60000,
+        "maxRetries": 0,
       },
-      "timeoutMs": 60000,
-      "maxRetries": 0
-    }
-  }]
+    },
+  ],
 }
 ```
 
@@ -171,10 +189,12 @@ Replace the origin and set the named variable on the OpenCode server. Expose `/v
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": [{
-    "package": "./classify",
-    "options": { "backend": { "provider": "openai-decisions" } }
-  }]
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": { "backend": { "provider": "openai-decisions" } },
+    },
+  ],
 }
 ```
 
@@ -238,7 +258,10 @@ These JSON blocks are tool arguments, not provider HTTP requests. The plugin add
     "refund_requested": {
       "type": "noul",
       "instructions": "Does the customer explicitly request a refund?",
-      "criteria": { "true": "The customer asks to receive money back", "false": "The customer does not ask to receive money back" }
+      "criteria": {
+        "true": "The customer asks to receive money back",
+        "false": "The customer does not ask to receive money back"
+      }
     }
   }
 }
@@ -250,12 +273,20 @@ Read `result.answers.refund_requested.noul` as a number. The tool does not autho
 
 ```json
 {
-  "state": { "title": "Fix stale cache after deploy", "files": ["cache.ts", "cache.test.ts"] },
+  "state": {
+    "title": "Fix stale cache after deploy",
+    "files": ["cache.ts", "cache.test.ts"]
+  },
   "questions": {
     "change_kind": {
       "type": "choice",
       "instructions": "Which category best describes this change?",
-      "criteria": { "bugfix": "Corrects existing behavior", "feature": "Adds a new capability", "maintenance": "Refactoring or upkeep without a behavior change", "unknown": "The supplied evidence is insufficient" }
+      "criteria": {
+        "bugfix": "Corrects existing behavior",
+        "feature": "Adds a new capability",
+        "maintenance": "Refactoring or upkeep without a behavior change",
+        "unknown": "The supplied evidence is insufficient"
+      }
     }
   }
 }
@@ -292,7 +323,11 @@ Use this form for labels such as `__proto__`: the current OpenCode Code Mode obj
     "impact": {
       "type": "score",
       "instructions": "Rate the user impact described in this report.",
-      "criteria": ["No user impact", "Some users affected", "Most users cannot complete the task"]
+      "criteria": [
+        "No user impact",
+        "Some users affected",
+        "Most users cannot complete the task"
+      ]
     }
   }
 }
@@ -306,9 +341,28 @@ An illustrative `1.6` remains `1.6` on the zero-based scale 0–2, not a percent
 {
   "state": "The deploy has failed twice and production is down.",
   "questions": {
-    "urgent": { "type": "noul", "instructions": "Does this describe an active production incident?" },
-    "category": { "type": "choice", "instructions": "What kind of event is described?", "criteria": { "incident": "An active production failure", "maintenance": "Planned maintenance", "other": "Neither incident nor maintenance" } },
-    "severity": { "type": "score", "instructions": "How severe is the reported impact?", "criteria": ["No user impact", "Some users affected", "Production unavailable"] }
+    "urgent": {
+      "type": "noul",
+      "instructions": "Does this describe an active production incident?"
+    },
+    "category": {
+      "type": "choice",
+      "instructions": "What kind of event is described?",
+      "criteria": {
+        "incident": "An active production failure",
+        "maintenance": "Planned maintenance",
+        "other": "Neither incident nor maintenance"
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is the reported impact?",
+      "criteria": [
+        "No user impact",
+        "Some users affected",
+        "Production unavailable"
+      ]
+    }
   }
 }
 ```
@@ -316,7 +370,10 @@ An illustrative `1.6` remains `1.6` on the zero-based scale 0–2, not a percent
 ### Named classifier
 
 ```json
-{ "state": { "message": "Production is down after the deploy." }, "classifier": "incident-triage" }
+{
+  "state": { "message": "Production is down after the deploy." },
+  "classifier": "incident-triage"
+}
 ```
 
 Named mode sends the stored questions unchanged. The caller cannot override them. With the authenticated Laya example, `{ "state": "Fix stale cache after deploy", "classifier": "change-kind" }` also works.
@@ -395,8 +452,28 @@ Check `ok` before reading answers. This success is illustrative, not a measured 
     "model": "jev-1.13.0",
     "answers": {
       "urgent": { "type": "noul", "noul": 0.98 },
-      "category": { "type": "choice", "choice": "incident", "probabilities": { "incident": 0.9, "maintenance": 0.02, "other": 0.08 }, "confidence": 0.85 },
-      "severity": { "type": "score", "score": 1.6, "scale": { "min": 0, "max": 2 }, "legend": { "0": "No user impact", "1": "Some users affected", "2": "Production unavailable" }, "probabilities": { "0": 0.1, "1": 0.2, "2": 0.7 }, "confidence": 0.4 }
+      "category": {
+        "type": "choice",
+        "choice": "incident",
+        "probabilities": {
+          "incident": 0.9,
+          "maintenance": 0.02,
+          "other": 0.08
+        },
+        "confidence": 0.85
+      },
+      "severity": {
+        "type": "score",
+        "score": 1.6,
+        "scale": { "min": 0, "max": 2 },
+        "legend": {
+          "0": "No user impact",
+          "1": "Some users affected",
+          "2": "Production unavailable"
+        },
+        "probabilities": { "0": 0.1, "1": 0.2, "2": 0.7 },
+        "confidence": 0.4
+      }
     },
     "usage": { "input_tokens": 312, "output_tokens": 48 },
     "attempts": 1,

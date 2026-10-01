@@ -8,6 +8,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
+
 import { CacheHistoryPanel } from "./cache-history-panel.js";
 import { calculateSessionCacheRate } from "./cache-rate.js";
 
@@ -28,31 +29,29 @@ export default Plugin.define({
       const [messages, setMessages] = createSignal(
         context.data.session.message.list(props.sessionID) ?? []
       );
-      const refresh = (sessionID: string) => {
+      const refresh = async (sessionID: string) => {
         context.data.session.message.invalidate(sessionID);
-        context.data.session.message
-          .sync(sessionID)
-          .then(() => {
-            if (props.sessionID === sessionID) {
-              setMessages(context.data.session.message.list(sessionID) ?? []);
-            }
-          })
-          .catch(() => {
-            // Retain the last known cache totals when synchronization fails.
-          });
+        try {
+          await context.data.session.message.sync(sessionID);
+          if (props.sessionID === sessionID) {
+            setMessages(context.data.session.message.list(sessionID) ?? []);
+          }
+        } catch {
+          // Retain the last known cache totals when synchronization fails.
+        }
       };
       createEffect(
         on(
           () => props.sessionID,
           (sessionID) => {
             setMessages(context.data.session.message.list(sessionID) ?? []);
-            refresh(sessionID);
+            void refresh(sessionID);
           }
         )
       );
       const stop = context.data.on("session.execution.succeeded", (event) => {
         if (event.data.sessionID === props.sessionID) {
-          refresh(props.sessionID);
+          void refresh(props.sessionID);
         }
       });
       onCleanup(stop);
@@ -85,7 +84,7 @@ export default Plugin.define({
           titleColor={context.theme.text.base}
           width="100%"
         >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI boxes handle mouse events without DOM roles. */}
+          {/* OpenTUI boxes handle mouse events without DOM roles. */}
           <box onMouseDown={openCacheHistory}>
             <Show
               fallback={
@@ -101,7 +100,7 @@ export default Plugin.define({
             </Show>
           </box>
           <box>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: OpenTUI text handles mouse events without DOM roles. */}
+            {/* OpenTUI text handles mouse events without DOM roles. */}
             <text fg={context.theme.text.muted} onMouseDown={toggleExpanded}>
               {expanded()
                 ? "▼ Hide additional metrics"

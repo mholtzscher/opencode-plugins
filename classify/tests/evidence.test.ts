@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/useAwait: Fake native tools implement the asynchronous host API.
 import { afterEach, expect, test } from "bun:test";
 import { execFile } from "node:child_process";
 import {
@@ -10,49 +9,55 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { join } from "node:path";
+import path from "node:path";
 import { promisify } from "node:util";
+
 import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
+
 import { parseOptions } from "../config.js";
 import { createEvidenceResolver } from "../evidence.js";
-import type { DecisionAdapter } from "../providers/adapter.js";
 import { createAdapter } from "../providers/adapter.js";
+import type { DecisionAdapter } from "../providers/adapter.js";
 import { createPreflight } from "../providers/preflight.js";
 import { createClassifier } from "../service.js";
 import { buildToolInputSchema } from "../tool-schema.js";
-import type { DecisionRequest } from "../types.js";
+import type { DecisionRequest, JsonValue } from "../types.js";
 import { parseInput } from "../validation/input.js";
 import { normalizedResponse, questions } from "./fixtures.js";
 
 const exec = promisify(execFile);
+type NativeToolInput =
+  | { limit: 1; path: string }
+  | { command: string; timeout: 30_000; workdir: string };
 const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(
     directories
       .splice(0)
-      .map((path) => rm(path, { force: true, recursive: true }))
+      .map((directory) => rm(directory, { force: true, recursive: true }))
   );
 });
-async function fixture() {
+const fixture = async () => {
   await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-evidence-");
   directories.push(directory);
   return directory;
-}
-function host(directory: string, denied?: string) {
-  const calls: Array<{ name: string; input: unknown }> = [];
+};
+const host = (directory: string, denied?: string) => {
+  const calls: { name: string; input: NativeToolInput }[] = [];
+  // SAFETY: Evidence resolution only reads the cancellation signal from this host context.
   const context = { signal: new AbortController().signal } as ToolContext;
   const tools = ["read", "shell"].map((name) => ({
     description: "Fake native permission-aware tool",
-    execute: async (input: unknown) => {
+    execute: (input: NativeToolInput) => {
       calls.push({ input, name });
       if (name === denied) {
         throw new Error("Permission denied: private host detail");
       }
-      return {
+      return Promise.resolve({
         content:
           "Native display output may be truncated; do not use it as evidence.",
-      };
+      });
     },
     input: { type: "object" },
     name,
@@ -62,7 +67,7 @@ function host(directory: string, denied?: string) {
     context,
     resolve: createEvidenceResolver(directory, tools, context),
   };
-}
+};
 
 test("evidence wrapper is discoverable, validated, and explicit; legacy JSON remains data", () => {
   const state = {
@@ -78,7 +83,7 @@ test("evidence wrapper is discoverable, validated, and explicit; legacy JSON rem
     "properties.state.anyOf.1.properties.files.items.type",
     "string"
   );
-  for (const value of [
+  const invalidStates: JsonValue[] = [
     { type: "evidence" },
     { text: " ", type: "evidence" },
     { files: [], type: "evidence" },
@@ -91,7 +96,8 @@ test("evidence wrapper is discoverable, validated, and explicit; legacy JSON rem
     { diffs: [{ base: "HEAD", paths: [] }], type: "evidence" },
     { diffs: [{ base: "HEAD", staged: true }], type: "evidence" },
     { extra: true, text: "x", type: "evidence" },
-  ]) {
+  ];
+  for (const value of invalidStates) {
     expect(() => parseInput({ questions, state: value })).toThrow();
   }
 });
@@ -99,8 +105,8 @@ test("evidence wrapper is discoverable, validated, and explicit; legacy JSON rem
 test("files resolve on the server, retain labels, and are not display-truncated", async () => {
   const directory = await fixture();
   const content = `${"x".repeat(3000)}\n${"line\n".repeat(2100)}`;
-  await writeFile(join(directory, "a.ts"), content);
-  await symlink(join(directory, "a.ts"), join(directory, "alias.ts"));
+  await writeFile(path.join(directory, "a.ts"), content);
+  await symlink(path.join(directory, "a.ts"), path.join(directory, "alias.ts"));
   const h = host(directory);
   const state = await h.resolve(
     { files: ["alias.ts"], text: "Review", type: "evidence" },
@@ -111,24 +117,28 @@ test("files resolve on the server, retain labels, and are not display-truncated"
     text: "Review",
   });
   expect(h.calls).toEqual([
-    { input: { limit: 1, path: join(directory, "a.ts") }, name: "read" },
+    { input: { limit: 1, path: path.join(directory, "a.ts") }, name: "read" },
   ]);
 });
 
 test("regular-file replacement during native read fails closed", async () => {
   const directory = await fixture();
-  const path = join(directory, "a.ts");
-  const replacement = join(directory, "replacement.ts");
-  await writeFile(path, "approved original");
+  const filePath = path.join(directory, "a.ts");
+  const replacement = path.join(directory, "replacement.ts");
+  await writeFile(filePath, "approved original");
   await writeFile(replacement, "replacement secret");
+  // SAFETY: The resolver only reads signal from this fake host context.
   const context = { signal: new AbortController().signal } as ToolContext;
   const tools = [
     {
       description: "Permission-aware read fixture",
-      execute: async (input: unknown) => {
-        expect((input as { path: string }).path).toBe(path);
-        const content = await readFile(path, "utf8");
-        await rename(replacement, path);
+      execute: async (input: NativeToolInput) => {
+        if (!("path" in input)) {
+          throw new TypeError("Expected read-tool input");
+        }
+        expect(input.path).toBe(filePath);
+        const content = await readFile(filePath, "utf-8");
+        await rename(replacement, filePath);
         return { content };
       },
       input: { type: "object" },
@@ -146,19 +156,23 @@ test("regular-file replacement during native read fails closed", async () => {
 
 test("parent-directory symlink replacement during native read fails closed", async () => {
   const directory = await fixture();
-  const parent = join(directory, "source");
+  const parent = path.join(directory, "source");
   const external = await fixture();
   await mkdir(parent);
-  await writeFile(join(parent, "a.ts"), "approved original");
-  await writeFile(join(external, "a.ts"), "external secret");
+  await writeFile(path.join(parent, "a.ts"), "approved original");
+  await writeFile(path.join(external, "a.ts"), "external secret");
+  // SAFETY: The resolver only reads signal from this fake host context.
   const context = { signal: new AbortController().signal } as ToolContext;
   const tools = [
     {
       description: "Permission-aware read fixture",
-      execute: async (input: unknown) => {
-        expect((input as { path: string }).path).toBe(join(parent, "a.ts"));
-        const content = await readFile(join(parent, "a.ts"), "utf8");
-        await rename(parent, join(directory, "original"));
+      execute: async (input: NativeToolInput) => {
+        if (!("path" in input)) {
+          throw new TypeError("Expected read-tool input");
+        }
+        expect(input.path).toBe(path.join(parent, "a.ts"));
+        const content = await readFile(path.join(parent, "a.ts"), "utf-8");
+        await rename(parent, path.join(directory, "original"));
         await symlink(external, parent);
         return { content };
       },
@@ -177,16 +191,16 @@ test("parent-directory symlink replacement during native read fails closed", asy
 
 test("file errors and native denials fail closed without leaking contents", async () => {
   const directory = await fixture();
-  await writeFile(join(directory, "secret.env"), "PRIVATE_CONTENT");
-  await writeFile(join(directory, "binary"), Buffer.from([1, 0, 2]));
-  await writeFile(join(directory, "invalid"), Buffer.from([0xff]));
-  await writeFile(join(directory, "huge"), "x".repeat(1024 * 1024 + 1));
-  await mkdir(join(directory, "folder"));
+  await writeFile(path.join(directory, "secret.env"), "PRIVATE_CONTENT");
+  await writeFile(path.join(directory, "binary"), Buffer.from([1, 0, 2]));
+  await writeFile(path.join(directory, "invalid"), Buffer.from([0xff]));
+  await writeFile(path.join(directory, "huge"), "x".repeat(1024 * 1024 + 1));
+  await mkdir(path.join(directory, "folder"));
   await Promise.all(
-    ["missing", "binary", "invalid", "huge", "folder"].map(async (path) => {
+    ["missing", "binary", "invalid", "huge", "folder"].map(async (filePath) => {
       const h = host(directory);
       await expect(
-        h.resolve({ files: [path], type: "evidence" }, h.context.signal)
+        h.resolve({ files: [filePath], type: "evidence" }, h.context.signal)
       ).rejects.toThrow();
     })
   );
@@ -208,8 +222,8 @@ test("Git diffs include staged and unstaged changes, literal paths, and deleted 
   const git = (args: string[]) => exec("git", args, { cwd: directory });
   await git(["init", "-q"]);
   await Promise.all(
-    ["a.ts", "b.ts", "[literal].ts", "deleted.ts"].map((path) =>
-      writeFile(join(directory, path), "original\n")
+    ["a.ts", "b.ts", "[literal].ts", "deleted.ts"].map((filePath) =>
+      writeFile(path.join(directory, filePath), "original\n")
     )
   );
   await git(["add", "."]);
@@ -222,13 +236,13 @@ test("Git diffs include staged and unstaged changes, literal paths, and deleted 
     "-qm",
     "initial",
   ]);
-  await writeFile(join(directory, "a.ts"), "staged\n");
+  await writeFile(path.join(directory, "a.ts"), "staged\n");
   await git(["add", "a.ts"]);
-  await writeFile(join(directory, "a.ts"), "working\n");
-  await writeFile(join(directory, "b.ts"), "excluded\n");
-  await writeFile(join(directory, "[literal].ts"), "literal\n");
-  await rm(join(directory, "deleted.ts"));
-  await writeFile(join(directory, "untracked.ts"), "untracked\n");
+  await writeFile(path.join(directory, "a.ts"), "working\n");
+  await writeFile(path.join(directory, "b.ts"), "excluded\n");
+  await writeFile(path.join(directory, "[literal].ts"), "literal\n");
+  await rm(path.join(directory, "deleted.ts"));
+  await writeFile(path.join(directory, "untracked.ts"), "untracked\n");
   const h = host(directory);
   const state = await h.resolve(
     {
@@ -268,13 +282,13 @@ test("Git diffs include staged and unstaged changes, literal paths, and deleted 
 
 test("service expands evidence before the provider and fails atomically on resolution errors", async () => {
   const directory = await fixture();
-  await writeFile(join(directory, "a.ts"), "source code");
+  await writeFile(path.join(directory, "a.ts"), "source code");
   const h = host(directory);
   const requests: DecisionRequest[] = [];
   const adapter: DecisionAdapter = {
-    decide: async (request) => {
+    decide: (request) => {
       requests.push(request);
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight: createPreflight(["noul", "choice", "score"]),
     provider: "laya",
@@ -324,13 +338,13 @@ test("service expands evidence before the provider and fails atomically on resol
 });
 test("expanded evidence budget includes JSON escaping and fails before provider work", async () => {
   const directory = await fixture();
-  await writeFile(join(directory, "escaped.ts"), '"'.repeat(600_000));
+  await writeFile(path.join(directory, "escaped.ts"), '"'.repeat(600_000));
   const h = host(directory);
   await expect(
     h.resolve({ files: ["escaped.ts"], type: "evidence" }, h.context.signal)
   ).rejects.toThrow("classification contract");
-  await writeFile(join(directory, "a.ts"), "a".repeat(600_000));
-  await writeFile(join(directory, "b.ts"), "b".repeat(600_000));
+  await writeFile(path.join(directory, "a.ts"), "a".repeat(600_000));
+  await writeFile(path.join(directory, "b.ts"), "b".repeat(600_000));
   await expect(
     h.resolve({ files: ["a.ts", "b.ts"], type: "evidence" }, h.context.signal)
   ).rejects.toThrow("1 MiB");
@@ -339,9 +353,9 @@ test("unavailable providers and unknown classifiers never resolve evidence", asy
   const options = parseOptions({ backend: { provider: "openai-decisions" } });
   const service = createClassifier(options, createAdapter(options));
   let reads = 0;
-  const resolver = async () => {
+  const resolver = () => {
     reads += 1;
-    return "Unexpected evidence read";
+    return Promise.resolve("Unexpected evidence read");
   };
   const state = { files: ["secret.env"], type: "evidence" };
   const { signal } = new AbortController();

@@ -1,9 +1,9 @@
 import type { SessionMessageInfo } from "@opencode/client";
 
 /** Cache read rate across completed assistant messages in one session; input excludes cached reads. */
-export function calculateSessionCacheRate(
+export const calculateSessionCacheRate = (
   messages: readonly SessionMessageInfo[]
-) {
+) => {
   let input = 0;
   let read = 0;
   let write = 0;
@@ -29,4 +29,4 @@ export function calculateSessionCacheRate(
     read,
     write,
   };
-}
+};

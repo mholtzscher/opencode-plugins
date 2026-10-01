@@ -1,33 +1,37 @@
 import { execFile } from "node:child_process";
 import { constants } from "node:fs";
-import { type FileHandle, lstat, open, realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { lstat, open, realpath } from "node:fs/promises";
+import type { FileHandle } from "node:fs/promises";
+import path from "node:path";
 import { promisify } from "node:util";
+
 import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
+
 import { MAX_BYTES } from "./limits.js";
-import {
-  ClassificationError,
-  type Content,
-  type EvidenceDiff,
-  type EvidenceState,
-  type JsonValue,
+import { ClassificationError } from "./types.js";
+import type {
+  Content,
+  EvidenceDiff,
+  EvidenceState,
+  JsonValue,
 } from "./types.js";
 import { boundedJson } from "./validation/json.js";
 
 const exec = promisify(execFile);
 const BINARY_DIFF = /^GIT binary patch$|^Binary files .* differ$/mu;
-type Invoke = (name: string, input: unknown) => Promise<void>;
-function failure(message: string): never {
+type NativeToolInput =
+  | { limit: 1; path: string }
+  | { command: string; timeout: 30_000; workdir: string };
+type Invoke = (name: "read" | "shell", input: NativeToolInput) => Promise<void>;
+const failure = (message: string): never => {
   throw new ClassificationError("EVIDENCE_ERROR", message);
-}
-function quote(value: string): string {
-  return `'${value.replaceAll("'", "'\\''")}'`;
-}
-async function readText(
+};
+const quote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
+const readText = async (
   handle: FileHandle,
   budget: number,
   signal: AbortSignal
-) {
+) => {
   const stat = await handle.stat();
   if (!stat.isFile() || stat.size > budget) {
     failure(
@@ -38,7 +42,7 @@ async function readText(
   let length = 0;
   while (length < buffer.length) {
     signal.throwIfAborted();
-    // biome-ignore lint/performance/noAwaitInLoops: Sequential reads advance one file descriptor and enforce a shared byte bound.
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Sequential reads advance one descriptor and enforce the shared byte bound before continuing.
     const { bytesRead } = await handle.read(
       buffer,
       length,
@@ -66,16 +70,16 @@ async function readText(
     }).decode(bytes),
     size: length,
   };
-}
-async function readEvidenceFile(
+};
+const readEvidenceFile = async (
   directory: string,
-  path: string,
+  filePath: string,
   budget: number,
   signal: AbortSignal,
   invoke: Invoke
-) {
+) => {
   signal.throwIfAborted();
-  const canonical = await realpath(resolve(directory, path));
+  const canonical = await realpath(path.resolve(directory, filePath));
   const flags =
     constants.O_RDONLY + constants.O_NOFOLLOW + constants.O_NONBLOCK;
   const handle = await open(canonical, flags);
@@ -100,21 +104,21 @@ async function readEvidenceFile(
   } finally {
     await handle.close();
   }
-}
-async function readEvidenceDiff(
+};
+const readEvidenceDiff = async (
   directory: string,
   diff: EvidenceDiff,
   budget: number,
   signal: AbortSignal,
   invoke: Invoke
-) {
+) => {
   signal.throwIfAborted();
-  const paths = (diff.paths ?? ["."]).map((path) => {
-    const scoped = relative(directory, resolve(directory, path));
+  const paths = (diff.paths ?? ["."]).map((diffPath) => {
+    const scoped = path.relative(directory, path.resolve(directory, diffPath));
     if (
-      isAbsolute(scoped) ||
+      path.isAbsolute(scoped) ||
       scoped === ".." ||
-      scoped.startsWith(`..${sep}`)
+      scoped.startsWith(`..${path.sep}`)
     ) {
       failure("Diff paths must stay within the session directory.");
     }
@@ -149,7 +153,7 @@ async function readEvidenceDiff(
   if (stdout.length > budget) {
     failure("Diff evidence exceeds the 1 MiB request limit.");
   }
-  if (BINARY_DIFF.test(stdout.toString("utf8"))) {
+  if (BINARY_DIFF.test(stdout.toString("utf-8"))) {
     failure("Binary diffs are not supported as evidence.");
   }
   return {
@@ -158,22 +162,24 @@ async function readEvidenceDiff(
     ),
     size: stdout.length,
   };
-}
+};
 
 // The plugin API has no permission-request primitive. Invoke the native tools
 // before reading evidence so their path/shell policies remain authoritative.
 // File reads retain one handle and verify path identity around permission checking.
 // Read with strict bounds: native display output may be truncated.
-export function createEvidenceResolver(
+export const createEvidenceResolver = (
   directory: string,
   tools: readonly Info[],
   context: ToolContext
-) {
-  const invoke = async (name: string, input: unknown): Promise<void> => {
+) => {
+  const invoke: Invoke = async (name, input) => {
     context.signal.throwIfAborted();
     const tool = tools.find((item) => item.name === name);
     if (!tool) {
-      failure(`The native ${name} tool is required to resolve this evidence.`);
+      return failure(
+        `The native ${name} tool is required to resolve this evidence.`
+      );
     }
     await tool.execute(input, context);
     context.signal.throwIfAborted();
@@ -190,24 +196,24 @@ export function createEvidenceResolver(
     try {
       if (state.files) {
         const files: JsonValue[] = [];
-        for (const path of state.files) {
-          // biome-ignore lint/performance/noAwaitInLoops: Sequential evidence resolution bounds aggregate reads and permission prompts.
+        for (const evidencePath of state.files) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- Evidence resolution consumes a shared byte budget and permission prompt order.
           const { content, size } = await readEvidenceFile(
             directory,
-            path,
+            evidencePath,
             remaining,
             signal,
             invoke
           );
           remaining -= size;
-          files.push({ content, path });
+          files.push({ content, path: evidencePath });
         }
         result.files = files;
       }
       if (state.diffs) {
         const diffs: JsonValue[] = [];
         for (const diff of state.diffs) {
-          // biome-ignore lint/performance/noAwaitInLoops: Each diff consumes the remaining shared request budget.
+          // oxlint-disable-next-line eslint/no-await-in-loop -- Each diff consumes the remaining shared request budget before the next diff.
           const { content, size } = await readEvidenceDiff(
             directory,
             diff,
@@ -233,4 +239,4 @@ export function createEvidenceResolver(
       );
     }
   };
-}
+};

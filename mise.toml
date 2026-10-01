@@ -6,6 +6,8 @@ experimental = true
 [tools]
 uv = "0.12.17"
 pitchfork = "2.25.0"
+"npm:oxlint" = "1.86.0"
+"npm:oxfmt" = "0.71.0"
 
 [daemons.laya]
 run = "exec uv tool run --python 3.12 --torch-backend=auto --from 'laya[serve]==0.3.22' laya-serve"

@@ -1,14 +1,18 @@
 import { Plugin } from "@opencode/plugin";
+
 import { parseOptions } from "./config.js";
 import { createEvidenceResolver } from "./evidence.js";
 import { createAdapter } from "./providers/adapter.js";
 import { createClassifier } from "./service.js";
 import { buildToolDescription } from "./tool-description.js";
 import { buildToolInputSchema } from "./tool-schema.js";
+import { isBoundedJsonValue } from "./validation/json.js";
+
 export default Plugin.define({
   id: "classify",
   async setup(ctx) {
-    const options = parseOptions(ctx.options);
+    const rawOptions = isBoundedJsonValue(ctx.options) ? ctx.options : null;
+    const options = parseOptions(rawOptions);
     const service = createClassifier(options, createAdapter(options));
     await ctx.tool.transform((editor) => {
       editor.add({
@@ -16,7 +20,7 @@ export default Plugin.define({
         execute: async (input, context) => ({
           content: JSON.stringify(
             await service.classify(
-              input,
+              isBoundedJsonValue(input) ? input : null,
               context.signal,
               async (state, signal) => {
                 const session = await ctx.session.get(

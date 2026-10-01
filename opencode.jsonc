@@ -11,11 +11,11 @@
       "options": {
         "backend": {
           "provider": "typesafe",
-          "apiKeyFile": "~/.local/share/agenix/typesafe-api-key"
+          "apiKeyFile": "~/.local/share/agenix/typesafe-api-key",
         },
         "timeoutMs": 120000,
-        "maxRetries": 0
-      }
-    }
-  ]
+        "maxRetries": 0,
+      },
+    },
+  ],
 }

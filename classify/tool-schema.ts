@@ -11,9 +11,9 @@ import {
   NAME_PATTERN,
 } from "./limits.js";
 
-export function buildToolInputSchema(
+export const buildToolInputSchema = (
   classifiers: Record<string, ClassifierDefinition>
-) {
+) => {
   const c = {
     anyOf: [
       { minLength: 1, type: "string" },
@@ -237,4 +237,4 @@ export function buildToolInputSchema(
         ],
         type: "object" as const,
       };
-}
+};

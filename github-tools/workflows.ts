@@ -7,9 +7,9 @@ import { promisify } from "node:util";
 import {
   buildPrDescribePrompt,
   buildPullRequestPrompt,
-  type PrMetadata,
   parsePullRequestCommandArguments,
 } from "./pr.js";
+import type { PrMetadata } from "./pr.js";
 
 export interface CommandContext {
   cwd: string;
@@ -299,7 +299,7 @@ const isReviewThreadsPage = (value: unknown): value is ReviewThreadsPage =>
 const isRepoView = (value: unknown): value is RepoView =>
   isRecord(value) && isString(value.nameWithOwner);
 
-const isPrMetadata = (value: unknown): value is PrMetadata =>
+export const isPrMetadata = (value: unknown): value is PrMetadata =>
   isRecord(value) &&
   typeof value.number === "number" &&
   isString(value.title) &&
@@ -881,7 +881,7 @@ const failedOrInterestingJobs = (run: JsonValue): JsonValue[] =>
 const checkRunIdFromJob = (job: JsonValue): string | undefined => {
   const url = readText(readPath(job, ["check_run_url"]));
   const match = CHECK_RUN_URL_PATTERN.exec(url);
-  // biome-ignore lint/suspicious/noUnnecessaryConditions: A check-run URL need not match this pattern.
+  // A check-run URL need not match this pattern.
   return match?.groups?.checkRunId;
 };
 

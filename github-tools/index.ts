@@ -6,32 +6,33 @@ import { Plugin } from "@opencode/plugin";
 import {
   buildPrDescribePrompt,
   buildPullRequestPrompt,
-  type PrMetadata,
   parsePullRequestCommandArguments,
 } from "./pr.js";
 import {
-  type CommandContext,
-  type OpenCodeCommandHost,
+  isPrMetadata,
   registerPrCommentsCommand,
   registerPrCommentsFixCommand,
   registerPullRequestActionsCommand,
 } from "./workflows.js";
+import type { CommandContext, OpenCodeCommandHost } from "./workflows.js";
 
 const execFileAsync = promisify(execFile);
 
-const isPrMetadata = (value: unknown): value is PrMetadata => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  const pr = value as Record<string, unknown>;
-  return (
-    typeof pr.number === "number" &&
-    typeof pr.title === "string" &&
-    typeof pr.url === "string" &&
-    typeof pr.headRefName === "string" &&
-    typeof pr.baseRefName === "string"
-  );
+interface RegisteredCommand {
+  name: string;
+  description: string;
+  handler: (args: string, context: CommandContext) => Promise<void>;
+}
+
+const registerCommands = (commandHost: OpenCodeCommandHost): void => {
+  registerPrCommentsCommand(commandHost);
+  registerPrCommentsFixCommand(commandHost);
+  registerPullRequestActionsCommand(commandHost);
 };
+
+const noSelection: CommandContext["ui"]["select"] = () =>
+  // oxlint-disable-next-line unicorn/no-useless-undefined -- `undefined` represents a canceled selection.
+  Promise.resolve<string | undefined>(undefined);
 
 export default Plugin.define({
   id: "github-tools",
@@ -94,14 +95,10 @@ export default Plugin.define({
         },
         name: "pr",
       });
-      const commands: Array<{
-        name: string;
-        description: string;
-        handler: (args: string, context: CommandContext) => Promise<void>;
-      }> = [];
+      const commands: RegisteredCommand[] = [];
       const makeHost = (
         registered: typeof commands,
-        submit: (text: string) => void
+        submit?: (text: string) => void
       ): OpenCodeCommandHost => ({
         exec: async (command, args, options) => {
           try {
@@ -114,13 +111,14 @@ export default Plugin.define({
             });
             return { code: 0, stderr, stdout };
           } catch (error) {
+            // SAFETY: promisify(execFile) rejects with the process result fields attached.
             const failure = error as {
               code?: number | string;
               stderr?: string;
               stdout?: string;
             };
             return {
-              code: typeof failure.code === "number" ? failure.code : 1,
+              code: Number.isInteger(failure.code) ? Number(failure.code) : 1,
               stderr: failure.stderr ?? String(error),
               stdout: failure.stdout ?? "",
             };
@@ -129,15 +127,10 @@ export default Plugin.define({
         registerCommand: (name, command) => {
           registered.push({ name, ...command });
         },
-        sendUserMessage: (text) => submit(text),
+        sendUserMessage: (text) => submit?.(text),
       });
-      const register = (commandHost: OpenCodeCommandHost) => {
-        registerPrCommentsCommand(commandHost);
-        registerPrCommentsFixCommand(commandHost);
-        registerPullRequestActionsCommand(commandHost);
-      };
-      const host = makeHost(commands, () => undefined);
-      register(host);
+      const host = makeHost(commands);
+      registerCommands(host);
 
       for (const command of commands) {
         editor.add({
@@ -152,21 +145,19 @@ export default Plugin.define({
               subscription
             );
             try {
-              let pending: Promise<void> | undefined;
+              let pending: Promise<unknown> | undefined;
               let notice: string | undefined;
               let failure: string | undefined;
               const submit = (text: string) => {
-                pending = ctx.session
-                  .prompt({
-                    ...prompt,
-                    delivery,
-                    sessionID,
-                    text,
-                  })
-                  .then(() => undefined);
+                pending = ctx.session.prompt({
+                  ...prompt,
+                  delivery,
+                  sessionID,
+                  text,
+                });
               };
-              const active: typeof commands = [];
-              register(makeHost(active, submit));
+              const active: RegisteredCommand[] = [];
+              registerCommands(makeHost(active, submit));
               const handler = active.find((item) => item.name === command.name);
               if (!handler) {
                 throw new Error(`Missing ${command.name} handler`);
@@ -183,8 +174,8 @@ export default Plugin.define({
                       notice = message;
                     }
                   },
-                  select: async () => undefined,
-                  setStatus: () => undefined,
+                  select: noSelection,
+                  setStatus: () => null,
                 },
                 waitForIdle: async () => {
                   await pending;

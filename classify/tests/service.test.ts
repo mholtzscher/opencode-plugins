@@ -1,15 +1,12 @@
-// biome-ignore-all lint/suspicious/useAwait: Recording adapters implement a Promise API without I/O.
-// biome-ignore-all lint/performance/noAwaitInLoops: Each case asserts the recording adapter's latest call before proceeding.
 import { expect, test } from "bun:test";
+
 import { parseOptions } from "../config.js";
-import { createAdapter, type DecisionAdapter } from "../providers/adapter.js";
+import { createAdapter } from "../providers/adapter.js";
+import type { DecisionAdapter } from "../providers/adapter.js";
 import { createPreflight } from "../providers/preflight.js";
 import { createClassifier } from "../service.js";
-import {
-  ClassificationError,
-  type ClassifyOutput,
-  type DecisionRequest,
-} from "../types.js";
+import { ClassificationError } from "../types.js";
+import type { ClassifyOutput, DecisionRequest, JsonValue } from "../types.js";
 import {
   examples,
   input,
@@ -17,6 +14,17 @@ import {
   questions,
   response,
 } from "./fixtures.js";
+
+test("missing question content returns invalid input rather than an internal error", async () => {
+  const options = parseOptions({ backend: { provider: "openai-decisions" } });
+  const service = createClassifier(options, createAdapter(options));
+  const output = await service.classify(
+    { questions: { q: { type: "noul" } }, state: "x" },
+    new AbortController().signal
+  );
+  expect(output).toHaveProperty("ok", false);
+  expect(output).toHaveProperty("error.code", "INVALID_INPUT");
+});
 
 test("named and ad hoc requests retain maps, reported model and native measurements", async () => {
   const options = parseOptions({
@@ -26,10 +34,10 @@ test("named and ad hoc requests retain maps, reported model and native measureme
   const calls: DecisionRequest[] = [];
   const { signal } = new AbortController();
   const adapter: DecisionAdapter = {
-    async decide(request, forwarded) {
+    decide(request, forwarded) {
       expect(forwarded).toBe(signal);
       calls.push(request);
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight: createPreflight(["noul", "choice", "score"]),
     provider: "laya",
@@ -37,6 +45,8 @@ test("named and ad hoc requests retain maps, reported model and native measureme
   };
   const service = createClassifier(options, adapter);
   for (const args of [input, { classifier: "triage", state: input.state }]) {
+    // Each invocation is asserted before the next call mutates the recording adapter state.
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Maintain per-case call order.
     const output = await service.classify(args, signal);
     expect(output.ok).toBe(true);
     if (output.ok) {
@@ -57,7 +67,10 @@ test("named and ad hoc requests retain maps, reported model and native measureme
     { ...input, classifier: "triage" },
     { classifier: "constructor", state: "x" },
   ]) {
-    expect((await service.classify(args, signal)).ok).toBe(false);
+    // Each invalid case is checked in order to keep the dispatch count attributable.
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve ordered case assertions.
+    const output = await service.classify(args, signal);
+    expect(output.ok).toBe(false);
   }
   expect(calls).toHaveLength(2);
 });
@@ -66,20 +79,22 @@ test("configured example names resolve without external HTTP", async () => {
     const options = parseOptions(example);
     const calls: DecisionRequest[] = [];
     const adapter: DecisionAdapter = {
-      async decide(request) {
+      decide(request) {
         calls.push(request);
-        return {
+        return Promise.resolve({
           answers: {},
           attempts: 1,
           model: "fixture",
           usage: { input_tokens: 0, output_tokens: 0 },
-        };
+        });
       },
       preflight: createPreflight(["noul", "choice", "score"]),
       provider: options.backend.provider,
       supportedTypes: ["noul", "choice", "score"],
     };
     for (const name of Object.keys(options.classifiers ?? {})) {
+      // The recording adapter's latest request is checked before advancing to the next preset.
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve per-classifier request attribution.
       const output = await createClassifier(options, adapter).classify(
         { classifier: name, state: "Fix stale cache after deploy" },
         new AbortController().signal
@@ -107,9 +122,9 @@ test("presets use stored state and questions and reject overrides before dispatc
   });
   const calls: DecisionRequest[] = [];
   const adapter: DecisionAdapter = {
-    async decide(request) {
+    decide(request) {
       calls.push(request);
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight: createPreflight(["noul", "choice", "score"]),
     provider: "laya",
@@ -119,6 +134,8 @@ test("presets use stored state and questions and reject overrides before dispatc
   const { signal } = new AbortController();
   for (const [i, state] of states.entries()) {
     const classifier = `preset${i}`;
+    // Assert each preset result before moving to the next recorded adapter call.
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Keep preset ordering observable.
     expect(await service.classify({ classifier }, signal)).toHaveProperty(
       "result.classifier",
       classifier
@@ -129,11 +146,14 @@ test("presets use stored state and questions and reject overrides before dispatc
     expect(calls.at(-1)?.questions).toBe(
       options.classifiers?.[classifier].questions
     );
-    for (const args of [
+    const invalidArgs: JsonValue[] = [
       { classifier, state },
       { classifier, state: "Override" },
       { classifier, questions },
-    ]) {
+    ];
+    for (const args of invalidArgs) {
+      // Verify rejection before starting the next override case.
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve sequential assertions against the shared call recorder.
       expect(await service.classify(args, signal)).toHaveProperty(
         "error.code",
         "INVALID_INPUT"
@@ -163,14 +183,10 @@ test("preset evidence preserves the unavailable-provider gate", async () => {
   const output = await createClassifier(
     options,
     createAdapter(options)
-  ).classify(
-    { classifier: "review" },
-    new AbortController().signal,
-    async () => {
-      reads += 1;
-      return "Unexpected read";
-    }
-  );
+  ).classify({ classifier: "review" }, new AbortController().signal, () => {
+    reads += 1;
+    return Promise.resolve("Unexpected read");
+  });
   expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
   expect(reads).toBe(0);
 });
@@ -179,9 +195,9 @@ test("capabilities and missing keys fail before dispatch", async () => {
   let calls = 0;
   let reads = 0;
   const adapter: DecisionAdapter = {
-    async decide() {
+    decide() {
       calls += 1;
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight: createPreflight(["noul"]),
     provider: "typesafe",
@@ -191,9 +207,9 @@ test("capabilities and missing keys fail before dispatch", async () => {
     await createClassifier(options, adapter).classify(
       { questions, state: { files: ["never-read.ts"], type: "evidence" } },
       new AbortController().signal,
-      async () => {
+      () => {
         reads += 1;
-        return "Unexpected evidence";
+        return Promise.resolve("Unexpected evidence");
       }
     )
   ).toHaveProperty("error.code", "UNSUPPORTED_TYPE");
@@ -221,12 +237,12 @@ test("strategy preflight runs before evidence and dispatch with the same questio
   }
   const { signal } = new AbortController();
   const adapter: DecisionAdapter = {
-    async decide(request, forwarded) {
+    decide(request, forwarded) {
       events.push("decide");
       expect(request.state).toBe("Resolved evidence");
       expect(request.questions).toBe(selectedQuestions);
       expect(forwarded).toBe(signal);
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight(selected, forwarded) {
       events.push("preflight");
@@ -239,10 +255,10 @@ test("strategy preflight runs before evidence and dispatch with the same questio
   const output = await createClassifier(options, adapter).classify(
     { classifier: "review", state: { files: ["a.ts"], type: "evidence" } },
     signal,
-    async (_state, forwarded) => {
+    (_state, forwarded) => {
       events.push("evidence");
       expect(forwarded).toBe(signal);
-      return "Resolved evidence";
+      return Promise.resolve("Resolved evidence");
     }
   );
   expect(output).toHaveProperty("ok", true);
@@ -254,9 +270,9 @@ test("service honors any strategy's availability gate without checking provider 
   let reads = 0;
   let checks = 0;
   const adapter: DecisionAdapter = {
-    async decide() {
+    decide() {
       calls += 1;
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight() {
       checks += 1;
@@ -270,16 +286,20 @@ test("service honors any strategy's availability gate without checking provider 
   };
   const service = createClassifier(options, adapter);
   const { signal } = new AbortController();
-  for (const state of [
+  const states: JsonValue[] = [
     "Plain content",
     { text: "Text evidence", type: "evidence" },
     { files: ["never-read.ts"], type: "evidence" },
-  ]) {
+  ];
+  const unexpectedResolver = () => {
+    reads += 1;
+    return Promise.resolve("Unexpected evidence");
+  };
+  for (const state of states) {
+    // Validate each preflight gate before moving to the next distinct state.
     expect(
-      await service.classify({ questions, state }, signal, async () => {
-        reads += 1;
-        return "Unexpected evidence";
-      })
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Keep gate and evidence-read counters tied to each case.
+      await service.classify({ questions, state }, signal, unexpectedResolver)
     ).toMatchObject({
       error: { attempts: 0, code: "PROVIDER_UNAVAILABLE", provider: "laya" },
       ok: false,
@@ -300,9 +320,9 @@ test("cancellation during strategy preflight prevents evidence and dispatch", as
   let calls = 0;
   let reads = 0;
   const adapter: DecisionAdapter = {
-    async decide() {
+    decide() {
       calls += 1;
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight() {
       controller.abort();
@@ -314,9 +334,9 @@ test("cancellation during strategy preflight prevents evidence and dispatch", as
     createClassifier(options, adapter).classify(
       { questions, state: { files: ["never-read.ts"], type: "evidence" } },
       controller.signal,
-      async () => {
+      () => {
         reads += 1;
-        return "Unexpected evidence";
+        return Promise.resolve("Unexpected evidence");
       }
     )
   ).rejects.toThrow();
@@ -359,13 +379,16 @@ test("OpenAI factory and invocation perform zero environment reads and HTTP call
   process.env = new Proxy(originalEnv, {
     get(target, property) {
       reads.push(String(property));
-      return Reflect.get(target, property);
+      return target[String(property)];
     },
   });
-  globalThis.fetch = (() => {
-    calls += 1;
-    return Promise.reject(new Error("Unexpected request"));
-  }) as unknown as typeof fetch;
+  globalThis.fetch = Object.assign(
+    () => {
+      calls += 1;
+      return Promise.reject(new Error("Unexpected request"));
+    },
+    { preconnect: originalFetch.preconnect }
+  );
   let output: ClassifyOutput;
   try {
     output = await createClassifier(options, createAdapter(options)).classify(
@@ -394,6 +417,8 @@ test("expected failures have no partial results; unexpected messages are sanitiz
       provider: "typesafe",
       supportedTypes: ["noul", "choice", "score"],
     };
+    // Each error is classified and checked before the shared loop advances.
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Keep result assertions isolated per failure.
     const output = await createClassifier(options, adapter).classify(
       input,
       new AbortController().signal
@@ -407,10 +432,10 @@ test("session interruption remains a rejection, even if adapter completes", asyn
   const options = parseOptions(examples[0]);
   let calls = 0;
   const adapter: DecisionAdapter = {
-    async decide() {
+    decide() {
       calls += 1;
       controller.abort();
-      return normalizedResponse();
+      return Promise.resolve(normalizedResponse());
     },
     preflight: createPreflight(["noul", "choice", "score"]),
     provider: "typesafe",

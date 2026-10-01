@@ -24,7 +24,7 @@ import { createElement as _$createElement } from "@opentui/solid";
 import { createEffect, createMemo, createSignal, For, on, onCleanup, Show } from "solid-js";
 
 // cache-history.ts
-function buildCacheHistory(sessions) {
+var buildCacheHistory = (sessions) => {
   const points = new Map;
   for (const [sessionID, messages] of sessions) {
     let prompt;
@@ -36,7 +36,7 @@ function buildCacheHistory(sessions) {
       if (message.type === "user") {
         userIndex += 1;
         turnID = `${sessionID}:user:${message.id ?? userIndex}`;
-        prompt = message.text.replace(/\s+/g, " ").trim().slice(0, 90) || undefined;
+        prompt = message.text.replaceAll(/\s+/gu, " ").trim().slice(0, 90) || undefined;
         afterTools = [];
         continue;
       }
@@ -73,7 +73,7 @@ function buildCacheHistory(sessions) {
       afterCompaction = undefined;
     }
   }
-  const sorted = [...points.values()].sort((a, b) => a.time - b.time || a.sessionID.localeCompare(b.sessionID) || a.id.localeCompare(b.id));
+  const sorted = [...points.values()].toSorted((a, b) => a.time - b.time || a.sessionID.localeCompare(b.sessionID) || a.id.localeCompare(b.id));
   let input = 0;
   let read = 0;
   const previous = new Map;
@@ -90,8 +90,8 @@ function buildCacheHistory(sessions) {
       previousRead
     };
   });
-}
-function groupCacheHistoryTurns(points) {
+};
+var groupCacheHistoryTurns = (points) => {
   const turns = new Map;
   for (const point of points) {
     let turn = turns.get(point.turnID);
@@ -117,20 +117,20 @@ function groupCacheHistoryTurns(points) {
   return [...turns.values()].map((turn) => ({
     ...turn,
     rate: turn.input + turn.read > 0 ? turn.read / (turn.input + turn.read) : undefined
-  })).sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
-}
-function formatCacheHistoryTrend(points) {
+  })).toSorted((a, b) => a.time - b.time || a.id.localeCompare(b.id));
+};
+var formatCacheHistoryTrend = (points) => {
   const bars = "\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588";
   return points.slice(-40).map((point) => point.rate === undefined ? "\xB7" : bars[Math.min(bars.length - 1, Math.floor(point.rate * bars.length))]).join("");
-}
-function exportCacheHistory(sessionID, scope, points) {
-  const totals = points.reduce((result, point) => {
-    result.input += point.input;
-    result.output += point.output;
-    result.cacheRead += point.read;
-    result.cacheWrite += point.write;
-    return result;
-  }, { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 });
+};
+var exportCacheHistory = (sessionID, scope, points) => {
+  const totals = { cacheRead: 0, cacheWrite: 0, input: 0, output: 0 };
+  for (const point of points) {
+    totals.input += point.input;
+    totals.output += point.output;
+    totals.cacheRead += point.read;
+    totals.cacheWrite += point.write;
+  }
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
     responseCount: points.length,
@@ -145,12 +145,12 @@ function exportCacheHistory(sessionID, scope, points) {
       cacheHitRate: totals.input + totals.cacheRead > 0 ? totals.cacheRead / (totals.input + totals.cacheRead) : null
     }
   }, null, 2);
-}
+};
 
 // cache-history-panel.tsx
 var percent = (rate) => rate === undefined ? "\u2014" : `${(rate * 100).toFixed(1)}%`;
 var count = (tokens) => tokens.toLocaleString();
-function CacheHistoryPanel(props) {
+var CacheHistoryPanel = (props) => {
   const {
     context
   } = props;
@@ -243,18 +243,19 @@ function CacheHistoryPanel(props) {
       }
     }));
   }
-  onCleanup(context.data.on("session.created", (event) => {
+  onCleanup(context.data.on("session.created", async (event) => {
     if (family() && event.data.parentID && context.data.session.root(event.data.parentID) === context.data.session.root(props.panel.sessionID)) {
       const current = generation;
-      context.data.session.sync(event.data.sessionID).then(() => {
+      try {
+        await context.data.session.sync(event.data.sessionID);
         if (generation === current) {
-          return refresh();
+          await refresh();
         }
-      }).catch(() => {
+      } catch {
         if (generation === current) {
           setError(true);
         }
-      });
+      }
     }
   }));
   onCleanup(() => {
@@ -616,10 +617,10 @@ function CacheHistoryPanel(props) {
     });
     return _el$;
   })();
-}
+};
 
 // cache-rate.ts
-function calculateSessionCacheRate(messages) {
+var calculateSessionCacheRate = (messages) => {
   let input = 0;
   let read = 0;
   let write = 0;
@@ -643,7 +644,7 @@ function calculateSessionCacheRate(messages) {
     read,
     write
   };
-}
+};
 
 // tui.tsx
 var tui_default = Plugin.define({
@@ -661,13 +662,14 @@ var tui_default = Plugin.define({
       const [expanded, setExpanded] = createSignal2(false);
       const toggleExpanded = () => setExpanded((value) => !value);
       const [messages, setMessages] = createSignal2(context.data.session.message.list(props.sessionID) ?? []);
-      const refresh = (sessionID) => {
+      const refresh = async (sessionID) => {
         context.data.session.message.invalidate(sessionID);
-        context.data.session.message.sync(sessionID).then(() => {
+        try {
+          await context.data.session.message.sync(sessionID);
           if (props.sessionID === sessionID) {
             setMessages(context.data.session.message.list(sessionID) ?? []);
           }
-        }).catch(() => {});
+        } catch {}
       };
       createEffect2(on2(() => props.sessionID, (sessionID) => {
         setMessages(context.data.session.message.list(sessionID) ?? []);

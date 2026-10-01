@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { parseOptions } from "../config.js";
 import { createAdapter } from "../providers/adapter.js";
 import { createPreflight } from "../providers/preflight.js";
@@ -19,13 +20,17 @@ test("provider preflight performs no credential lookups or HTTP calls", () => {
   process.env = new Proxy(originalEnv, {
     get(target, property) {
       reads.push(String(property));
-      return Reflect.get(target, property);
+      return target[String(property)];
     },
   });
-  globalThis.fetch = (() => {
-    calls += 1;
-    throw new Error("Unexpected preflight HTTP request");
-  }) as unknown as typeof fetch;
+  const unexpectedFetch: typeof fetch = Object.assign(
+    () => {
+      calls += 1;
+      throw new Error("Unexpected preflight HTTP request");
+    },
+    { preconnect: originalFetch.preconnect }
+  );
+  globalThis.fetch = unexpectedFetch;
   const { signal } = new AbortController();
   let gatedError: unknown;
   try {

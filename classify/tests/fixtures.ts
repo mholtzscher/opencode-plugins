@@ -1,4 +1,5 @@
 import type { Questions } from "../types.js";
+
 export const questions: Questions = {
   category: {
     criteria: { incident: "Failure", other: null },
@@ -16,29 +17,27 @@ export const input = {
   questions,
   state: { files: ["cache.ts"], message: "Production is down" },
 };
-export function response() {
-  return {
-    answers: {
-      category: {
-        choice: "incident",
-        confidence: 0.8,
-        probabilities: { incident: 0.9, other: 0.1 },
-        type: "choice" as const,
-      },
-      severity: {
-        confidence: 0.4,
-        legend: { "0": "None", "1": { impact: "Some" }, "2": "Unavailable" },
-        probabilities: { "0": 0.1, "1": 0.2, "2": 0.7 },
-        score: 1.6,
-        type: "score" as const,
-      },
-      urgent: { noul: 0.98, type: "noul" as const },
+export const response = () => ({
+  answers: {
+    category: {
+      choice: "incident",
+      confidence: 0.8,
+      probabilities: { incident: 0.9, other: 0.1 },
+      type: "choice" as const,
     },
-    model: "resolved-model",
-    usage: { input_tokens: 312, output_tokens: 48 },
-  };
-}
-export function normalizedResponse() {
+    severity: {
+      confidence: 0.4,
+      legend: { "0": "None", "1": { impact: "Some" }, "2": "Unavailable" },
+      probabilities: { "0": 0.1, "1": 0.2, "2": 0.7 },
+      score: 1.6,
+      type: "score" as const,
+    },
+    urgent: { noul: 0.98, type: "noul" as const },
+  },
+  model: "resolved-model",
+  usage: { input_tokens: 312, output_tokens: 48 },
+});
+export const normalizedResponse = () => {
   const native = response();
   return {
     ...native,
@@ -51,7 +50,7 @@ export function normalizedResponse() {
     },
     attempts: 1,
   };
-}
+};
 export const examples = [
   { backend: { provider: "typesafe" } },
   {

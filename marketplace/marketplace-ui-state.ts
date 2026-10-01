@@ -1,7 +1,10 @@
 import type { Context } from "@opencode/plugin/tui/context";
+
+import type {
+  MarketplaceInstallState,
+  MarketplaceItem,
+} from "./marketplace-catalog.js";
 import {
-  type MarketplaceInstallState,
-  type MarketplaceItem,
   marketplaceItemAction,
   marketplaceItemKey,
 } from "./marketplace-catalog.js";
@@ -59,7 +62,12 @@ export const createMarketplaceUIState = (context: Context) => {
       );
       await updateState((draft) => {
         if (action === "uninstall") {
-          delete draft.installed[marketplaceItemKey(item)];
+          const key = marketplaceItemKey(item);
+          draft.installed = Object.fromEntries(
+            Object.entries(draft.installed).filter(
+              ([installedKey]) => installedKey !== key
+            )
+          );
         } else {
           draft.installed[marketplaceItemKey(item)] = item.version;
         }

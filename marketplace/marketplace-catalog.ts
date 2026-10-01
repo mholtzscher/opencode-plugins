@@ -10,8 +10,21 @@ export interface MarketplaceItem {
   version: string;
 }
 
+const parseMarketplaceItem = (
+  item: (typeof index.items)[number]
+): MarketplaceItem => {
+  const { kind, origin } = item;
+  if (
+    (kind !== "skill" && kind !== "command" && kind !== "agent") ||
+    (origin !== "internal" && origin !== "external")
+  ) {
+    throw new Error(`Invalid marketplace item: ${item.id}`);
+  }
+  return { ...item, kind, origin };
+};
+
 /** Sample marketplace index; replace this import with the extracted tar index later. */
-export const marketplaceItems = index.items as MarketplaceItem[];
+export const marketplaceItems = index.items.map(parseMarketplaceItem);
 
 /** Stable key for install state, even when two kinds share a name or ID. */
 export const marketplaceItemKey = (item: MarketplaceItem): string =>
