@@ -12,13 +12,14 @@ Merge one of the following plugin entries into your existing `plugins` array. Do
 github:mholtzscher/opencode-plugins#main::path:classify
 ```
 
-The repository's root configuration uses the `laya` provider. `mise run opencode` starts the Laya daemon and waits for its health endpoint before launching OpenCode. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
+The repository's root configuration uses the hosted `typesafe` provider with an operator-specific server-local key file. `mise run opencode` launches OpenCode with that configuration and does not start Laya. For another operator, configure TypeSafe credentials as described below. To use local Laya instead, replace the classify backend with the loopback Laya configuration below and start Laya separately. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
 
 ### Local Laya with mise
 
-From the repository root:
+Local Laya is optional. With mise 2026.9.18 or later, start it from the repository root before launching OpenCode configured with the `laya` provider:
 
 ```sh
+mise daemons start laya
 mise run opencode
 ```
 
@@ -33,7 +34,7 @@ mise daemons logs laya
 mise daemons stop laya
 ```
 
-The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; the classify endpoint and model are in `opencode.jsonc`. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
+The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; configure the classify endpoint and model using the Laya examples below. Starting the daemon does not change the root TypeSafe backend. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
 
 Laya serves `/v1/systemone`, and results report `provider: "laya"`. Laya's confidence semantics differ from Jev's, choice questions have a 100-option HTTP cap and smaller practical token budgets, and long states can be silently truncated. The plugin does not expose Laya's token-budget controls or extra confidence and routing metadata. Use short inputs and validate accuracy and thresholds on your own examples.
 

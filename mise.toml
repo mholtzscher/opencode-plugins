@@ -1,3 +1,5 @@
+min_version = { hard = "2026.9.18" }
+
 [settings]
 experimental = true
 
@@ -14,5 +16,4 @@ env = { LAYA_HOST = "127.0.0.1", LAYA_PORT = "8000", LAYA_MODELS = "english", LA
 
 [tasks.opencode]
 description = "Launch OpenCode with local plugins and an isolated development config"
-daemons = "laya"
 run = "XDG_CONFIG_HOME={{config_root}}/.opencode-dev GIT_CONFIG_GLOBAL=$HOME/.config/git/config opencode --standalone"

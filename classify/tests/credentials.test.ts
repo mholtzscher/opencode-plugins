@@ -1,6 +1,6 @@
 // biome-ignore-all lint/performance/noAwaitInLoops: Credential cases and key rotation must run in order.
 import { afterEach, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { parseOptions } from "../config.js";
@@ -16,6 +16,7 @@ afterEach(async () => {
   );
 });
 async function fixture(): Promise<string> {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-key-");
   directories.push(directory);
   return join(directory, "key");

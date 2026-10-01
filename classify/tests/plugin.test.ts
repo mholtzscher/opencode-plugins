@@ -1,7 +1,7 @@
 // biome-ignore-all lint/suspicious/useAwait: The fake host implements an asynchronous API without I/O.
 
 import { expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
   Info,
@@ -69,6 +69,7 @@ test("real entry registers one unnamespaced tool with concrete discoverable sche
   ).rejects.toThrow();
 });
 test("executor resolves evidence in the session location before provider HTTP", async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-plugin-evidence-");
   const requests: unknown[] = [];
   const reads: unknown[] = [];

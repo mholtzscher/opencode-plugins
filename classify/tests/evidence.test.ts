@@ -32,6 +32,7 @@ afterEach(async () => {
   );
 });
 async function fixture() {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-evidence-");
   directories.push(directory);
   return directory;
