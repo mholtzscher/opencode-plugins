@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { constants } from "node:fs";
-import { open, realpath } from "node:fs/promises";
+import { type FileHandle, lstat, open, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
@@ -22,52 +22,49 @@ function failure(message: string): never {
 function quote(value: string): string {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
-async function readText(path: string, budget: number, signal: AbortSignal) {
-  const flags =
-    constants.O_RDONLY + constants.O_NOFOLLOW + constants.O_NONBLOCK;
-  const handle = await open(path, flags);
-  try {
-    const stat = await handle.stat();
-    if (!stat.isFile() || stat.size > budget) {
-      failure(
-        "Evidence files must be regular text files within the 1 MiB request limit."
-      );
-    }
-    const buffer = Buffer.alloc(stat.size + 1);
-    let length = 0;
-    while (length < buffer.length) {
-      signal.throwIfAborted();
-      // biome-ignore lint/performance/noAwaitInLoops: Sequential reads advance one file descriptor and enforce a shared byte bound.
-      const { bytesRead } = await handle.read(
-        buffer,
-        length,
-        buffer.length - length,
-        null
-      );
-      if (bytesRead === 0) {
-        break;
-      }
-      length += bytesRead;
-    }
-    if (length !== stat.size) {
-      failure(
-        "Evidence file changed or exceeded the request limit while being read."
-      );
-    }
-    const bytes = buffer.subarray(0, length);
-    if (bytes.includes(0)) {
-      failure("Evidence files must contain UTF-8 text, not binary data.");
-    }
-    return {
-      content: new TextDecoder("utf-8", {
-        fatal: true,
-        ignoreBOM: true,
-      }).decode(bytes),
-      size: length,
-    };
-  } finally {
-    await handle.close();
+async function readText(
+  handle: FileHandle,
+  budget: number,
+  signal: AbortSignal
+) {
+  const stat = await handle.stat();
+  if (!stat.isFile() || stat.size > budget) {
+    failure(
+      "Evidence files must be regular text files within the 1 MiB request limit."
+    );
   }
+  const buffer = Buffer.alloc(stat.size + 1);
+  let length = 0;
+  while (length < buffer.length) {
+    signal.throwIfAborted();
+    // biome-ignore lint/performance/noAwaitInLoops: Sequential reads advance one file descriptor and enforce a shared byte bound.
+    const { bytesRead } = await handle.read(
+      buffer,
+      length,
+      buffer.length - length,
+      null
+    );
+    if (bytesRead === 0) {
+      break;
+    }
+    length += bytesRead;
+  }
+  if (length !== stat.size) {
+    failure(
+      "Evidence file changed or exceeded the request limit while being read."
+    );
+  }
+  const bytes = buffer.subarray(0, length);
+  if (bytes.includes(0)) {
+    failure("Evidence files must contain UTF-8 text, not binary data.");
+  }
+  return {
+    content: new TextDecoder("utf-8", {
+      fatal: true,
+      ignoreBOM: true,
+    }).decode(bytes),
+    size: length,
+  };
 }
 async function readEvidenceFile(
   directory: string,
@@ -78,8 +75,30 @@ async function readEvidenceFile(
 ) {
   signal.throwIfAborted();
   const canonical = await realpath(resolve(directory, path));
-  await invoke("read", { limit: 1, path: canonical });
-  return readText(canonical, budget, signal);
+  const flags =
+    constants.O_RDONLY + constants.O_NOFOLLOW + constants.O_NONBLOCK;
+  const handle = await open(canonical, flags);
+  try {
+    const identity = await handle.stat();
+    const verifyIdentity = async () => {
+      const resolved = await realpath(canonical);
+      const current = await lstat(canonical);
+      if (
+        resolved !== canonical ||
+        !current.isFile() ||
+        current.dev !== identity.dev ||
+        current.ino !== identity.ino
+      ) {
+        failure("Evidence file changed during permission checking.");
+      }
+    };
+    await verifyIdentity();
+    await invoke("read", { limit: 1, path: canonical });
+    await verifyIdentity();
+    return await readText(handle, budget, signal);
+  } finally {
+    await handle.close();
+  }
 }
 async function readEvidenceDiff(
   directory: string,
@@ -141,8 +160,9 @@ async function readEvidenceDiff(
 }
 
 // The plugin API has no permission-request primitive. Invoke the native tools
-// first so their path/shell policies (including asks and denies) remain authoritative.
-// Read their data again with strict bounds: native display output may be truncated.
+// before reading evidence so their path/shell policies remain authoritative.
+// File reads retain one handle and verify path identity around permission checking.
+// Read with strict bounds: native display output may be truncated.
 export function createEvidenceResolver(
   directory: string,
   tools: readonly Info[],

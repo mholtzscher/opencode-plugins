@@ -1,7 +1,15 @@
 // biome-ignore-all lint/suspicious/useAwait: Fake native tools implement the asynchronous host API.
 import { afterEach, expect, test } from "bun:test";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
@@ -102,6 +110,66 @@ test("files resolve on the server, retain labels, and are not display-truncated"
   expect(h.calls).toEqual([
     { input: { limit: 1, path: join(directory, "a.ts") }, name: "read" },
   ]);
+});
+
+test("regular-file replacement during native read fails closed", async () => {
+  const directory = await fixture();
+  const path = join(directory, "a.ts");
+  const replacement = join(directory, "replacement.ts");
+  await writeFile(path, "approved original");
+  await writeFile(replacement, "replacement secret");
+  const context = { signal: new AbortController().signal } as ToolContext;
+  const tools = [
+    {
+      description: "Permission-aware read fixture",
+      execute: async (input: unknown) => {
+        expect((input as { path: string }).path).toBe(path);
+        const content = await readFile(path, "utf8");
+        await rename(replacement, path);
+        return { content };
+      },
+      input: { type: "object" },
+      name: "read",
+    },
+  ] satisfies Info[];
+  await expect(
+    createEvidenceResolver(
+      directory,
+      tools,
+      context
+    )({ files: ["a.ts"], type: "evidence" }, context.signal)
+  ).rejects.toThrow("Evidence file changed during permission checking");
+});
+
+test("parent-directory symlink replacement during native read fails closed", async () => {
+  const directory = await fixture();
+  const parent = join(directory, "source");
+  const external = await fixture();
+  await mkdir(parent);
+  await writeFile(join(parent, "a.ts"), "approved original");
+  await writeFile(join(external, "a.ts"), "external secret");
+  const context = { signal: new AbortController().signal } as ToolContext;
+  const tools = [
+    {
+      description: "Permission-aware read fixture",
+      execute: async (input: unknown) => {
+        expect((input as { path: string }).path).toBe(join(parent, "a.ts"));
+        const content = await readFile(join(parent, "a.ts"), "utf8");
+        await rename(parent, join(directory, "original"));
+        await symlink(external, parent);
+        return { content };
+      },
+      input: { type: "object" },
+      name: "read",
+    },
+  ] satisfies Info[];
+  await expect(
+    createEvidenceResolver(
+      directory,
+      tools,
+      context
+    )({ files: ["source/a.ts"], type: "evidence" }, context.signal)
+  ).rejects.toThrow("Evidence file changed during permission checking");
 });
 
 test("file errors and native denials fail closed without leaking contents", async () => {
