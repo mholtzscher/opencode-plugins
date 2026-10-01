@@ -126,4 +126,11 @@ export const examples = [
     timeoutMs: 60_000,
   },
   { backend: { provider: "openai-decisions" } },
+  {
+    backend: {
+      accountID: "0123456789abcdef0123456789abcdef",
+      model: "clef",
+      provider: "cloudflare",
+    },
+  },
 ];

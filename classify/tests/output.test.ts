@@ -4,6 +4,7 @@ import { parseOptions } from "../config.js";
 import { MAX_BYTES } from "../limits.js";
 import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
 import { createAdapter } from "../providers/adapter.js";
+import { providers } from "../providers/registry.js";
 import { validateResponse } from "../providers/response.js";
 import { createClassifier } from "../service.js";
 import { buildToolInputSchema } from "../tool-schema.js";
@@ -182,7 +183,7 @@ test("output parser allows envelope overhead at native byte and depth boundaries
     const output = {
       ok: true as const,
       result: {
-        ...validateResponse(native, input, "typesafe"),
+        ...validateResponse(native, input, providers.typesafe.decode),
         durationMs: 0,
         provider: "typesafe" as const,
       },
@@ -287,7 +288,7 @@ test("public output rejects extras that native response validation strips", () =
   const native = response();
   Object.assign(native.answers.category, { explanation: "private" });
   Object.assign(native.usage, { extra: 1 });
-  const result = validateResponse(native, input, "typesafe");
+  const result = validateResponse(native, input, providers.typesafe.decode);
   const output = {
     ok: true as const,
     result: { ...result, durationMs: 0, provider: "typesafe" as const },
@@ -314,7 +315,7 @@ test("public output retains the native response byte limit", () => {
   const output = {
     ok: true as const,
     result: {
-      ...validateResponse(native, input, "typesafe"),
+      ...validateResponse(native, input, providers.typesafe.decode),
       durationMs: 0,
       provider: "typesafe" as const,
     },

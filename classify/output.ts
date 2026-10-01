@@ -10,6 +10,7 @@ import {
   MIN_SCORE_LEVELS,
   NAME_PATTERN,
 } from "./limits.js";
+import { providerIDs } from "./providers/registry.js";
 import { ERROR_CODES } from "./types.js";
 import type { ClassifyOutput, JsonValue } from "./types.js";
 import { validateAnswer, validateUsage } from "./validation/answers.js";
@@ -23,7 +24,7 @@ import {
 const probability = { maximum: 1, minimum: 0, type: "number" };
 const nonnegative = { minimum: 0, type: "number" };
 const count = { minimum: 0, type: "integer" };
-const provider = { enum: ["typesafe", "laya", "openai-decisions"] };
+const provider = { enum: providerIDs };
 const name = { pattern: NAME_PATTERN.source, type: "string" };
 const requestID = { pattern: "^[A-Za-z0-9._:-]{1,256}$", type: "string" };
 const REQUEST_ID_PATTERN = new RegExp(requestID.pattern, "u");

@@ -1,8 +1,15 @@
 import path from "node:path";
 
 import { NAME_PATTERN } from "./limits.js";
+import { providers } from "./providers/registry.js";
 import { ClassificationError } from "./types.js";
-import type { Content, EvidenceState, JsonValue, Questions } from "./types.js";
+import type {
+  Content,
+  EvidenceState,
+  JsonValue,
+  Questions,
+  ProviderID,
+} from "./types.js";
 import { parseQuestions, parseState } from "./validation/input.js";
 import {
   fields,
@@ -12,6 +19,13 @@ import {
 } from "./validation/json.js";
 
 export type BackendOptions =
+  | {
+      provider: "cloudflare";
+      accountID: string;
+      model?: "clef" | "clef-flash";
+      apiKeyEnv?: string;
+      apiKeyFile?: string;
+    }
   | {
       provider: "typesafe";
       model?: string;
@@ -43,10 +57,6 @@ export interface ClassifyOptions {
   timeoutMs?: number;
 }
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/u;
-const ORIGIN = /^https?:\/\/[^/?#\\\s]+\/?$/u;
-const PROTOCOL = /^https?:\/\//u;
-const TRAILING_SLASH = /\/$/u;
-const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const isInteger = (value: JsonValue): value is number =>
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Numeric limits must reject all non-number JSON primitives.
   typeof value === "number" && Number.isInteger(value);
@@ -63,29 +73,6 @@ const freeze = <Value>(value: Value): void => {
     }
     Object.freeze(value);
   }
-};
-const layaOrigin = (value: JsonValue): string => {
-  if (!nonblank(value) || !ORIGIN.test(value)) {
-    return configError();
-  }
-  const url = new URL(value);
-  const authority = value.replace(PROTOCOL, "").replace(TRAILING_SLASH, "");
-  const host = authority.startsWith("[")
-    ? authority.slice(0, authority.indexOf("]") + 1)
-    : authority.split(":")[0];
-  if (url.protocol === "http:" && !LOOPBACK.has(host)) {
-    configError();
-  }
-  if (
-    url.username ||
-    url.password ||
-    url.pathname !== "/" ||
-    url.search ||
-    url.hash
-  ) {
-    configError();
-  }
-  return url.origin;
 };
 const validateKeyFile = (backend: Record<string, JsonValue>): void => {
   if (
@@ -110,16 +97,19 @@ const parseBackend = (value: JsonValue): BackendOptions => {
   const backend = record(value);
   if (
     !nonblank(backend.provider) ||
-    !["typesafe", "laya", "openai-decisions"].includes(backend.provider)
+    !Object.hasOwn(providers, backend.provider)
   ) {
     configError();
   }
-  fields(
-    backend,
-    backend.provider === "laya"
-      ? ["provider", "model", "apiKeyEnv", "apiKeyFile", "baseURL"]
-      : ["provider", "model", "apiKeyEnv", "apiKeyFile"]
-  );
+  // SAFETY: The own-key check above establishes a registered provider ID.
+  const definition = providers[backend.provider as ProviderID];
+  fields(backend, [
+    "provider",
+    "model",
+    "apiKeyEnv",
+    "apiKeyFile",
+    ...definition.fields,
+  ]);
   for (const key of ["model", "apiKeyEnv", "apiKeyFile"]) {
     if (Object.hasOwn(backend, key) && !nonblank(backend[key])) {
       configError();
@@ -129,26 +119,16 @@ const parseBackend = (value: JsonValue): BackendOptions => {
     configError();
   }
   validateKeyFile(backend);
-  if (backend.provider === "typesafe") {
-    backend.model ??= "jev-latest";
-    if (backend.apiKeyFile === undefined) {
-      backend.apiKeyEnv ??= "TYPESAFE_API_KEY";
-    }
+  if (backend.model === undefined && definition.defaultModel !== undefined) {
+    backend.model = definition.defaultModel;
   }
   if (
-    backend.provider === "openai-decisions" &&
-    backend.apiKeyFile === undefined
+    backend.apiKeyFile === undefined &&
+    definition.defaultKeyEnv !== undefined
   ) {
-    backend.apiKeyEnv ??= "OPENAI_API_KEY";
+    backend.apiKeyEnv ??= definition.defaultKeyEnv;
   }
-  if (backend.provider === "laya") {
-    backend.model ??= "english";
-    backend.baseURL = layaOrigin(
-      Object.hasOwn(backend, "baseURL")
-        ? backend.baseURL
-        : "http://127.0.0.1:8000"
-    );
-  }
+  definition.configure?.(backend);
   // SAFETY: Exact field validation and provider-specific checks above establish every field in the BackendOptions discriminated union.
   return backend as BackendOptions;
 };

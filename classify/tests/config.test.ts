@@ -80,7 +80,7 @@ test("named classifiers normalize criteria lists into immutable native maps", ()
     Array.isArray(original.classifiers.review.questions.kind.criteria)
   ).toBe(true);
 });
-test("all five documented scenarios validate", () => {
+test("all documented scenarios validate", () => {
   for (const example of examples) {
     expect(String(parseOptions(example).backend.provider)).toBe(
       example.backend.provider

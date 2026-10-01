@@ -18,18 +18,12 @@ import {
 export const validateResponse = (
   value: JsonValue,
   request: DecisionRequest,
-  provider: "typesafe" | "laya",
+  decode: (value: JsonValue) => JsonValue,
   attempts = 1
 ): DecisionResponse => {
   try {
     boundedJson(value);
-    const response = record(value);
-    if (provider === "laya" && response.truncated === true) {
-      throw new ClassificationError(
-        "INPUT_TRUNCATED",
-        "Laya reported truncated input."
-      );
-    }
+    const response = record(decode(value));
     if (!nonblank(response.model)) {
       return invalid();
     }
