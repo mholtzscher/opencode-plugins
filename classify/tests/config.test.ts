@@ -1,0 +1,190 @@
+import { expect, test } from "bun:test";
+import { file } from "bun";
+import { parseOptions } from "../config.js";
+import { examples } from "./fixtures.js";
+
+const CONFIG_BLOCK = /```jsonc\n([\s\S]*?)\n```/gu;
+test("README configuration blocks match validated example fixtures", async () => {
+  const readme = await file(new URL("../README.md", import.meta.url)).text();
+  const configs = [...readme.matchAll(CONFIG_BLOCK)].map(
+    (match) => JSON.parse(match[1]).plugins[0].options
+  );
+  expect(configs).toEqual(examples);
+  for (const config of configs) {
+    expect(() => parseOptions(config)).not.toThrow();
+  }
+});
+
+test("defaults are explicit, independent and immutable", () => {
+  const original = { backend: { provider: "typesafe" } };
+  const options = parseOptions(original);
+  expect(options).toEqual({
+    backend: {
+      apiKeyEnv: "TYPESAFE_API_KEY",
+      model: "jev-latest",
+      provider: "typesafe",
+    },
+    classifiers: {},
+    maxRetries: 1,
+    timeoutMs: 30_000,
+  });
+  expect(original).toEqual({ backend: { provider: "typesafe" } });
+  expect(Object.isFrozen(options.backend)).toBe(true);
+  expect(parseOptions({ backend: { provider: "kev" } }).backend).toEqual({
+    baseURL: "http://127.0.0.1:8009",
+    model: "kev-latest",
+    provider: "kev",
+  });
+  expect(parseOptions(examples[4]).backend.model).toBeUndefined();
+});
+test("named classifiers normalize criteria lists into immutable native maps", () => {
+  const original = {
+    backend: { provider: "kev" },
+    classifiers: {
+      review: {
+        description: "Review an outage",
+        questions: {
+          kind: {
+            criteria: [
+              { description: { meaning: "Outage" }, label: "__proto__" },
+              { description: null, label: "constructor" },
+            ],
+            instructions: "Choose",
+            type: "choice",
+          },
+        },
+      },
+    },
+  };
+  const options = parseOptions(original);
+  const criteria = options.classifiers?.review.questions.kind.criteria;
+  expect(criteria).toEqual(
+    JSON.parse('{"__proto__":{"meaning":"Outage"},"constructor":null}')
+  );
+  expect(Object.getPrototypeOf(criteria)).toBe(Object.prototype);
+  expect(Object.isFrozen(criteria)).toBe(true);
+  expect(
+    Object.isFrozen(
+      Object.getOwnPropertyDescriptor(criteria, "__proto__")?.value
+    )
+  ).toBe(true);
+  expect(
+    Array.isArray(original.classifiers.review.questions.kind.criteria)
+  ).toBe(true);
+});
+test("all five documented scenarios validate", () => {
+  for (const example of examples) {
+    expect(String(parseOptions(example).backend.provider)).toBe(
+      example.backend.provider
+    );
+  }
+});
+test("configuration rejects unknown fields and invalid limits without echoing values", () => {
+  for (const value of [
+    undefined,
+    {},
+    { backend: {} },
+    { backend: { provider: "auto" } },
+    { backend: { apiKey: "SECRET", provider: "typesafe" } },
+    { backend: { baseURL: "https://other", provider: "typesafe" } },
+    { backend: { apiKeyEnv: " ", provider: "kev" } },
+    { ...examples[0], timeoutMs: 999 },
+    { ...examples[0], timeoutMs: null },
+    { ...examples[0], maxRetries: null },
+    { backend: { baseURL: null, provider: "kev" } },
+    { ...examples[0], timeoutMs: 300_001 },
+    { ...examples[0], maxRetries: 3 },
+    { ...examples[0], maxRetries: 0.5 },
+    { ...examples[0], extra: true },
+  ]) {
+    expect(() => parseOptions(value)).toThrow("Invalid classify options");
+  }
+  for (const timeoutMs of [1000, 300_000]) {
+    expect(
+      parseOptions({ ...examples[0], maxRetries: 2, timeoutMs }).timeoutMs
+    ).toBe(timeoutMs);
+  }
+});
+test("Kev origins reject paths, credentials, queries, fragments and remote plaintext", () => {
+  for (const baseURL of [
+    "http://example.com",
+    "https://example.com/v1",
+    "https://example.com?",
+    "https://example.com#",
+    "http://user:SECRET@localhost",
+    "file:///tmp",
+    "http://127.1",
+    "http://2130706433",
+    "https://example.com//",
+  ]) {
+    expect(() =>
+      parseOptions({ backend: { baseURL, provider: "kev" } })
+    ).toThrow();
+  }
+  for (const baseURL of [
+    "http://localhost:8009/",
+    "http://[::1]:8009",
+    "https://example.com/",
+  ]) {
+    expect(
+      parseOptions({ backend: { baseURL, provider: "kev" } }).backend.provider
+    ).toBe("kev");
+  }
+});
+test("classifier names, descriptions and question maps obey bounds", () => {
+  const definition = {
+    description: "Example",
+    questions: { active: { instructions: "Active?", type: "noul" } },
+  };
+  for (const classifiers of [
+    { bad: { ...definition, description: " " } },
+    { bad: { ...definition, description: "a".repeat(513) } },
+    { "1bad": definition },
+    { bad: { ...definition, questions: {} } },
+    Object.fromEntries(
+      Array.from({ length: 33 }, (_, i) => [`c${i}`, definition])
+    ),
+  ]) {
+    expect(() => parseOptions({ ...examples[0], classifiers })).toThrow();
+  }
+  expect(
+    Object.keys(
+      parseOptions({
+        ...examples[0],
+        classifiers: Object.fromEntries(
+          Array.from({ length: 32 }, (_, i) => [`c${i}`, definition])
+        ),
+      }).classifiers ?? {}
+    )
+  ).toHaveLength(32);
+});
+test("key-file paths are explicit and mutually exclusive with environment sources", () => {
+  for (const provider of ["typesafe", "kev", "openai-decisions"]) {
+    for (const apiKeyFile of [
+      "/private/key",
+      "~/.config/opencode/typesafe.key",
+    ]) {
+      const options = parseOptions({ backend: { apiKeyFile, provider } });
+      expect(options.backend.apiKeyFile).toBe(apiKeyFile);
+      expect(options.backend.apiKeyEnv).toBeUndefined();
+    }
+    for (const apiKeyFile of [
+      "",
+      " ",
+      "relative/key",
+      "~other/key",
+      "/key\0",
+      null,
+      3,
+    ]) {
+      expect(() => parseOptions({ backend: { apiKeyFile, provider } })).toThrow(
+        "Invalid classify options"
+      );
+    }
+    expect(() =>
+      parseOptions({
+        backend: { apiKeyEnv: "KEY", apiKeyFile: "/private/key", provider },
+      })
+    ).toThrow("Invalid classify options");
+  }
+});

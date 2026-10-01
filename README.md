@@ -1,8 +1,12 @@
 # OpenCode plugins
 
-Five independent plugins for OpenCode V2. Each directory is its own Bun package, not part of a Bun workspace.
+Six independent plugins for OpenCode V2. Each directory is its own Bun package, not part of a Bun workspace.
 
 ## Plugins
+
+### [Classify](./classify/README.md)
+
+A server-side `classify` tool for ad hoc typed questions and reusable named classifiers. TypeSafe AI and externally managed Kev servers return native yes probabilities, categorical choices, fractional rubric scores, and uncertainty data. OpenAI Decisions is unavailable pending a verified API adapter. The backend is user-configured; the tool does not execute decisions.
 
 ### [Cache metrics](./cache-metrics/README.md)
 
@@ -79,8 +83,8 @@ opencode plugin add 'github:mholtzscher/opencode-plugins#main::path:cache-metric
 
 ## Development
 
-For a local checkout, run `bun install` inside each plugin directory you use and configure its absolute directory path in `plugins`. This repository's [`opencode.jsonc`](./opencode.jsonc) already loads all five local plugins.
+For a local checkout, run `bun install` inside each plugin directory you use and configure its absolute directory path in `plugins`. This repository's [`opencode.jsonc`](./opencode.jsonc) loads all six plugins. Classify uses TypeSafe AI and requires `TYPESAFE_API_KEY` in the OpenCode server environment; see its README.
 
-Run `bun run typecheck` in the affected plugin directory. Also run `bun test` for `cache-metrics`, `github-tools`, and `spec-tools`. For cache metrics TUI changes, run `bun run build:tui` and commit the updated `dist/tui.js`.
+Run `bun run typecheck` in the affected plugin directory. Also run `bun test` for `classify`, `cache-metrics`, `github-tools`, and `spec-tools`. Classify's typecheck includes both entries, nested providers, and tests; live provider checks are opt-in manual checks. For cache metrics TUI changes, run `bun run build:tui` and commit the updated `dist/tui.js`.
 
 Run `bun install` at the root to install the lint tooling, then `bun run check` for repository-wide lint and formatting checks.
