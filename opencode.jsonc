@@ -5,6 +5,17 @@
     "./cache-metrics",
     "./quota-usage",
     "./github-tools",
-    "./spec-tools"
+    "./spec-tools",
+    {
+      "package": "./classify",
+      "options": {
+        "backend": {
+          "provider": "typesafe",
+          "apiKeyFile": "~/.local/share/agenix/typesafe-api-key"
+        },
+        "timeoutMs": 120000,
+        "maxRetries": 0
+      }
+    }
   ]
 }
