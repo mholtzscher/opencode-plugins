@@ -1,45 +1,52 @@
-import type { ClassifyOptions } from "../config.js";
+import type { BackendOptions, ClassifyOptions } from "../config.js";
 import { resolveKey } from "../credentials.js";
+import type { DecisionAdapter } from "../providers/adapter.js";
+import type { ProviderDefinition } from "../providers/definition.js";
+import { createPreflight } from "../providers/preflight.js";
 import { systemOneFetch } from "../transport.js";
 import { ClassificationError } from "../types.js";
+import type { JsonValue } from "../types.js";
 import { boundedJson } from "../validation/json.js";
-import type { DecisionAdapter } from "./adapter.js";
-import { createPreflight } from "./preflight.js";
 import { validateResponse } from "./response.js";
 
+export interface SystemOneDefinition extends ProviderDefinition {
+  decode: (value: JsonValue) => JsonValue;
+  endpoint: (backend: BackendOptions) => string;
+  readonly requestIDHeader?: string;
+}
+
 export const createSystemOneAdapter = (
-  options: ClassifyOptions
+  options: ClassifyOptions,
+  definition: SystemOneDefinition
 ): DecisionAdapter => {
   const { backend } = options;
-  if (backend.provider === "openai-decisions") {
+  const supportedTypes = ["noul", "choice", "score"] as const;
+  const preflight = createPreflight(supportedTypes);
+  const model = backend.model ?? definition.defaultModel;
+  if (model === undefined) {
     throw new ClassificationError(
       "INTERNAL_ERROR",
       "Invalid adapter configuration."
     );
   }
-  const supportedTypes = ["noul", "choice", "score"] as const;
-  const preflight = createPreflight(supportedTypes);
+  const endpoint = definition.endpoint(backend);
   return {
     async decide(request, signal) {
       preflight(request.questions, signal);
       const payload = {
-        model:
-          backend.model ??
-          (backend.provider === "typesafe" ? "jev-latest" : "english"),
+        model,
         questions: request.questions,
         state: request.state,
       };
       boundedJson(payload);
-      const key = await resolveKey(backend, signal);
+      const key = await resolveKey(backend, signal, definition.defaultKeyEnv);
       const response = await systemOneFetch(
         {
           body: JSON.stringify(payload),
-          endpoint:
-            backend.provider === "typesafe"
-              ? "https://api.typesafe.ai/v1/systemone"
-              : `${backend.baseURL ?? "http://127.0.0.1:8000"}/v1/systemone`,
+          endpoint,
           key,
           maxRetries: options.maxRetries ?? 1,
+          requestIDHeader: definition.requestIDHeader,
           timeoutMs: options.timeoutMs ?? 30_000,
         },
         signal
@@ -52,7 +59,7 @@ export const createSystemOneAdapter = (
           ...validateResponse(
             response.value,
             request,
-            backend.provider,
+            definition.decode,
             response.attempts
           ),
           ...metadata,

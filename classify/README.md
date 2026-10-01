@@ -1,6 +1,6 @@
 # Classify
 
-One server-side `classify` tool for bounded judgments. TypeSafe AI and an externally managed Laya HTTP server use the System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
+One server-side `classify` tool for bounded judgments. TypeSafe AI, Cloudflare Clef, and an externally managed Laya HTTP server use the System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
 
 The TUI entry is a no-op. Credentials and classification run on the OpenCode server, including when the TUI connects remotely. Setup makes no network calls and downloads no models.
 
@@ -200,6 +200,32 @@ Replace the origin and set the named variable on the OpenCode server. Expose `/v
 
 This registers the tool but returns `PROVIDER_UNAVAILABLE` on valid invocations without credential lookup or HTTP. `OPENAI_API_KEY` is reserved; no model default is defined. See the [implementation gate](../specs/classify-tool-plugin.md#openai-implementation-gate) before adding a real adapter.
 
+### Hosted Cloudflare Clef
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": {
+        "backend": {
+          "provider": "cloudflare",
+          "accountID": "0123456789abcdef0123456789abcdef",
+          "model": "clef",
+        },
+      },
+    },
+  ],
+}
+```
+
+Replace `accountID` with your 32-character hexadecimal Cloudflare account ID. Set `CLOUDFLARE_AUTH_TOKEN` on the OpenCode server to an API token with Workers AI permission for that account. `apiKeyEnv` can select another variable, or `apiKeyFile` can select a server-local token file using the same rules as TypeSafe.
+
+The model defaults to `clef`. Set `model: "clef-flash"` for the faster model. Only these two selectors are accepted. The plugin sends the selector in the body and chooses the matching fixed Workers AI REST endpoint. It unwraps the Cloudflare `success`/`result` envelope before validating native measurements. Results report `provider: "cloudflare"`; a validated `cf-ray` header becomes `requestID`.
+
+The plugin supports text and structured JSON, not Clef's separate image input extension. Cloudflare documents a 65,536-token context window and truncation of long text. The byte limit does not guarantee that an input fits the token window. Keep inputs short. An explicit `truncated: true` result fails with `INPUT_TRUNCATED`, but absence of that marker does not prove full input coverage. See the [Clef documentation](https://developers.cloudflare.com/workers-ai/models/clef/).
+
 ### Option limits
 
 `backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
@@ -208,13 +234,15 @@ This registers the tool but returns `PROVIDER_UNAVAILABLE` on valid invocations 
 
 ## Provider architecture
 
-[`providers/adapter.ts`](./providers/adapter.ts) defines the `DecisionAdapter` interface and `createAdapter` factory: the service uses an interchangeable provider strategy rather than branching on provider identity. TypeSafe and Laya share [`providers/system-one.ts`](./providers/system-one.ts); the reserved OpenAI strategy lives in [`providers/openai-decisions.ts`](./providers/openai-decisions.ts).
+[`providers/adapter.ts`](./providers/adapter.ts) defines the `DecisionAdapter` interface and registry-driven `createAdapter` factory. [`providers/registry.ts`](./providers/registry.ts) supplies provider definitions for configuration and adapter selection. Each provider module owns its extra configuration fields, defaults, validation, and adapter factory. The dependency-free [`providers/ids.ts`](./providers/ids.ts) defines the provider IDs and derives the `ProviderID` type; the registry must implement every ID, and the output schema uses the same list without importing adapters or credential code. TypeSafe, Laya, and Cloudflare reuse [`protocols/system-one.ts`](./protocols/system-one.ts) for bounded requests, credentials, cancellation, retries, and native answer validation. System One is their shared API contract, not a provider. Its adapter, `SystemOneDefinition` type, and response validation live under `protocols/`. Response decoding belongs to `SystemOneDefinition`, so other protocols need not implement it. The reserved OpenAI strategy lives in [`providers/openai-decisions.ts`](./providers/openai-decisions.ts). Shared adapter selection and configuration parsing do not branch on provider identity.
+
+To add a provider, implement `ProviderDefinition` in a provider module, register it in `registry.ts`, add its ID to `providers/ids.ts`, and extend `BackendOptions`. For System One-compatible APIs, implement `SystemOneDefinition` with an endpoint, response decoder, and optional request-ID header and reuse the shared adapter. Other protocols can supply their own adapter without changing the service. Add configuration rejection, HTTP contract, malformed response, and output parser tests. Setup and preflight must remain free of credential, evidence, and network reads. Keep providers in individual modules until one needs several files, then move that provider into a folder and update its registry import.
 
 Each strategy exposes `provider`, `supportedTypes`, a synchronous `preflight(questions, signal)`, and an asynchronous `decide(request, signal)`. Preflight owns availability and capability checks and must not read evidence, credentials, or the network. [`service.ts`](./service.ts) validates input and resolves named classifiers, calls preflight **before** resolving evidence, and then dispatches through `decide`. The shared [`providers/preflight.ts`](./providers/preflight.ts) helper implements supported-question checks; unavailable strategies reject directly. Direct adapter calls remain guarded, including the OpenAI no-HTTP gate.
 
 ## Tool contract
 
-The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.transform(editor => editor.add(...))`. The concrete registration is in [`index.ts`](./index.ts); the generated tool JSON Schema is in [`tool-schema.ts`](./tool-schema.ts). Runtime validation is separated into [`validation/json.ts`](./validation/json.ts) for bounded JSON and common checks, [`validation/input.ts`](./validation/input.ts) for questions and tool arguments, [`validation/answers.ts`](./validation/answers.ts) for shared native measurements, and [`providers/response.ts`](./providers/response.ts) for System One responses. Its definition is:
+The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.transform(editor => editor.add(...))`. The concrete registration is in [`index.ts`](./index.ts); the generated tool JSON Schema is in [`tool-schema.ts`](./tool-schema.ts). Runtime validation is separated into [`validation/json.ts`](./validation/json.ts) for bounded JSON and common checks, [`validation/input.ts`](./validation/input.ts) for questions and tool arguments, [`validation/answers.ts`](./validation/answers.ts) for shared native measurements, and [`protocols/response.ts`](./protocols/response.ts) for System One responses. Its definition is:
 
 ```ts
 {
@@ -482,7 +510,7 @@ Check `ok` before reading answers. This success is illustrative, not a measured 
 }
 ```
 
-Named success adds `result.classifier`. `model` preserves the provider's reported model, not the requested alias. All answer measurements shown above and both usage counts are required. `scale` is derived from the requested rubric; native score, legend, probabilities, and confidence are unchanged. `requestID` appears only for a validated `x-typesafe-request-id` header from the final attempt, including on HTTP, response-body, or native-response validation failures. `attempts` counts HTTP dispatches (initial request plus retries); zero on failure means no dispatch. `durationMs` uses a monotonic clock across the whole invocation, including evidence resolution and retries, and is returned on both success and failure. Usage reports only the successful attempt, not necessarily total billed tokens.
+Named success adds `result.classifier`. `model` preserves the provider's reported model, not the requested alias. All answer measurements shown above and both usage counts are required. `scale` is derived from the requested rubric; native score, legend, probabilities, and confidence are unchanged. `requestID` appears only for a validated `x-typesafe-request-id` header, or `cf-ray` for Cloudflare, from the final attempt, including on HTTP, response-body, or native-response validation failures. `attempts` counts HTTP dispatches (initial request plus retries); zero on failure means no dispatch. `durationMs` uses a monotonic clock across the whole invocation, including evidence resolution and retries, and is returned on both success and failure. Usage reports only the successful attempt, not necessarily total billed tokens.
 
 ```json
 {

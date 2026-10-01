@@ -1,5 +1,6 @@
 import { ClassificationError } from "../types.js";
 import type { DecisionAdapter } from "./adapter.js";
+import type { ProviderDefinition } from "./definition.js";
 
 const unavailableError = (): ClassificationError =>
   new ClassificationError(
@@ -19,3 +20,9 @@ export const unavailableOpenAI = (): DecisionAdapter => ({
   provider: "openai-decisions",
   supportedTypes: [],
 });
+
+export const openaiDecisions: ProviderDefinition = {
+  createAdapter: () => unavailableOpenAI(),
+  defaultKeyEnv: "OPENAI_API_KEY",
+  fields: [],
+};

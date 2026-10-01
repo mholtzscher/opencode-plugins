@@ -7,6 +7,7 @@ export interface TransportOptions {
   endpoint: string;
   key?: string;
   maxRetries: number;
+  requestIDHeader?: string;
   timeoutMs: number;
 }
 interface RequestMetadata {
@@ -38,8 +39,11 @@ const retryAfterMs = (response: Response): number | undefined => {
     : Date.parse(retryAfter) - Date.now();
   return Number.isFinite(requested) ? Math.max(0, requested) : undefined;
 };
-const requestID = (response: Response): { requestID?: string } => {
-  const id = response.headers.get("x-typesafe-request-id");
+const requestID = (
+  response: Response,
+  header: string
+): { requestID?: string } => {
+  const id = response.headers.get(header);
   return id && REQUEST_ID.test(id) ? { requestID: id } : {};
 };
 const httpError = (status: number): ClassificationError => {
@@ -211,7 +215,10 @@ export const systemOneFetch = async (
         }),
         signal
       );
-      responseID = requestID(response);
+      responseID = requestID(
+        response,
+        options.requestIDHeader ?? "x-typesafe-request-id"
+      );
       retryAfter = retryAfterMs(response);
       signal.throwIfAborted();
       if (response.ok) {

@@ -6,8 +6,7 @@ import type {
   Questions,
   QuestionType,
 } from "../types.js";
-import { unavailableOpenAI } from "./openai-decisions.js";
-import { createSystemOneAdapter } from "./system-one.js";
+import { providers } from "./registry.js";
 
 export interface DecisionAdapter {
   decide: (
@@ -20,6 +19,4 @@ export interface DecisionAdapter {
   readonly supportedTypes: readonly QuestionType[];
 }
 export const createAdapter = (options: ClassifyOptions): DecisionAdapter =>
-  options.backend.provider === "openai-decisions"
-    ? unavailableOpenAI()
-    : createSystemOneAdapter(options);
+  providers[options.backend.provider].createAdapter(options);

@@ -1,12 +1,13 @@
 import { expect, test } from "bun:test";
 
-import { validateResponse } from "../providers/response.js";
+import { validateResponse } from "../protocols/response.js";
+import { providers } from "../providers/registry.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
 test("mixed native responses pass unchanged with derived score bounds", () => {
-  expect(validateResponse(response(), input, "typesafe")).toEqual(
-    normalizedResponse()
-  );
+  expect(
+    validateResponse(response(), input, providers.typesafe.decode)
+  ).toEqual(normalizedResponse());
 });
 test("native responses preserve special own labels", () => {
   const special = {
@@ -33,7 +34,7 @@ test("native responses preserve special own labels", () => {
       usage: { input_tokens: 0, output_tokens: 0 },
     },
     special,
-    "laya"
+    providers.laya.decode
   );
   expect(JSON.stringify(result)).toContain('"__proto__":0.8');
 });
@@ -93,12 +94,16 @@ test("malformed native responses fail atomically and extras are stripped", () =>
   for (const mutate of mutations) {
     const r = response();
     mutate(r);
-    expect(() => validateResponse(r, input, "laya")).toThrow(
+    expect(() => validateResponse(r, input, providers.laya.decode)).toThrow(
       "invalid classification response"
     );
   }
   expect(() =>
-    validateResponse({ ...response(), truncated: true }, input, "laya")
+    validateResponse(
+      { ...response(), truncated: true },
+      input,
+      providers.laya.decode
+    )
   ).toThrow("truncated input");
   const withExtras = response();
   Object.assign(withExtras.answers.urgent, {
@@ -106,7 +111,11 @@ test("malformed native responses fail atomically and extras are stripped", () =>
     explanation: "private",
   });
   expect(
-    validateResponse({ ...withExtras, private: "secret" }, input, "typesafe")
+    validateResponse(
+      { ...withExtras, private: "secret" },
+      input,
+      providers.typesafe.decode
+    )
   ).toEqual(normalizedResponse());
 });
 test("255-label rounded distribution passes tolerance without normalization", () => {
@@ -127,14 +136,13 @@ test("255-label rounded distribution passes tolerance without normalization", ()
     model: "m",
     usage: { input_tokens: 0, output_tokens: 0 },
   };
-  expect(validateResponse(r, request, "laya").answers.q).toHaveProperty(
-    "probabilities",
-    probabilities
-  );
+  expect(
+    validateResponse(r, request, providers.laya.decode).answers.q
+  ).toHaveProperty("probabilities", probabilities);
   r.answers.q.probabilities = Object.fromEntries(
     Object.keys(criteria).map((key) => [key, 0.0038])
   );
-  expect(() => validateResponse(r, request, "laya")).toThrow();
+  expect(() => validateResponse(r, request, providers.laya.decode)).toThrow();
 });
 test("score legends preserve native string, object, and array descriptions", () => {
   const criteria = [
@@ -164,7 +172,9 @@ test("score legends preserve native string, object, and array descriptions", () 
     usage: { input_tokens: 1, output_tokens: 1 },
   };
   for (const provider of ["typesafe", "laya"] as const) {
-    expect(validateResponse(native, request, provider)).toEqual({
+    expect(
+      validateResponse(native, request, providers[provider].decode)
+    ).toEqual({
       ...native,
       answers: {
         impact: { ...native.answers.impact, scale: { max: 2, min: 0 } },
@@ -184,7 +194,7 @@ test("score legends preserve native string, object, and array descriptions", () 
             },
           },
           request,
-          provider
+          providers[provider].decode
         )
       ).toThrow("invalid classification response");
     }

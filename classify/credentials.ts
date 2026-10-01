@@ -68,7 +68,8 @@ const fileKey = async (
 };
 export const resolveKey = async (
   backend: BackendOptions,
-  signal: AbortSignal
+  signal: AbortSignal,
+  defaultKeyEnv?: string
 ): Promise<string | undefined> => {
   signal.throwIfAborted();
   if (backend.apiKeyFile !== undefined) {
@@ -82,9 +83,7 @@ export const resolveKey = async (
       throw missingFile();
     }
   }
-  const env =
-    backend.apiKeyEnv ??
-    (backend.provider === "typesafe" ? "TYPESAFE_API_KEY" : undefined);
+  const env = backend.apiKeyEnv ?? defaultKeyEnv;
   const key = env === undefined ? undefined : process.env[env];
   if (env !== undefined && !key?.trim()) {
     throw new ClassificationError(
