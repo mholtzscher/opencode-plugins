@@ -8,5 +8,4 @@ export interface ProviderDefinition {
   readonly defaultKeyEnv?: string;
   configure?: (backend: Record<string, JsonValue>) => void;
   createAdapter: (options: ClassifyOptions) => DecisionAdapter;
-  decode: (value: JsonValue) => JsonValue;
 }

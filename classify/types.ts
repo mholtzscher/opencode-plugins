@@ -1,3 +1,7 @@
+import type { ProviderID } from "./providers/ids.js";
+
+export type { ProviderID } from "./providers/ids.js";
+
 export type JsonValue =
   | null
   | boolean
@@ -16,11 +20,6 @@ export interface EvidenceState {
   text?: Content;
   type: "evidence";
 }
-export type ProviderID =
-  | "typesafe"
-  | "laya"
-  | "cloudflare"
-  | "openai-decisions";
 export type QuestionType = "noul" | "choice" | "score";
 export type Question =
   | {

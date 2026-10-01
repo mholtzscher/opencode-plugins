@@ -5,10 +5,12 @@ import type { ProviderDefinition } from "../providers/definition.js";
 import { createPreflight } from "../providers/preflight.js";
 import { systemOneFetch } from "../transport.js";
 import { ClassificationError } from "../types.js";
+import type { JsonValue } from "../types.js";
 import { boundedJson } from "../validation/json.js";
 import { validateResponse } from "./response.js";
 
 export interface SystemOneDefinition extends ProviderDefinition {
+  decode: (value: JsonValue) => JsonValue;
   endpoint: (backend: BackendOptions) => string;
   readonly requestIDHeader?: string;
 }

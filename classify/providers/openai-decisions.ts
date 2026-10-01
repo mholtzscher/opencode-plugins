@@ -23,7 +23,6 @@ export const unavailableOpenAI = (): DecisionAdapter => ({
 
 export const openaiDecisions: ProviderDefinition = {
   createAdapter: () => unavailableOpenAI(),
-  decode: (value) => value,
   defaultKeyEnv: "OPENAI_API_KEY",
   fields: [],
 };

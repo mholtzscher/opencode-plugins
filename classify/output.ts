@@ -10,7 +10,7 @@ import {
   MIN_SCORE_LEVELS,
   NAME_PATTERN,
 } from "./limits.js";
-import { providerIDs } from "./providers/registry.js";
+import { providerIDs } from "./providers/ids.js";
 import { ERROR_CODES } from "./types.js";
 import type { ClassifyOutput, JsonValue } from "./types.js";
 import { validateAnswer, validateUsage } from "./validation/answers.js";
@@ -224,7 +224,7 @@ const metadata = (
   assert(
     isCount(value.attempts, minAttempts) && isNonnegative(value.durationMs)
   );
-  assert(nonblank(value.provider) && provider.enum.includes(value.provider));
+  assert(provider.enum.some((id) => id === value.provider));
   if (Object.hasOwn(value, "requestID")) {
     assert(
       nonblank(value.requestID) && REQUEST_ID_PATTERN.test(value.requestID)
