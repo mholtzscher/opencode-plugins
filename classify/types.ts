@@ -43,53 +43,70 @@ export type Answer =
   | {
       type: "choice";
       choice: string;
-      probabilities?: Record<string, number>;
-      confidence?: number;
+      probabilities: Record<string, number>;
+      /** Provider-native uncertainty metric, not probability of correctness. */
+      confidence: number;
     }
   | {
       type: "score";
       score: number;
-      legend?: Record<string, Content>;
-      probabilities?: Record<string, number>;
-      confidence?: number;
+      scale: { min: 0; max: number };
+      legend: Record<string, Content>;
+      probabilities: Record<string, number>;
+      /** Provider-native uncertainty metric, not probability of correctness. */
+      confidence: number;
     };
 export interface DecisionResponse {
   answers: Record<string, Answer>;
+  /** Number of HTTP dispatch attempts, including the initial request. */
+  attempts: number;
   model: string;
   requestID?: string;
-  usage?: { input_tokens?: number; output_tokens?: number };
+  usage: { input_tokens: number; output_tokens: number };
 }
 export interface ClassifyResult extends DecisionResponse {
   classifier?: string;
   durationMs: number;
   provider: ProviderID;
 }
-export type ErrorCode =
-  | "INVALID_CONFIG"
-  | "INVALID_INPUT"
-  | "EVIDENCE_ERROR"
-  | "UNKNOWN_CLASSIFIER"
-  | "MISSING_CREDENTIALS"
-  | "PROVIDER_UNAVAILABLE"
-  | "UNSUPPORTED_TYPE"
-  | "AUTH_FAILED"
-  | "RATE_LIMITED"
-  | "REQUEST_REJECTED"
-  | "NETWORK_ERROR"
-  | "TIMEOUT"
-  | "INVALID_RESPONSE"
-  | "INPUT_TRUNCATED"
-  | "INTERNAL_ERROR";
+export const ERROR_CODES = [
+  "INVALID_CONFIG",
+  "INVALID_INPUT",
+  "EVIDENCE_ERROR",
+  "UNKNOWN_CLASSIFIER",
+  "MISSING_CREDENTIALS",
+  "PROVIDER_UNAVAILABLE",
+  "UNSUPPORTED_TYPE",
+  "AUTH_FAILED",
+  "RATE_LIMITED",
+  "REQUEST_REJECTED",
+  "NETWORK_ERROR",
+  "TIMEOUT",
+  "INVALID_RESPONSE",
+  "INPUT_TRUNCATED",
+  "INTERNAL_ERROR",
+] as const;
+export type ErrorCode = (typeof ERROR_CODES)[number];
 export interface Failure {
+  attempts?: number;
   code: ErrorCode;
   message: string;
+  /** JSON Pointer into the input; no submitted values are echoed. */
+  path?: string;
   provider?: ProviderID;
+  requestID?: string;
+  retryAfterMs?: number;
   retryable: boolean;
   status?: number;
 }
+export interface ClassifyFailure extends Failure {
+  attempts: number;
+  durationMs: number;
+  provider: ProviderID;
+}
 export type ClassifyOutput =
   | { ok: true; result: ClassifyResult }
-  | { ok: false; error: Failure };
+  | { ok: false; error: ClassifyFailure };
 
 export class ClassificationError extends Error {
   readonly failure: Failure;
@@ -97,7 +114,7 @@ export class ClassificationError extends Error {
     code: ErrorCode,
     message: string,
     retryable = false,
-    details: Pick<Failure, "provider" | "status"> = {}
+    details: Omit<Failure, "code" | "message" | "retryable"> = {}
   ) {
     super(message);
     this.name = "ClassificationError";

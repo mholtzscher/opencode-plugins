@@ -20,7 +20,7 @@ import { createAdapter } from "../providers/adapter.js";
 import { buildToolInputSchema, parseInput } from "../schema.js";
 import { createClassifier } from "../service.js";
 import type { DecisionRequest } from "../types.js";
-import { questions, response } from "./fixtures.js";
+import { normalizedResponse, questions } from "./fixtures.js";
 
 const exec = promisify(execFile);
 const directories: string[] = [];
@@ -272,7 +272,7 @@ test("service expands evidence before the provider and fails atomically on resol
   const adapter: DecisionAdapter = {
     decide: async (request) => {
       requests.push(request);
-      return response();
+      return normalizedResponse();
     },
     provider: "laya",
     supportedTypes: ["noul", "choice", "score"],

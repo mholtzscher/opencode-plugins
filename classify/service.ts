@@ -21,7 +21,9 @@ function resolveRequest(
   if (!Object.hasOwn(classifiers, input.classifier)) {
     throw new ClassificationError(
       "UNKNOWN_CLASSIFIER",
-      "No classifier with that name is configured."
+      "No classifier with that name is configured.",
+      false,
+      { path: "/classifier" }
     );
   }
   const definition = classifiers[input.classifier];
@@ -29,14 +31,18 @@ function resolveRequest(
   if (presetState && Object.hasOwn(input, "state")) {
     throw new ClassificationError(
       "INVALID_INPUT",
-      "This classifier defines its own state; do not supply state."
+      "This classifier defines its own state; do not supply state.",
+      false,
+      { path: "/state" }
     );
   }
   const state = presetState ? definition.state : input.state;
   if (state === undefined) {
     throw new ClassificationError(
       "INVALID_INPUT",
-      "This classifier requires caller-supplied state."
+      "This classifier requires caller-supplied state.",
+      false,
+      { path: "/state" }
     );
   }
   return { questions: definition.questions, state };
@@ -128,6 +134,11 @@ export function createClassifier(
                   message: "Classification failed unexpectedly.",
                   retryable: false,
                 }),
+            attempts:
+              error instanceof ClassificationError
+                ? (error.failure.attempts ?? 0)
+                : 0,
+            durationMs: performance.now() - start,
             provider: adapter.provider,
           },
           ok: false,

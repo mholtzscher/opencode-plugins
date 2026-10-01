@@ -358,7 +358,10 @@ test("entry normalizes transport-safe criteria and preserves structured provider
     for (const output of outputs) {
       expect(JSON.parse(output.content as string)).toHaveProperty(
         "result.answers",
-        native.answers
+        {
+          ...native.answers,
+          impact: { ...native.answers.impact, scale: { max: 2, min: 0 } },
+        }
       );
     }
     for (const request of requests) {

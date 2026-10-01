@@ -13,26 +13,30 @@ import {
 
 export const MAX_BYTES = 1024 * 1024;
 export const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u;
-const invalid: () => never = () => {
-  throw new ClassificationError(
-    "INVALID_INPUT",
-    "Input does not satisfy the classification contract."
-  );
-};
-export function record(value: unknown): Record<string, unknown> {
+function invalid(
+  path = "",
+  message = "Input does not satisfy the classification contract."
+): never {
+  throw new ClassificationError("INVALID_INPUT", message, false, { path });
+}
+export function record(value: unknown, path = ""): Record<string, unknown> {
   if (
     value === null ||
     typeof value !== "object" ||
     Array.isArray(value) ||
     ![Object.prototype, null].includes(Object.getPrototypeOf(value))
   ) {
-    return invalid();
+    return invalid(path, "Expected a JSON object.");
   }
   return value as Record<string, unknown>;
 }
-export function fields(value: Record<string, unknown>, allowed: string[]) {
+export function fields(
+  value: Record<string, unknown>,
+  allowed: string[],
+  path = ""
+) {
   if (Object.keys(value).some((key) => !allowed.includes(key))) {
-    invalid();
+    invalid(path, "Object contains unsupported fields.");
   }
 }
 export function nonblank(value: unknown): value is string {
@@ -41,7 +45,10 @@ export function nonblank(value: unknown): value is string {
 
 // Validate before cloning or serializing, so cycles, accessors and excessive depth
 // cannot reach JSON.stringify. The byte budget also bounds wide traversals.
-export function boundedJson(value: unknown): void {
+export function boundedJson(
+  value: unknown,
+  limits = { maxBytes: MAX_BYTES, maxDepth: 32 }
+): void {
   const ancestors = new Set<object>();
   let budget = 0;
   const visitArray = (item: unknown[], depth: number): void => {
@@ -84,7 +91,7 @@ export function boundedJson(value: unknown): void {
     ancestors.delete(item);
   };
   const visit = (item: unknown, depth: number): void => {
-    if (depth > 32) {
+    if (depth > limits.maxDepth) {
       invalid();
     }
     if (item === null || typeof item === "boolean") {
@@ -98,13 +105,13 @@ export function boundedJson(value: unknown): void {
     } else {
       invalid();
     }
-    if (budget > MAX_BYTES) {
+    if (budget > limits.maxBytes) {
       invalid();
     }
   };
   visit(value, 0);
 }
-function content(value: unknown): Content {
+function content(value: unknown, path = ""): Content {
   if (nonblank(value)) {
     return value;
   }
@@ -118,86 +125,107 @@ function content(value: unknown): Content {
   ) {
     return value as Content;
   }
-  return invalid();
+  return invalid(
+    path,
+    "Expected a nonblank string, nonempty JSON object, or nonempty JSON array."
+  );
 }
-function normalizeQuestion(value: unknown): Question {
-  const q = record(value);
+function normalizeQuestion(value: unknown, path: string): Question {
+  const q = record(value, path);
   if (q.type !== "choice" || !Array.isArray(q.criteria)) {
-    validateQuestion(q);
+    validateQuestion(q, path);
     return q as Question;
   }
   if (q.criteria.length < 2 || q.criteria.length > 255) {
-    invalid();
+    invalid(`${path}/criteria`, "Choice requires 2–255 distinct labels.");
   }
   const labels = new Set<string>();
-  const entries = q.criteria.map((item) => {
-    const entry = record(item);
-    fields(entry, ["label", "description"]);
+  const entries = q.criteria.map((item, index) => {
+    const entryPath = `${path}/criteria/${index}`;
+    const entry = record(item, entryPath);
+    fields(entry, ["label", "description"], entryPath);
     if (
       !nonblank(entry.label) ||
       entry.label.length > 128 ||
       labels.has(entry.label)
     ) {
-      invalid();
+      invalid(
+        `${entryPath}/label`,
+        "Choice labels must be distinct nonblank strings of at most 128 characters."
+      );
     }
     labels.add(entry.label);
     return [
       entry.label,
-      entry.description === null ? null : content(entry.description),
+      entry.description === null
+        ? null
+        : content(entry.description, `${entryPath}/description`),
     ] as const;
   });
   // Object.fromEntries defines own properties, including __proto__, without
   // invoking Object.prototype setters. Never assign these labels with map[key].
   const normalized = { ...q, criteria: Object.fromEntries(entries) };
-  validateQuestion(normalized);
+  validateQuestion(normalized, path);
   return normalized as Question;
 }
-function questionMap(value: unknown): Questions {
-  const map = record(value);
+function questionMap(value: unknown, path = "/questions"): Questions {
+  const map = record(value, path);
   const entries = Object.entries(map);
   if (entries.length < 1 || entries.length > 64) {
-    invalid();
+    invalid(path, "Supply 1–64 independent questions.");
   }
   return Object.fromEntries(
     entries.map(([id, item]) => {
       if (!NAME_PATTERN.test(id)) {
-        invalid();
+        invalid(path, "Question IDs must match ^[A-Za-z][A-Za-z0-9_-]{0,63}$.");
       }
-      return [id, normalizeQuestion(item)];
+      return [id, normalizeQuestion(item, `${path}/${id}`)];
     })
   );
 }
-function validateQuestion(value: unknown): void {
-  const q = record(value);
-  fields(q, ["type", "instructions", "criteria"]);
-  content(q.instructions);
+function validateChoiceCriteria(value: unknown, path: string): void {
+  const criteria = record(value, path);
+  const labels = Object.keys(criteria);
+  if (labels.length < 2 || labels.length > 255) {
+    invalid(path, "Choice requires 2–255 distinct labels.");
+  }
+  for (const label of labels) {
+    if (!nonblank(label) || label.length > 128) {
+      invalid(
+        path,
+        "Choice labels must be nonblank strings of at most 128 characters."
+      );
+    }
+    if (criteria[label] !== null) {
+      content(criteria[label], path);
+    }
+  }
+}
+function validateQuestion(value: unknown, path: string): void {
+  const q = record(value, path);
+  fields(q, ["type", "instructions", "criteria"], path);
+  content(q.instructions, `${path}/instructions`);
+  const criteriaPath = `${path}/criteria`;
   switch (q.type) {
     case "noul": {
       if (!Object.hasOwn(q, "criteria")) {
         return;
       }
-      const criteria = record(q.criteria);
-      fields(criteria, ["true", "false"]);
+      const criteria = record(q.criteria, criteriaPath);
+      fields(criteria, ["true", "false"], criteriaPath);
       if (Object.keys(criteria).length === 0) {
-        invalid();
+        invalid(
+          criteriaPath,
+          'Noul criteria must define "true", "false", or both.'
+        );
       }
-      Object.values(criteria).forEach(content);
+      for (const [key, description] of Object.entries(criteria)) {
+        content(description, `${criteriaPath}/${key}`);
+      }
       return;
     }
     case "choice": {
-      const criteria = record(q.criteria);
-      const labels = Object.keys(criteria);
-      if (labels.length < 2 || labels.length > 255) {
-        invalid();
-      }
-      for (const label of labels) {
-        if (!nonblank(label) || label.length > 128) {
-          invalid();
-        }
-        if (criteria[label] !== null) {
-          content(criteria[label]);
-        }
-      }
+      validateChoiceCriteria(q.criteria, criteriaPath);
       return;
     }
     case "score": {
@@ -206,20 +234,25 @@ function validateQuestion(value: unknown): void {
         q.criteria.length < 2 ||
         q.criteria.length > 10
       ) {
-        throw new ClassificationError(
-          "INVALID_INPUT",
-          "Score requires 2 to 10 levels."
-        );
+        invalid(criteriaPath, "Score requires 2 to 10 ordered levels.");
       }
-      q.criteria.forEach(content);
+      q.criteria.forEach((level, index) => {
+        content(level, `${criteriaPath}/${index}`);
+      });
       return;
     }
     default:
-      invalid();
+      invalid(
+        `${path}/type`,
+        'Question type must be "noul", "choice", or "score".'
+      );
   }
 }
-export function parseQuestions(value: unknown): Questions {
-  boundedJson(value);
+export function parseQuestions(
+  value: unknown,
+  limits?: { maxBytes: number; maxDepth: number }
+): Questions {
+  boundedJson(value, limits);
   return questionMap(value);
 }
 export function isEvidence(value: unknown): value is EvidenceState {
@@ -231,49 +264,56 @@ export function isEvidence(value: unknown): value is EvidenceState {
     (value as Record<string, unknown>).type === "evidence"
   );
 }
-function paths(value: unknown): void {
+function paths(value: unknown, path: string): void {
   if (
     !Array.isArray(value) ||
     value.length === 0 ||
     value.length > 64 ||
-    value.some((path) => !nonblank(path) || path.includes("\0"))
+    value.some((item) => !nonblank(item) || item.includes("\0"))
   ) {
-    invalid();
+    invalid(
+      path,
+      "Expected 1–64 nonblank literal paths without null characters."
+    );
   }
 }
-export function validateState(value: unknown): void {
+export function validateState(value: unknown, path = "/state"): void {
   if (!isEvidence(value)) {
-    content(value);
+    content(value, path);
     return;
   }
-  const state = record(value);
-  fields(state, ["type", "text", "files", "diffs"]);
+  const state = record(value, path);
+  fields(state, ["type", "text", "files", "diffs"], path);
   if (!["text", "files", "diffs"].some((key) => Object.hasOwn(state, key))) {
-    invalid();
+    invalid(path, "Evidence requires text, files, or diffs.");
   }
   if (Object.hasOwn(state, "text")) {
-    content(state.text);
+    content(state.text, `${path}/text`);
   }
   if (Object.hasOwn(state, "files")) {
-    paths(state.files);
+    paths(state.files, `${path}/files`);
   }
   if (Object.hasOwn(state, "diffs")) {
     const { diffs } = state;
     if (!Array.isArray(diffs) || diffs.length === 0 || diffs.length > 16) {
-      invalid();
+      invalid(`${path}/diffs`, "Expected 1–16 Git diffs.");
     }
-    for (const item of diffs as unknown[]) {
-      const diff = record(item);
-      fields(diff, ["base", "paths"]);
+    for (const [index, item] of diffs.entries()) {
+      const diffPath = `${path}/diffs/${index}`;
+      const diff = record(item, diffPath);
+      fields(diff, ["base", "paths"], diffPath);
       if (
         !nonblank(diff.base) ||
         diff.base.startsWith("-") ||
         diff.base.includes("\0")
       ) {
-        invalid();
+        invalid(
+          `${diffPath}/base`,
+          "Expected a nonblank Git revision not starting with a hyphen or containing null characters."
+        );
       }
       if (Object.hasOwn(diff, "paths")) {
-        paths(diff.paths);
+        paths(diff.paths, `${diffPath}/paths`);
       }
     }
   }
@@ -285,7 +325,7 @@ export function parseInput(value: unknown): ClassifyInput {
   if (
     Object.hasOwn(input, "questions") === Object.hasOwn(input, "classifier")
   ) {
-    invalid();
+    invalid("", "Supply exactly one of questions or classifier.");
   }
   if (Object.hasOwn(input, "questions")) {
     validateState(input.state);
@@ -295,7 +335,10 @@ export function parseInput(value: unknown): ClassifyInput {
     };
   }
   if (!(nonblank(input.classifier) && NAME_PATTERN.test(input.classifier))) {
-    invalid();
+    invalid(
+      "/classifier",
+      "Classifier names must match ^[A-Za-z][A-Za-z0-9_-]{0,63}$."
+    );
   }
   if (Object.hasOwn(input, "state")) {
     validateState(input.state);
@@ -365,6 +408,7 @@ function validateAnswer(value: unknown, question: Question): Answer {
       Object.entries(legend).map(([index, level]) => [index, content(level)])
     ),
     probabilities: distribution(answer.probabilities, keys),
+    scale: { max: keys.length - 1, min: 0 },
     score: numberIn(answer.score, keys.length - 1),
     type: "score",
   };
@@ -372,7 +416,8 @@ function validateAnswer(value: unknown, question: Question): Answer {
 export function validateResponse(
   value: unknown,
   request: DecisionRequest,
-  provider: "typesafe" | "laya"
+  provider: "typesafe" | "laya",
+  attempts = 1
 ): DecisionResponse {
   try {
     boundedJson(value);
@@ -404,6 +449,7 @@ export function validateResponse(
     }
     return {
       answers,
+      attempts,
       model: response.model as string,
       usage: {
         input_tokens: usage.input_tokens as number,

@@ -12,18 +12,20 @@ export interface TransportOptions {
 }
 const REQUEST_ID = /^[A-Za-z0-9._:-]{1,256}$/u;
 const RETRY_SECONDS = /^\d+(?:\.\d+)?$/u;
-function retryDelay(response: Response, attempt: number): number {
+const HTTP_DATE =
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/u;
+function retryAfterMs(response: Response): number | undefined {
   const retryAfter = response.headers.get("retry-after");
-  let requested = 0;
-  if (retryAfter !== null) {
-    requested = RETRY_SECONDS.test(retryAfter)
-      ? Number(retryAfter) * 1000
-      : Date.parse(retryAfter) - Date.now();
+  if (
+    retryAfter === null ||
+    !(RETRY_SECONDS.test(retryAfter) || HTTP_DATE.test(retryAfter))
+  ) {
+    return undefined;
   }
-  return Math.max(
-    500 * 2 ** attempt,
-    Number.isFinite(requested) ? requested : 0
-  );
+  const requested = RETRY_SECONDS.test(retryAfter)
+    ? Number(retryAfter) * 1000
+    : Date.parse(retryAfter) - Date.now();
+  return Number.isFinite(requested) ? Math.max(0, requested) : undefined;
 }
 function requestID(response: Response): { requestID?: string } {
   const id = response.headers.get("x-typesafe-request-id");
@@ -141,12 +143,14 @@ export async function systemOneFetch(
   options: TransportOptions,
   sessionSignal: AbortSignal,
   fetcher: Fetcher = fetch
-): Promise<{ value: unknown; requestID?: string }> {
+): Promise<{ value: unknown; attempts: number; requestID?: string }> {
   sessionSignal.throwIfAborted();
   if (Buffer.byteLength(options.body) > MAX_BYTES) {
     throw new ClassificationError(
       "INVALID_INPUT",
-      "Serialized request exceeds 1 MiB."
+      "Serialized request exceeds 1 MiB.",
+      false,
+      { attempts: 0 }
     );
   }
   const controller = new AbortController();
@@ -155,6 +159,9 @@ export async function systemOneFetch(
   const deadline = performance.now() + options.timeoutMs;
   const timer = setTimeout(() => controller.abort(), options.timeoutMs);
   const { signal } = controller;
+  let attempts = 0;
+  let responseID: { requestID?: string } = {};
+  let retryAfter: number | undefined;
   try {
     for (let attempt = 0; ; attempt += 1) {
       signal.throwIfAborted();
@@ -164,6 +171,9 @@ export async function systemOneFetch(
       if (options.key !== undefined) {
         headers.Authorization = `Bearer ${options.key}`;
       }
+      attempts += 1;
+      responseID = {};
+      retryAfter = undefined;
       const response = await abortable(
         fetcher(options.endpoint, {
           body: options.body,
@@ -174,13 +184,16 @@ export async function systemOneFetch(
         }),
         signal
       );
+      responseID = requestID(response);
+      retryAfter = retryAfterMs(response);
       signal.throwIfAborted();
       if (response.ok) {
         const value = await readJson(response, signal);
         signal.throwIfAborted();
         return {
+          attempts,
           value,
-          ...requestID(response),
+          ...responseID,
         };
       }
       response.body?.cancel().catch(() => undefined);
@@ -191,7 +204,7 @@ export async function systemOneFetch(
       ) {
         throw error;
       }
-      const delay = retryDelay(response, attempt);
+      const delay = Math.max(500 * 2 ** attempt, retryAfter ?? 0);
       if (delay >= deadline - performance.now()) {
         throw error;
       }
@@ -199,20 +212,28 @@ export async function systemOneFetch(
     }
   } catch (error) {
     sessionSignal.throwIfAborted();
+    const details = {
+      attempts,
+      ...responseID,
+      ...(retryAfter === undefined ? {} : { retryAfterMs: retryAfter }),
+    };
     if (signal.aborted) {
       throw new ClassificationError(
         "TIMEOUT",
         "Classification deadline expired.",
-        true
+        true,
+        details
       );
     }
     if (error instanceof ClassificationError) {
+      Object.assign(error.failure, details);
       throw error;
     }
     throw new ClassificationError(
       "NETWORK_ERROR",
       "Could not connect to the configured provider.",
-      true
+      true,
+      details
     );
   } finally {
     clearTimeout(timer);

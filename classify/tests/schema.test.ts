@@ -6,7 +6,7 @@ import {
   parseQuestions,
   validateResponse,
 } from "../schema.js";
-import { input, questions, response } from "./fixtures.js";
+import { input, normalizedResponse, questions, response } from "./fixtures.js";
 
 test("JSON byte boundary measures the serialized value exactly", () => {
   const value = { state: "a".repeat(1024 * 1024 - 12) };
@@ -20,7 +20,9 @@ test("both modes and mixed native questions pass unchanged", () => {
   expect(
     parseInput({ classifier: "incident-triage", state: [null, false, 2] })
   ).toEqual({ classifier: "incident-triage", state: [null, false, 2] });
-  expect(validateResponse(response(), input, "typesafe")).toEqual(response());
+  expect(validateResponse(response(), input, "typesafe")).toEqual(
+    normalizedResponse()
+  );
   expect(buildToolInputSchema({})).not.toHaveProperty("oneOf");
   expect(
     buildToolInputSchema({ named: { description: "Named", questions } })
@@ -289,7 +291,7 @@ test("malformed native responses fail atomically and extras are stripped", () =>
   });
   expect(
     validateResponse({ ...withExtras, private: "secret" }, input, "typesafe")
-  ).toEqual(response());
+  ).toEqual(normalizedResponse());
 });
 test("255-label rounded distribution passes tolerance without normalization", () => {
   const criteria = Object.fromEntries(
@@ -346,7 +348,13 @@ test("score legends preserve native string, object, and array descriptions", () 
     usage: { input_tokens: 1, output_tokens: 1 },
   };
   for (const provider of ["typesafe", "laya"] as const) {
-    expect(validateResponse(native, request, provider)).toEqual(native);
+    expect(validateResponse(native, request, provider)).toEqual({
+      ...native,
+      answers: {
+        impact: { ...native.answers.impact, scale: { max: 2, min: 0 } },
+      },
+      attempts: 1,
+    });
     for (const level of [null, true, 1, " ", {}, []]) {
       expect(() =>
         validateResponse(

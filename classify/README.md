@@ -211,9 +211,9 @@ Put content to evaluate in `state` and the judgment in each question's `instruct
 | --- | --- | --- |
 | `noul` | Optional object containing `true`, `false`, or both, with nonempty descriptions | `noul` is the probability of yes in `[0, 1]`, not a boolean. No invented confidence. |
 | `choice` | Map of 2–255 distinct nonblank labels, at most 128 characters each, to descriptions or null; alternatively a list of `{ label, description }` entries | One allowed `choice`, the exact label distribution, and native `confidence`. |
-| `score` | Ordered array of 2–10 nonempty level descriptions | Fractional `score` in `[0, levels.length - 1]`, the upstream legend, distribution, and native `confidence`. |
+| `score` | Ordered array of 2–10 nonempty level descriptions | Fractional `score` in `[0, levels.length - 1]`, explicit `scale: { min: 0, max: levels.length - 1 }`, the upstream legend, distribution, and native `confidence`. |
 
-Descriptions accept the same content shapes as instructions. These are plugin validation limits, not a guarantee that a backend accepts the request. Laya imposes tighter choice and token budgets. Confidence is not a probability of correctness. Distributions must match all requested labels or indices and have absolute sum error below `0.02`; the plugin never renormalizes, rounds, thresholds, or rescales values. Missing required native measurements, mismatched IDs/types, invalid usage or legends fail the entire result. No partial answers escape. A Laya response reporting `truncated: true` fails with `INPUT_TRUNCATED`; absence of that marker does not prove the input was read in full.
+Descriptions accept the same content shapes as instructions. These are plugin validation limits, not a guarantee that a backend accepts the request. Laya imposes tighter choice and token budgets. Confidence is a provider-native uncertainty metric, not a probability of correctness; its meaning is provider-specific and values are not necessarily comparable across providers. Distributions must match all requested labels or indices and have absolute sum error below `0.02`; the plugin never renormalizes, rounds, thresholds, or rescales values. Missing required native measurements, mismatched IDs/types, invalid usage or legends fail the entire result. No partial answers escape. A Laya response reporting `truncated: true` fails with `INPUT_TRUNCATED`; absence of that marker does not prove the input was read in full.
 
 Score legends preserve native nonblank strings, nonempty objects, and nonempty arrays rather than converting structured descriptions to strings. The legend must contain exactly the requested zero-based level indices; null, primitive booleans/numbers, and empty descriptions are rejected.
 
@@ -390,15 +390,16 @@ Check `ok` before reading answers. This success is illustrative, not a measured 
     "answers": {
       "urgent": { "type": "noul", "noul": 0.98 },
       "category": { "type": "choice", "choice": "incident", "probabilities": { "incident": 0.9, "maintenance": 0.02, "other": 0.08 }, "confidence": 0.85 },
-      "severity": { "type": "score", "score": 1.6, "legend": { "0": "No user impact", "1": "Some users affected", "2": "Production unavailable" }, "probabilities": { "0": 0.1, "1": 0.2, "2": 0.7 }, "confidence": 0.4 }
+      "severity": { "type": "score", "score": 1.6, "scale": { "min": 0, "max": 2 }, "legend": { "0": "No user impact", "1": "Some users affected", "2": "Production unavailable" }, "probabilities": { "0": 0.1, "1": 0.2, "2": 0.7 }, "confidence": 0.4 }
     },
     "usage": { "input_tokens": 312, "output_tokens": 48 },
+    "attempts": 1,
     "durationMs": 145
   }
 }
 ```
 
-Named success adds `result.classifier`. `model` preserves the provider's reported model, not the requested alias. `requestID` appears only for a validated `x-typesafe-request-id` header. `durationMs` uses a monotonic clock across the whole invocation, including retries.
+Named success adds `result.classifier`. `model` preserves the provider's reported model, not the requested alias. All answer measurements shown above and both usage counts are required. `scale` is derived from the requested rubric; native score, legend, probabilities, and confidence are unchanged. `requestID` appears only for a validated `x-typesafe-request-id` header from the final attempt, including on HTTP, response-body, or native-response validation failures. `attempts` counts HTTP dispatches (initial request plus retries); zero on failure means no dispatch. `durationMs` uses a monotonic clock across the whole invocation, including evidence resolution and retries, and is returned on both success and failure. Usage reports only the successful attempt, not necessarily total billed tokens.
 
 ```json
 {
@@ -407,12 +408,33 @@ Named success adds `result.classifier`. `model` preserves the provider's reporte
     "code": "PROVIDER_UNAVAILABLE",
     "message": "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
     "retryable": false,
-    "provider": "openai-decisions"
+    "provider": "openai-decisions",
+    "attempts": 0,
+    "durationMs": 0.1
   }
 }
 ```
 
 Session cancellation is rethrown to OpenCode, not returned as a failure envelope.
+
+The existing envelope and native field names (`noul`, `confidence`, etc.) remain unchanged. New diagnostic fields and score bounds are additive. The published TypeScript types now reflect required native measurements rather than advertising them as optional.
+
+### Output schema and parser
+
+[`output.ts`](./output.ts) exports `classifyOutputSchema` (JSON Schema 2020-12) and `parseClassifyOutput`. Package consumers can import them from `opencode-classify-plugin/output` and types from `opencode-classify-plugin/types`:
+
+```ts
+import { parseClassifyOutput } from "opencode-classify-plugin/output";
+
+const output = parseClassifyOutput(raw); // Code Mode JSON string or decoded object.
+if (output.ok) {
+  console.log(output.result.answers);
+} else {
+  console.log(output.error.code, output.error.path, output.error.retryAfterMs);
+}
+```
+
+The parser checks the envelope, required measurements, distributions, score bounds, and diagnostics without rounding or renormalizing. It throws a sanitized `TypeError` for malformed output, including `null`. The JSON Schema expresses structural constraints; the parser additionally enforces distribution sums and cross-field consistency. Neither verifies agreement with an original request it has not received. OpenCode still receives JSON text; this does not change Code Mode's `string | null` return signature. Existing `JSON.parse` callers remain supported.
 
 ## Transport and errors
 
@@ -431,7 +453,7 @@ Only explicit HTTP 429 and 529 responses automatically retry. Delays are 500 ms,
 | `INVALID_RESPONSE`, `INPUT_TRUNCATED` | Invalid/oversized JSON, native contract violation, or explicit Laya truncation marker. No retry. |
 | `INTERNAL_ERROR` | Unexpected local failure, sanitized. |
 
-Errors use locally constructed messages and may include HTTP `status`; raw upstream bodies and arbitrary thrown messages are never included. `retryable` means a caller could retry later, not that doing so is free or idempotent. A timed-out request may already have incurred cost. Usage only preserves what the successful upstream response reports; it may omit failed-attempt costs.
+Errors use locally constructed messages and may include HTTP `status`; raw upstream bodies and arbitrary thrown messages are never included. Input validation includes a JSON Pointer `path` and the expected constraint where available (for example, `/questions/severity/criteria` for a malformed score rubric); messages do not echo submitted values, and arbitrary choice labels are not included in paths. An empty pointer refers to the input root. Failures also include `attempts`, `durationMs`, and a safe final-attempt `requestID` when available. `retryAfterMs` preserves a valid provider `Retry-After` wait in milliseconds (seconds or a standard HTTP date, past dates clamped to zero), not the plugin's exponential backoff. `retryable` means a caller could retry later, not that doing so is free or idempotent. A timed-out request may already have incurred cost. Usage only preserves what the successful upstream response reports; it may omit failed-attempt costs.
 
 ## Privacy and actions
 

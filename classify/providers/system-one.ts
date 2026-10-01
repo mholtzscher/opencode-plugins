@@ -39,10 +39,26 @@ export function createSystemOneAdapter(
         },
         signal
       );
-      return {
-        ...validateResponse(response.value, request, backend.provider),
+      const metadata = {
+        attempts: response.attempts,
         ...(response.requestID ? { requestID: response.requestID } : {}),
       };
+      try {
+        return {
+          ...validateResponse(
+            response.value,
+            request,
+            backend.provider,
+            response.attempts
+          ),
+          ...metadata,
+        };
+      } catch (error) {
+        if (error instanceof ClassificationError) {
+          Object.assign(error.failure, metadata);
+        }
+        throw error;
+      }
     },
     provider: backend.provider,
     supportedTypes: ["noul", "choice", "score"],

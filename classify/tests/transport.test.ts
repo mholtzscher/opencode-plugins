@@ -4,10 +4,11 @@
 import { afterEach, expect, test } from "bun:test";
 import { serve } from "bun";
 import { parseOptions } from "../config.js";
+import { parseClassifyOutput } from "../output.js";
 import { createAdapter } from "../providers/adapter.js";
 import { createClassifier } from "../service.js";
 import { type Fetcher, systemOneFetch } from "../transport.js";
-import { input, response } from "./fixtures.js";
+import { input, normalizedResponse, response } from "./fixtures.js";
 
 const servers: ReturnType<typeof serve>[] = [];
 afterEach(() => {
@@ -56,7 +57,7 @@ test("Laya sends the complete System One body, auth and fixed path", async () =>
         },
       });
       const result = await createAdapter(config).decide(input, signal());
-      expect(result).toEqual({ ...response(), requestID: "req-123" });
+      expect(result).toEqual({ ...normalizedResponse(), requestID: "req-123" });
     }
     expect(calls).toEqual(
       [undefined, "Bearer sentinel-key"].map((auth) => ({
@@ -373,4 +374,109 @@ test("request IDs must be bounded safe header values and bad UTF-8 is invalid JS
   await expect(
     systemOneFetch(options("https://fixture"), signal(), badUtf8)
   ).rejects.toHaveProperty("failure.code", "INVALID_RESPONSE");
+});
+
+test("success counts physical dispatches including retries", async () => {
+  let calls = 0;
+  const fetcher: Fetcher = async () => {
+    calls += 1;
+    return calls === 1
+      ? new Response(null, {
+          headers: { "x-typesafe-request-id": "first" },
+          status: 429,
+        })
+      : Response.json(response(), {
+          headers: { "x-typesafe-request-id": "last" },
+        });
+  };
+  const result = await systemOneFetch(
+    options("https://fixture", { maxRetries: 1, timeoutMs: 2000 }),
+    signal(),
+    fetcher
+  );
+  expect(result.attempts).toBe(2);
+  expect(result.requestID).toBe("last");
+});
+
+test("failures preserve attempts, request IDs, retry hints and duration without leaking bodies", async () => {
+  for (const kind of ["http", "json", "native", "truncated"] as const) {
+    const origin = server(() => {
+      const headers = {
+        "retry-after": "10",
+        "x-typesafe-request-id": "req-failure",
+      };
+      if (kind === "http") {
+        return new Response("SECRET", { headers, status: 429 });
+      }
+      if (kind === "json") {
+        return new Response("SECRET", { headers });
+      }
+      return Response.json(
+        kind === "native"
+          ? { model: "SECRET" }
+          : { ...response(), truncated: true },
+        { headers }
+      );
+    });
+    const config = parseOptions({
+      backend: { baseURL: origin, provider: "laya" },
+      maxRetries: 0,
+    });
+    const output = await createClassifier(
+      config,
+      createAdapter(config)
+    ).classify(input, signal());
+    expect(output).toHaveProperty("ok", false);
+    expect(output).toHaveProperty("error.requestID", "req-failure");
+    expect(output).toHaveProperty("error.attempts", 1);
+    expect(parseClassifyOutput(output)).toBe(output);
+    expect(JSON.stringify(output)).not.toContain("SECRET");
+    if (!output.ok) {
+      expect(output.error.durationMs).toBeGreaterThanOrEqual(0);
+    }
+    if (kind === "http") {
+      expect(output).toHaveProperty("error.retryAfterMs", 10_000);
+      expect(output).toHaveProperty("error.status", 429);
+    }
+  }
+});
+
+test("retry hints are validated and IDs from earlier attempts do not leak into network failures", async () => {
+  for (const retryAfter of ["not a date", "-5", "9".repeat(400)]) {
+    const fetcher: Fetcher = async () =>
+      new Response(null, {
+        headers: { "retry-after": retryAfter },
+        status: 429,
+      });
+    try {
+      await systemOneFetch(options("https://fixture"), signal(), fetcher);
+      throw new Error("Expected failure");
+    } catch (error) {
+      expect(error).toHaveProperty("failure.attempts", 1);
+      expect(error).not.toHaveProperty("failure.retryAfterMs");
+    }
+  }
+  let calls = 0;
+  const fetcher: Fetcher = async () => {
+    calls += 1;
+    if (calls === 1) {
+      return new Response(null, {
+        headers: { "x-typesafe-request-id": "old" },
+        status: 429,
+      });
+    }
+    throw new Error("SECRET");
+  };
+  try {
+    await systemOneFetch(
+      options("https://fixture", { maxRetries: 1, timeoutMs: 2000 }),
+      signal(),
+      fetcher
+    );
+    throw new Error("Expected failure");
+  } catch (error) {
+    expect(error).toHaveProperty("failure.code", "NETWORK_ERROR");
+    expect(error).toHaveProperty("failure.attempts", 2);
+    expect(error).not.toHaveProperty("failure.requestID");
+  }
 });

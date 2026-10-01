@@ -38,6 +38,20 @@ export function response() {
     usage: { input_tokens: 312, output_tokens: 48 },
   };
 }
+export function normalizedResponse() {
+  const native = response();
+  return {
+    ...native,
+    answers: {
+      ...native.answers,
+      severity: {
+        ...native.answers.severity,
+        scale: { max: 2, min: 0 as const },
+      },
+    },
+    attempts: 1,
+  };
+}
 export const examples = [
   { backend: { provider: "typesafe" } },
   {

@@ -9,7 +9,13 @@ import {
   type ClassifyOutput,
   type DecisionRequest,
 } from "../types.js";
-import { examples, input, questions, response } from "./fixtures.js";
+import {
+  examples,
+  input,
+  normalizedResponse,
+  questions,
+  response,
+} from "./fixtures.js";
 
 test("named and ad hoc requests retain maps, reported model and native measurements", async () => {
   const options = parseOptions({
@@ -22,7 +28,7 @@ test("named and ad hoc requests retain maps, reported model and native measureme
     async decide(request, forwarded) {
       expect(forwarded).toBe(signal);
       calls.push(request);
-      return response();
+      return normalizedResponse();
     },
     provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
@@ -60,7 +66,12 @@ test("configured example names resolve without external HTTP", async () => {
     const adapter: DecisionAdapter = {
       async decide(request) {
         calls.push(request);
-        return { answers: {}, model: "fixture" };
+        return {
+          answers: {},
+          attempts: 1,
+          model: "fixture",
+          usage: { input_tokens: 0, output_tokens: 0 },
+        };
       },
       provider: options.backend.provider,
       supportedTypes: ["noul", "choice", "score"],
@@ -95,7 +106,7 @@ test("presets use stored state and questions and reject overrides before dispatc
   const adapter: DecisionAdapter = {
     async decide(request) {
       calls.push(request);
-      return response();
+      return normalizedResponse();
     },
     provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
@@ -165,7 +176,7 @@ test("capabilities and missing keys fail before dispatch", async () => {
   const adapter: DecisionAdapter = {
     async decide() {
       calls += 1;
-      return response();
+      return normalizedResponse();
     },
     provider: "typesafe",
     supportedTypes: ["noul"],
@@ -196,9 +207,11 @@ test("OpenAI gate wins over capability checks without credentials or network", a
       input,
       new AbortController().signal
     )
-  ).toEqual({
+  ).toMatchObject({
     error: {
+      attempts: 0,
       code: "PROVIDER_UNAVAILABLE",
+      durationMs: expect.any(Number),
       message:
         "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
       provider: "openai-decisions",
@@ -271,7 +284,7 @@ test("session interruption remains a rejection, even if adapter completes", asyn
     async decide() {
       calls += 1;
       controller.abort();
-      return response();
+      return normalizedResponse();
     },
     provider: "typesafe",
     supportedTypes: ["noul", "choice", "score"],
