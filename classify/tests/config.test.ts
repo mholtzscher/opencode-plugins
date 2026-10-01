@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { file } from "bun";
 import { parseOptions } from "../config.js";
+import type { Content, EvidenceState } from "../types.js";
 import { examples } from "./fixtures.js";
 
 const CONFIG_BLOCK = /```jsonc\n([\s\S]*?)\n```/gu;
@@ -77,6 +78,64 @@ test("all five documented scenarios validate", () => {
     expect(String(parseOptions(example).backend.provider)).toBe(
       example.backend.provider
     );
+  }
+});
+test("classifier state is validated, cloned and deeply frozen without evidence reads", () => {
+  const states: Array<Content | EvidenceState> = [
+    "Fixed input",
+    { message: "Report" },
+    [null, false, 2],
+    { files: ["missing.ts"], type: "evidence" },
+    { diffs: [{ base: "HEAD" }], text: "Review", type: "evidence" },
+  ];
+  for (const state of states) {
+    const options = parseOptions({
+      backend: { provider: "laya" },
+      classifiers: {
+        review: {
+          description: "Review",
+          questions: { active: { instructions: "Active?", type: "noul" } },
+          state,
+        },
+      },
+    });
+    const configured = options.classifiers?.review.state;
+    expect(configured).toEqual(state);
+    if (typeof state === "object") {
+      expect(configured).not.toBe(state);
+      expect(Object.isFrozen(configured)).toBe(true);
+      for (const child of Object.values(configured ?? {})) {
+        if (child !== null && typeof child === "object") {
+          expect(Object.isFrozen(child)).toBe(true);
+        }
+      }
+    }
+  }
+  for (const state of [
+    undefined,
+    null,
+    true,
+    2,
+    " ",
+    {},
+    [],
+    { type: "evidence" },
+    { files: [], type: "evidence" },
+    { diffs: [{ base: "--help" }], type: "evidence" },
+    { extra: true, text: "Private", type: "evidence" },
+  ]) {
+    expect(() =>
+      parseOptions({
+        backend: { provider: "laya" },
+        classifiers: {
+          review: {
+            description: "Review",
+            questions: { active: { instructions: "Active?", type: "noul" } },
+            state,
+          },
+        },
+      })
+    ).toThrow("Invalid classify options");
   }
 });
 test("configuration rejects unknown fields and invalid limits without echoing values", () => {

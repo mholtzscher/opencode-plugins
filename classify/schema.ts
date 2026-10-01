@@ -241,7 +241,7 @@ function paths(value: unknown): void {
     invalid();
   }
 }
-function validateState(value: unknown): void {
+export function validateState(value: unknown): void {
   if (!isEvidence(value)) {
     content(value);
     return;
@@ -282,20 +282,23 @@ export function parseInput(value: unknown): ClassifyInput {
   boundedJson(value);
   const input = record(value);
   fields(input, ["state", "questions", "classifier"]);
-  validateState(input.state);
   if (
     Object.hasOwn(input, "questions") === Object.hasOwn(input, "classifier")
   ) {
     invalid();
   }
   if (Object.hasOwn(input, "questions")) {
+    validateState(input.state);
     return {
       questions: questionMap(input.questions),
-      state: input.state as ClassifyInput["state"],
+      state: input.state as Content | EvidenceState,
     };
   }
   if (!(nonblank(input.classifier) && NAME_PATTERN.test(input.classifier))) {
     invalid();
+  }
+  if (Object.hasOwn(input, "state")) {
+    validateState(input.state);
   }
   return input as ClassifyInput;
 }
@@ -596,25 +599,52 @@ export function buildToolInputSchema(
     type: "object" as const,
   };
   const names = Object.keys(classifiers);
+  const callerStateNames = names.filter(
+    (name) => !Object.hasOwn(classifiers[name], "state")
+  );
+  const presetStateNames = names.filter((name) =>
+    Object.hasOwn(classifiers[name], "state")
+  );
   return names.length === 0
     ? adHoc
     : {
         oneOf: [
           adHoc,
-          {
-            additionalProperties: false,
-            properties: {
-              classifier: {
-                description:
-                  "Configured classifier name. Uses its stored questions unchanged; do not also supply questions.",
-                enum: names,
-                type: "string",
-              },
-              state,
-            },
-            required: ["state", "classifier"],
-            type: "object",
-          },
+          ...(callerStateNames.length === 0
+            ? []
+            : [
+                {
+                  additionalProperties: false,
+                  properties: {
+                    classifier: {
+                      description:
+                        "Configured classifier name. Uses its stored questions unchanged; do not also supply questions.",
+                      enum: callerStateNames,
+                      type: "string",
+                    },
+                    state,
+                  },
+                  required: ["state", "classifier"],
+                  type: "object",
+                },
+              ]),
+          ...(presetStateNames.length === 0
+            ? []
+            : [
+                {
+                  additionalProperties: false,
+                  properties: {
+                    classifier: {
+                      description:
+                        "Configured classifier name. Uses its stored state and questions unchanged; do not supply state or questions. Evidence is resolved freshly in the session directory with native permissions.",
+                      enum: presetStateNames,
+                      type: "string",
+                    },
+                  },
+                  required: ["classifier"],
+                  type: "object",
+                },
+              ]),
         ],
         type: "object" as const,
       };

@@ -10,12 +10,12 @@ import {
   type Questions,
 } from "./types.js";
 
-function resolveQuestions(
+function resolveRequest(
   input: ClassifyInput,
   options: ClassifyOptions
-): Questions {
+): { questions: Questions; state: Content | EvidenceState } {
   if (input.questions !== undefined) {
-    return input.questions;
+    return { questions: input.questions, state: input.state };
   }
   const classifiers = options.classifiers ?? {};
   if (!Object.hasOwn(classifiers, input.classifier)) {
@@ -24,14 +24,29 @@ function resolveQuestions(
       "No classifier with that name is configured."
     );
   }
-  return classifiers[input.classifier].questions;
+  const definition = classifiers[input.classifier];
+  const presetState = Object.hasOwn(definition, "state");
+  if (presetState && Object.hasOwn(input, "state")) {
+    throw new ClassificationError(
+      "INVALID_INPUT",
+      "This classifier defines its own state; do not supply state."
+    );
+  }
+  const state = presetState ? definition.state : input.state;
+  if (state === undefined) {
+    throw new ClassificationError(
+      "INVALID_INPUT",
+      "This classifier requires caller-supplied state."
+    );
+  }
+  return { questions: definition.questions, state };
 }
 type ResolveEvidence = (
   state: EvidenceState,
   signal: AbortSignal
 ) => Promise<Content>;
 async function resolveState(
-  state: ClassifyInput["state"],
+  state: Content | EvidenceState,
   provider: DecisionAdapter["provider"],
   signal: AbortSignal,
   resolver?: ResolveEvidence
@@ -68,7 +83,8 @@ export function createClassifier(
       signal.throwIfAborted();
       try {
         const input = parseInput(value);
-        const questions = resolveQuestions(input, options);
+        const request = resolveRequest(input, options);
+        const { questions } = request;
         if (
           adapter.provider !== "openai-decisions" &&
           Object.values(questions).some(
@@ -81,7 +97,7 @@ export function createClassifier(
           );
         }
         const state = await resolveState(
-          input.state,
+          request.state,
           adapter.provider,
           signal,
           resolveEvidence

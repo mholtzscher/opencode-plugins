@@ -6,8 +6,14 @@ import {
   nonblank,
   parseQuestions,
   record,
+  validateState,
 } from "./schema.js";
-import { ClassificationError, type Questions } from "./types.js";
+import {
+  ClassificationError,
+  type Content,
+  type EvidenceState,
+  type Questions,
+} from "./types.js";
 
 export type BackendOptions =
   | {
@@ -32,6 +38,7 @@ export type BackendOptions =
 export interface ClassifierDefinition {
   description: string;
   questions: Questions;
+  state?: Content | EvidenceState;
 }
 export interface ClassifyOptions {
   backend: BackendOptions;
@@ -171,18 +178,24 @@ function parseClassifiers(
         configError();
       }
       const definition = record(item);
-      fields(definition, ["description", "questions"]);
+      fields(definition, ["description", "questions", "state"]);
       if (
         !nonblank(definition.description) ||
         definition.description.length > 512
       ) {
         configError();
       }
+      if (Object.hasOwn(definition, "state")) {
+        validateState(definition.state);
+      }
       return [
         name,
         {
           description: definition.description as string,
           questions: parseQuestions(definition.questions),
+          ...(Object.hasOwn(definition, "state")
+            ? { state: definition.state as Content | EvidenceState }
+            : {}),
         },
       ];
     })

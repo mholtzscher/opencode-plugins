@@ -175,6 +175,96 @@ test("setup has no fetch side effects and invalid options stop registration", as
     globalThis.fetch = original;
   }
 });
+test("preset evidence is read freshly in the session location with native permissions", async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
+  const directory = await mkdtemp("/tmp/opencode/classify-plugin-preset-");
+  const requests: unknown[] = [];
+  let reads = 0;
+  let denied = false;
+  const fixture = serve({
+    fetch: async (request) => {
+      requests.push(await request.json());
+      return Response.json(response());
+    },
+    hostname: "127.0.0.1",
+    port: 0,
+  });
+  try {
+    const [tool] = await register(
+      {
+        backend: { baseURL: fixture.url.origin, provider: "laya" },
+        classifiers: {
+          review: {
+            description: "Review current file",
+            questions,
+            state: { files: ["a.ts"], type: "evidence" },
+          },
+        },
+      },
+      {
+        directory,
+        tools: [
+          {
+            description: "Native read",
+            execute: async (args) => {
+              reads += 1;
+              expect(args).toEqual({ limit: 1, path: join(directory, "a.ts") });
+              if (denied) {
+                throw new Error("Private permission detail");
+              }
+              return { content: "Ignored display preview" };
+            },
+            input: { type: "object" },
+            name: "read",
+          },
+        ],
+      }
+    );
+    expect(reads).toBe(0);
+    expect(requests).toHaveLength(0);
+    expect(tool.description).toContain(
+      "review: Review current file (uses configured state; omit state)"
+    );
+    expect(tool.input).not.toHaveProperty("oneOf.1.properties.state");
+    const context = { signal: new AbortController().signal } as ToolContext;
+    await writeFile(join(directory, "a.ts"), "original contents");
+    const first = await tool.execute({ classifier: "review" }, context);
+    expect(JSON.parse(first.content as string)).toHaveProperty(
+      "result.classifier",
+      "review"
+    );
+    await writeFile(join(directory, "a.ts"), "updated contents");
+    const second = await tool.execute({ classifier: "review" }, context);
+    expect(JSON.parse(second.content as string)).toHaveProperty("ok", true);
+    expect(requests[0]).toHaveProperty("state.files", [
+      { content: "original contents", path: "a.ts" },
+    ]);
+    expect(requests[1]).toHaveProperty("state.files", [
+      { content: "updated contents", path: "a.ts" },
+    ]);
+    const override = await tool.execute(
+      { classifier: "review", state: "Override" },
+      context
+    );
+    expect(JSON.parse(override.content as string)).toHaveProperty(
+      "error.code",
+      "INVALID_INPUT"
+    );
+    expect(reads).toBe(2);
+    denied = true;
+    const failure = await tool.execute({ classifier: "review" }, context);
+    expect(JSON.parse(failure.content as string)).toHaveProperty(
+      "error.code",
+      "EVIDENCE_ERROR"
+    );
+    expect(failure.content).not.toContain("Private permission detail");
+    expect(reads).toBe(3);
+    expect(requests).toHaveLength(2);
+  } finally {
+    fixture.stop(true);
+    await rm(directory, { force: true, recursive: true });
+  }
+});
 test("executor forwards interruption to an in-flight request", async () => {
   const fixture = serve({
     fetch: () => new Promise<Response>(() => undefined),

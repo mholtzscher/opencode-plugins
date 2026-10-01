@@ -77,6 +77,88 @@ test("configured example names resolve without external HTTP", async () => {
     }
   }
 });
+test("presets use stored state and questions and reject overrides before dispatch", async () => {
+  const states = ["Fixed report", { message: "Report" }, [null, false, 2]];
+  const options = parseOptions({
+    backend: { provider: "laya" },
+    classifiers: {
+      caller: { description: "Caller state", questions },
+      ...Object.fromEntries(
+        states.map((state, i) => [
+          `preset${i}`,
+          { description: "Preset", questions, state },
+        ])
+      ),
+    },
+  });
+  const calls: DecisionRequest[] = [];
+  const adapter: DecisionAdapter = {
+    async decide(request) {
+      calls.push(request);
+      return response();
+    },
+    provider: "laya",
+    supportedTypes: ["noul", "choice", "score"],
+  };
+  const service = createClassifier(options, adapter);
+  const { signal } = new AbortController();
+  for (const [i, state] of states.entries()) {
+    const classifier = `preset${i}`;
+    expect(await service.classify({ classifier }, signal)).toHaveProperty(
+      "result.classifier",
+      classifier
+    );
+    expect(
+      calls.at(-1)?.state === options.classifiers?.[classifier].state
+    ).toBe(true);
+    expect(calls.at(-1)?.questions).toBe(
+      options.classifiers?.[classifier].questions
+    );
+    for (const args of [
+      { classifier, state },
+      { classifier, state: "Override" },
+      { classifier, questions },
+    ]) {
+      expect(await service.classify(args, signal)).toHaveProperty(
+        "error.code",
+        "INVALID_INPUT"
+      );
+    }
+  }
+  expect(
+    await service.classify({ classifier: "caller" }, signal)
+  ).toHaveProperty("error.code", "INVALID_INPUT");
+  expect(
+    await service.classify({ classifier: "unknown" }, signal)
+  ).toHaveProperty("error.code", "UNKNOWN_CLASSIFIER");
+  expect(calls).toHaveLength(states.length);
+});
+test("preset evidence preserves the unavailable-provider gate", async () => {
+  const options = parseOptions({
+    backend: { provider: "openai-decisions" },
+    classifiers: {
+      review: {
+        description: "Review",
+        questions,
+        state: { files: ["never-read.ts"], type: "evidence" },
+      },
+    },
+  });
+  let reads = 0;
+  const output = await createClassifier(
+    options,
+    createAdapter(options)
+  ).classify(
+    { classifier: "review" },
+    new AbortController().signal,
+    async () => {
+      reads += 1;
+      return "Unexpected read";
+    }
+  );
+  expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+  expect(reads).toBe(0);
+});
 test("capabilities and missing keys fail before dispatch", async () => {
   const options = parseOptions(examples[0]);
   let calls = 0;

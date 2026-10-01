@@ -184,7 +184,7 @@ This registers the tool but returns `PROVIDER_UNAVAILABLE` on valid invocations 
 
 `backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
 
-`timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters and a valid question map. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
+`timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters, a valid question map, and optional `state` using the same content/evidence shapes as tool input. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
 
 ## Tool contract
 
@@ -201,7 +201,7 @@ The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.t
 }
 ```
 
-Tool arguments are exactly one of `{ state, questions }` or `{ state, classifier }`, never both. Without named classifiers only the ad hoc branch is advertised. The named branch enumerates configured names. Both reject extra fields. Tool arguments cannot override backend, endpoint, model, credentials, or headers.
+Tool arguments are exactly one of `{ state, questions }`, `{ state, classifier }` for a classifier without configured state, or `{ classifier }` for a classifier with configured state. Never supply both `questions` and `classifier`. Without named classifiers only the ad hoc branch is advertised. Named branches enumerate configured names separately according to whether state is configured. All branches reject extra fields. Tool arguments cannot override configured state, backend, endpoint, model, credentials, or headers.
 
 The agent-facing description includes a mixed-type request, Code Mode JSON-string parsing and `ok` handling, answer fields, scale/confidence semantics, and the self-contained evidence boundary. Input-schema field descriptions repeat constraints that Code Mode's generated TypeScript signature may otherwise omit. Agents do not need to read this README to make and interpret a call.
 
@@ -315,6 +315,39 @@ An illustrative `1.6` remains `1.6` on the zero-based scale 0–2, not a percent
 
 Named mode sends the stored questions unchanged. The caller cannot override them. With the authenticated Laya example, `{ "state": "Fix stale cache after deploy", "classifier": "change-kind" }` also works.
 
+#### Preset state
+
+A named classifier can also define what to evaluate. Add this entry under `options.classifiers`:
+
+```json
+{
+  "change-review": {
+    "description": "Evaluate current changes against project rules.",
+    "state": {
+      "type": "evidence",
+      "files": ["AGENTS.md"],
+      "diffs": [{ "base": "HEAD" }]
+    },
+    "questions": {
+      "compliant": {
+        "type": "noul",
+        "instructions": "Do the changes follow the supplied project rules?"
+      }
+    }
+  }
+}
+```
+
+Invoke it with only the name:
+
+```json
+{ "classifier": "change-review" }
+```
+
+Configured state can be a nonblank string, nonempty object/array, or evidence wrapper. Supplying caller state when the classifier defines its own is rejected with `INVALID_INPUT`, even if the values match; there is no merge or override. Classifiers without configured state still require caller state. The tool's description identifies which mode each name uses.
+
+Evidence references are validated at setup but not read then. Files and diffs are resolved freshly on every invocation, relative to the invoking session's directory, through the same native permissions and size limits as caller-supplied evidence. Static content is an immutable configuration snapshot; evidence contents are not cached. The unavailable OpenAI adapter still skips evidence resolution.
+
 ### Files and diffs as first-class evidence
 
 ```json
@@ -402,7 +435,7 @@ Errors use locally constructed messages and may include HTTP `status`; raw upstr
 
 ## Privacy and actions
 
-Calls may send private content to the configured backend and incur API charges. Only caller-supplied or explicitly resolved `state`, the selected question map, and configured model are in the request. The plugin reads only explicitly referenced evidence files/Git diffs and the operator-configured credential file; it does not gather conversation history, fetch embedded URLs, or execute decisions. Normal OpenCode tool input/output history may retain submitted state and answers. There is no additional cache, telemetry, history database, or audit store.
+Calls may send private content to the configured backend and incur API charges. Only caller-supplied, preset, or explicitly resolved `state`, the selected question map, and configured model are in the request. The plugin reads only explicitly referenced evidence files/Git diffs and the operator-configured credential file; it does not gather conversation history, fetch embedded URLs, or execute decisions. Normal OpenCode tool input/output history may retain submitted state and answers. There is no additional cache, telemetry, history database, or audit store.
 
 Never put literal secrets in plugin options. Keys are resolved at invocation time from only the selected environment variable or credential file. Key contents and file read errors never appear in tool output. Keys on a remote TUI machine do not configure the server. High confidence neither makes a decision correct nor authorizes another tool. Normal OpenCode permissions still govern subsequent actions.
 
@@ -430,7 +463,7 @@ Live TypeSafe calls through OpenCode Code Mode have verified text/file/diff evid
 
 1. Create a temporary project outside this repository, for example under `/tmp/opencode/classify-smoke`. Give its `opencode.jsonc` only this plugin's absolute directory path and one of the configurations above. Start a V2 TUI or web client in that project. Verify the effective plugin list because global configuration can still load other plugins.
 2. Configure TypeSafe and set its key on the actual server. Ask the agent to invoke `classify` with the mixed example exactly as written. Check `ok: true`, all three native answer types, unchanged fractional score, complete distributions and legends, reported model, token usage, and duration. Record the OpenCode version and model. Interrupt a pending call and verify it does not complete as a successful tool result.
-3. Reload with a named classifier and submit the named example. Check `result.classifier` and the configured answer IDs. Verify the tool description and schema list only your configured names.
+3. Reload with a named classifier and submit the named example. Check `result.classifier` and the configured answer IDs. Verify the tool description and schema list only your configured names. Add a classifier with configured evidence state, invoke it with only `{ "classifier": "name" }`, and verify that files/diffs resolve from the session directory. Change a referenced file and invoke again to confirm fresh resolution. Confirm caller-state overrides and omitted state for classifiers without configured state fail with `INVALID_INPUT`, and denied evidence access makes no provider request.
 4. Start only your separately managed test Laya instance. Record the Laya version. Inspect `http://127.0.0.1:8000/health` manually. Record loaded checkpoints, revisions, and actual devices. Load the Laya configuration and repeat the mixed and named requests.
 5. Stop only the test Laya process you started, repeat a request, and check `NETWORK_ERROR` without submitted content or keys. Do not stop unrelated servers.
 6. Configure the reserved OpenAI backend and verify `PROVIDER_UNAVAILABLE`, with no request to OpenAI or substitute provider.

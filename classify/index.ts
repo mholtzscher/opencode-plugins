@@ -20,7 +20,7 @@ export default Plugin.define({
       'choice requires 2–255 distinct nonblank labels (at most 128 characters each); descriptions may be null. It always selects one allowed label: include an "unknown" label with an insufficient-evidence criterion if needed; there is no automatic abstention. Backend limits may be tighter (Laya supports at most 100 choices).',
       "score requires 2–10 ordered rubric levels and returns a possibly fractional number on the zero-based scale 0…criteria.length - 1, not a percentage. Order levels from lowest to highest for the property being rated.",
       'Choice criteria accept a label-to-description map or [{ label, description }]. Use the list form for special labels such as "__proto__" that Code Mode cannot preserve as object keys. Score legends preserve string, object, or array level descriptions.',
-      "Supply questions for an ad hoc request, or classifier for a configured question map, never both. For judgments depending on previous answers, make another call.",
+      "Supply state and questions for an ad hoc request, or classifier for a configured preset, never both questions and classifier. Named classifiers require caller-supplied state unless they define their own; when state is configured, supply only classifier and never override state. Configured evidence resolves freshly per invocation with the same session-relative paths and native permissions. For judgments depending on previous answers, make another call.",
       "Code Mode returns a JSON string: parse it and check ok before reading result.answers[id]. Success is { ok: true, result: { answers, provider, model, usage, durationMs, classifier?, requestID? } }; failure is { ok: false, error: { code, message, retryable, provider, status? } }, with no partial answers. retryable means a later retry may help, not that it is free; a timed-out request may already incur cost.",
       "Answer fields: noul → { type, noul }; choice → { type, choice, probabilities, confidence }; score → { type, score, legend, probabilities, confidence }. Distributions use choice labels or zero-based score indices as keys. Native confidence is not probability of correctness; no explanations or permission to execute an action are returned.",
       'Example input: {"state":"Production is down after a deploy.","questions":{"active":{"type":"noul","instructions":"Does this describe an active incident?"},"kind":{"type":"choice","instructions":"Categorize the report.","criteria":{"incident":"Active production failure","other":"Not an incident","unknown":"Insufficient evidence"}},"impact":{"type":"score","instructions":"Rate user impact.","criteria":["No user impact","Some users affected","Production unavailable"]}}}',
@@ -30,7 +30,8 @@ export default Plugin.define({
         : [
             "Configured classifiers:",
             ...classifiers.map(
-              ([name, value]) => `${name}: ${value.description}`
+              ([name, value]) =>
+                `${name}: ${value.description} (${Object.hasOwn(value, "state") ? "uses configured state; omit state" : "requires caller-supplied state"})`
             ),
           ]),
     ].join("\n");

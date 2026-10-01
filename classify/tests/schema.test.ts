@@ -59,6 +59,34 @@ test("input schema describes constraints and semantics for agent discovery", () 
     "Configured classifier name. Uses its stored questions unchanged; do not also supply questions."
   );
 });
+test("named schemas distinguish caller state from preset state", () => {
+  const caller = { description: "Caller input", questions };
+  const preset = {
+    ...caller,
+    state: { files: ["a.ts"], type: "evidence" as const },
+  };
+  const mixed = buildToolInputSchema({ caller, preset });
+  expect(mixed).toHaveProperty("oneOf.1.properties.classifier.enum", [
+    "caller",
+  ]);
+  expect(mixed).toHaveProperty("oneOf.1.required", ["state", "classifier"]);
+  expect(mixed).toHaveProperty("oneOf.2.properties.classifier.enum", [
+    "preset",
+  ]);
+  expect(mixed).toHaveProperty("oneOf.2.required", ["classifier"]);
+  expect(mixed).toHaveProperty("oneOf.2.additionalProperties", false);
+  expect(mixed).not.toHaveProperty("oneOf.2.properties.state");
+  const onlyPreset = buildToolInputSchema({ preset });
+  expect(onlyPreset).toHaveProperty("oneOf.1.properties.classifier.enum", [
+    "preset",
+  ]);
+  expect(onlyPreset).not.toHaveProperty("oneOf.2");
+  expect(parseInput({ classifier: "preset" })).toEqual({
+    classifier: "preset",
+  });
+  expect(() => parseInput({ questions })).toThrow();
+  expect(() => parseInput({ classifier: "preset", state: null })).toThrow();
+});
 test("invalid selectors, content, fields and native criteria fail", () => {
   for (const value of [
     { state: "x" },

@@ -33,7 +33,7 @@ export type Question =
 export type Questions = Record<string, Question>;
 export type ClassifyInput =
   | { state: Content | EvidenceState; questions: Questions; classifier?: never }
-  | { state: Content | EvidenceState; classifier: string; questions?: never };
+  | { state?: Content | EvidenceState; classifier: string; questions?: never };
 export interface DecisionRequest {
   questions: Questions;
   state: Content;
