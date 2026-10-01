@@ -5,7 +5,6 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
 import { MAX_BYTES } from "./limits.js";
-import { boundedJson } from "./schema.js";
 import {
   ClassificationError,
   type Content,
@@ -13,6 +12,7 @@ import {
   type EvidenceState,
   type JsonValue,
 } from "./types.js";
+import { boundedJson } from "./validation/json.js";
 
 const exec = promisify(execFile);
 const BINARY_DIFF = /^GIT binary patch$|^Binary files .* differ$/mu;

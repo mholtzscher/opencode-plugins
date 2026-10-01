@@ -1,6 +1,5 @@
 import type { ClassifyOptions } from "./config.js";
 import type { DecisionAdapter } from "./providers/adapter.js";
-import { boundedJson, isEvidence, parseInput } from "./schema.js";
 import {
   ClassificationError,
   type ClassifyInput,
@@ -9,6 +8,8 @@ import {
   type EvidenceState,
   type Questions,
 } from "./types.js";
+import { isEvidence, parseInput } from "./validation/input.js";
+import { boundedJson } from "./validation/json.js";
 
 function resolveRequest(
   input: ClassifyInput,
@@ -53,7 +54,6 @@ type ResolveEvidence = (
 ) => Promise<Content>;
 async function resolveState(
   state: Content | EvidenceState,
-  provider: DecisionAdapter["provider"],
   signal: AbortSignal,
   resolver?: ResolveEvidence
 ): Promise<Content> {
@@ -62,10 +62,6 @@ async function resolveState(
   }
   if (!(state.files || state.diffs)) {
     return { text: state.text as Content };
-  }
-  if (provider === "openai-decisions") {
-    // The reserved adapter must fail without resolving credentials or evidence.
-    return "Evidence resolution skipped for unavailable provider.";
   }
   if (!resolver) {
     throw new ClassificationError(
@@ -91,20 +87,10 @@ export function createClassifier(
         const input = parseInput(value);
         const request = resolveRequest(input, options);
         const { questions } = request;
-        if (
-          adapter.provider !== "openai-decisions" &&
-          Object.values(questions).some(
-            (question) => !adapter.supportedTypes.includes(question.type)
-          )
-        ) {
-          throw new ClassificationError(
-            "UNSUPPORTED_TYPE",
-            "Configured provider does not support the requested question type."
-          );
-        }
+        adapter.preflight(questions, signal);
+        signal.throwIfAborted();
         const state = await resolveState(
           request.state,
-          adapter.provider,
           signal,
           resolveEvidence
         );

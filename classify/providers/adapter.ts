@@ -3,6 +3,7 @@ import type {
   DecisionRequest,
   DecisionResponse,
   ProviderID,
+  Questions,
   QuestionType,
 } from "../types.js";
 import { unavailableOpenAI } from "./openai-decisions.js";
@@ -12,6 +13,8 @@ export interface DecisionAdapter {
     request: DecisionRequest,
     signal: AbortSignal
   ) => Promise<DecisionResponse>;
+  /** Check availability and capabilities without reading evidence, credentials, or the network. */
+  preflight: (questions: Questions, signal: AbortSignal) => void;
   readonly provider: ProviderID;
   readonly supportedTypes: readonly QuestionType[];
 }

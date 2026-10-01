@@ -1,9 +1,11 @@
 import type { ClassifyOptions } from "../config.js";
 import { resolveKey } from "../credentials.js";
-import { boundedJson, validateResponse } from "../schema.js";
 import { systemOneFetch } from "../transport.js";
 import { ClassificationError } from "../types.js";
+import { boundedJson } from "../validation/json.js";
 import type { DecisionAdapter } from "./adapter.js";
+import { createPreflight } from "./preflight.js";
+import { validateResponse } from "./response.js";
 export function createSystemOneAdapter(
   options: ClassifyOptions
 ): DecisionAdapter {
@@ -14,9 +16,11 @@ export function createSystemOneAdapter(
       "Invalid adapter configuration."
     );
   }
+  const supportedTypes = ["noul", "choice", "score"] as const;
+  const preflight = createPreflight(supportedTypes);
   return {
     async decide(request, signal) {
-      signal.throwIfAborted();
+      preflight(request.questions, signal);
       const payload = {
         model:
           backend.model ??
@@ -60,7 +64,8 @@ export function createSystemOneAdapter(
         throw error;
       }
     },
+    preflight,
     provider: backend.provider,
-    supportedTypes: ["noul", "choice", "score"],
+    supportedTypes,
   };
 }

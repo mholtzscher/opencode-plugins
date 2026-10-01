@@ -186,9 +186,15 @@ This registers the tool but returns `PROVIDER_UNAVAILABLE` on valid invocations 
 
 `timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters, a valid question map, and optional `state` using the same content/evidence shapes as tool input. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
 
+## Provider architecture
+
+[`providers/adapter.ts`](./providers/adapter.ts) defines the `DecisionAdapter` interface and `createAdapter` factory: the service uses an interchangeable provider strategy rather than branching on provider identity. TypeSafe and Laya share [`providers/system-one.ts`](./providers/system-one.ts); the reserved OpenAI strategy lives in [`providers/openai-decisions.ts`](./providers/openai-decisions.ts).
+
+Each strategy exposes `provider`, `supportedTypes`, a synchronous `preflight(questions, signal)`, and an asynchronous `decide(request, signal)`. Preflight owns availability and capability checks and must not read evidence, credentials, or the network. [`service.ts`](./service.ts) validates input and resolves named classifiers, calls preflight **before** resolving evidence, and then dispatches through `decide`. The shared [`providers/preflight.ts`](./providers/preflight.ts) helper implements supported-question checks; unavailable strategies reject directly. Direct adapter calls remain guarded, including the OpenAI no-HTTP gate.
+
 ## Tool contract
 
-The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.transform(editor => editor.add(...))`. The concrete registration is in [`index.ts`](./index.ts); the full generated JSON Schema and runtime validators are in [`schema.ts`](./schema.ts). Its definition is:
+The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.transform(editor => editor.add(...))`. The concrete registration is in [`index.ts`](./index.ts); the generated tool JSON Schema is in [`tool-schema.ts`](./tool-schema.ts). Runtime validation is separated into [`validation/json.ts`](./validation/json.ts) for bounded JSON and common checks, [`validation/input.ts`](./validation/input.ts) for questions and tool arguments, [`validation/answers.ts`](./validation/answers.ts) for shared native measurements, and [`providers/response.ts`](./providers/response.ts) for System One responses. Its definition is:
 
 ```ts
 {
@@ -203,7 +209,7 @@ The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.t
 
 Tool arguments are exactly one of `{ state, questions }`, `{ state, classifier }` for a classifier without configured state, or `{ classifier }` for a classifier with configured state. Never supply both `questions` and `classifier`. Without named classifiers only the ad hoc branch is advertised. Named branches enumerate configured names separately according to whether state is configured. All branches reject extra fields. Tool arguments cannot override configured state, backend, endpoint, model, credentials, or headers.
 
-The agent-facing description includes a mixed-type request, Code Mode JSON-string parsing and `ok` handling, answer fields, scale/confidence semantics, and the self-contained evidence boundary. Input-schema field descriptions repeat constraints that Code Mode's generated TypeScript signature may otherwise omit. Agents do not need to read this README to make and interpret a call.
+The agent-facing description is built by [`tool-description.ts`](./tool-description.ts) and includes a mixed-type request, Code Mode JSON-string parsing and `ok` handling, answer fields, scale/confidence semantics, and the self-contained evidence boundary. Input-schema field descriptions repeat constraints that Code Mode's generated TypeScript signature may otherwise omit. Agents do not need to read this README to make and interpret a call.
 
 Put content to evaluate in `state` and the judgment in each question's `instructions`. Both accept nonblank strings, nonempty JSON objects, or nonempty JSON arrays. `state` also supports the explicit evidence wrapper below, which reads files and generates Git diffs on the server. Nested JSON permits null, booleans, and finite numbers. Question IDs are response keys, not model instructions. Each call evaluates 1–64 independent questions against one shared state. For judgments depending on prior answers, make another call.
 

@@ -3,8 +3,9 @@ import { parseOptions } from "../config.js";
 import { MAX_BYTES } from "../limits.js";
 import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
 import { createAdapter } from "../providers/adapter.js";
-import { buildToolInputSchema, validateResponse } from "../schema.js";
+import { validateResponse } from "../providers/response.js";
 import { createClassifier } from "../service.js";
+import { buildToolInputSchema } from "../tool-schema.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
 function success() {

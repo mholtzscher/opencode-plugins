@@ -17,9 +17,11 @@ import { parseOptions } from "../config.js";
 import { createEvidenceResolver } from "../evidence.js";
 import type { DecisionAdapter } from "../providers/adapter.js";
 import { createAdapter } from "../providers/adapter.js";
-import { buildToolInputSchema, parseInput } from "../schema.js";
+import { createPreflight } from "../providers/preflight.js";
 import { createClassifier } from "../service.js";
+import { buildToolInputSchema } from "../tool-schema.js";
 import type { DecisionRequest } from "../types.js";
+import { parseInput } from "../validation/input.js";
 import { normalizedResponse, questions } from "./fixtures.js";
 
 const exec = promisify(execFile);
@@ -274,6 +276,7 @@ test("service expands evidence before the provider and fails atomically on resol
       requests.push(request);
       return normalizedResponse();
     },
+    preflight: createPreflight(["noul", "choice", "score"]),
     provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
   };

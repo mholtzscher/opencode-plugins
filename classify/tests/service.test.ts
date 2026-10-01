@@ -3,6 +3,7 @@
 import { expect, test } from "bun:test";
 import { parseOptions } from "../config.js";
 import { createAdapter, type DecisionAdapter } from "../providers/adapter.js";
+import { createPreflight } from "../providers/preflight.js";
 import { createClassifier } from "../service.js";
 import {
   ClassificationError,
@@ -30,6 +31,7 @@ test("named and ad hoc requests retain maps, reported model and native measureme
       calls.push(request);
       return normalizedResponse();
     },
+    preflight: createPreflight(["noul", "choice", "score"]),
     provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
   };
@@ -73,6 +75,7 @@ test("configured example names resolve without external HTTP", async () => {
           usage: { input_tokens: 0, output_tokens: 0 },
         };
       },
+      preflight: createPreflight(["noul", "choice", "score"]),
       provider: options.backend.provider,
       supportedTypes: ["noul", "choice", "score"],
     };
@@ -108,6 +111,7 @@ test("presets use stored state and questions and reject overrides before dispatc
       calls.push(request);
       return normalizedResponse();
     },
+    preflight: createPreflight(["noul", "choice", "score"]),
     provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
   };
@@ -173,21 +177,28 @@ test("preset evidence preserves the unavailable-provider gate", async () => {
 test("capabilities and missing keys fail before dispatch", async () => {
   const options = parseOptions(examples[0]);
   let calls = 0;
+  let reads = 0;
   const adapter: DecisionAdapter = {
     async decide() {
       calls += 1;
       return normalizedResponse();
     },
+    preflight: createPreflight(["noul"]),
     provider: "typesafe",
     supportedTypes: ["noul"],
   };
   expect(
     await createClassifier(options, adapter).classify(
-      input,
-      new AbortController().signal
+      { questions, state: { files: ["never-read.ts"], type: "evidence" } },
+      new AbortController().signal,
+      async () => {
+        reads += 1;
+        return "Unexpected evidence";
+      }
     )
   ).toHaveProperty("error.code", "UNSUPPORTED_TYPE");
   expect(calls).toBe(0);
+  expect(reads).toBe(0);
   const missing = parseOptions({
     backend: { apiKeyEnv: "CLASSIFY_TEST_MISSING_KEY", provider: "typesafe" },
   });
@@ -197,6 +208,120 @@ test("capabilities and missing keys fail before dispatch", async () => {
       new AbortController().signal
     )
   ).toHaveProperty("error.code", "MISSING_CREDENTIALS");
+});
+test("strategy preflight runs before evidence and dispatch with the same questions and signal", async () => {
+  const options = parseOptions({
+    backend: { provider: "laya" },
+    classifiers: { review: { description: "Review", questions } },
+  });
+  const events: string[] = [];
+  const selectedQuestions = options.classifiers?.review.questions;
+  if (!selectedQuestions) {
+    throw new Error("Missing classifier questions");
+  }
+  const { signal } = new AbortController();
+  const adapter: DecisionAdapter = {
+    async decide(request, forwarded) {
+      events.push("decide");
+      expect(request.state).toBe("Resolved evidence");
+      expect(request.questions).toBe(selectedQuestions);
+      expect(forwarded).toBe(signal);
+      return normalizedResponse();
+    },
+    preflight(selected, forwarded) {
+      events.push("preflight");
+      expect(selected).toBe(selectedQuestions);
+      expect(forwarded).toBe(signal);
+    },
+    provider: "laya",
+    supportedTypes: ["noul", "choice", "score"],
+  };
+  const output = await createClassifier(options, adapter).classify(
+    { classifier: "review", state: { files: ["a.ts"], type: "evidence" } },
+    signal,
+    async (_state, forwarded) => {
+      events.push("evidence");
+      expect(forwarded).toBe(signal);
+      return "Resolved evidence";
+    }
+  );
+  expect(output).toHaveProperty("ok", true);
+  expect(events).toEqual(["preflight", "evidence", "decide"]);
+});
+test("service honors any strategy's availability gate without checking provider identity", async () => {
+  const options = parseOptions({ backend: { provider: "laya" } });
+  let calls = 0;
+  let reads = 0;
+  let checks = 0;
+  const adapter: DecisionAdapter = {
+    async decide() {
+      calls += 1;
+      return normalizedResponse();
+    },
+    preflight() {
+      checks += 1;
+      throw new ClassificationError(
+        "PROVIDER_UNAVAILABLE",
+        "Strategy unavailable."
+      );
+    },
+    provider: "laya",
+    supportedTypes: [],
+  };
+  const service = createClassifier(options, adapter);
+  const { signal } = new AbortController();
+  for (const state of [
+    "Plain content",
+    { text: "Text evidence", type: "evidence" },
+    { files: ["never-read.ts"], type: "evidence" },
+  ]) {
+    expect(
+      await service.classify({ questions, state }, signal, async () => {
+        reads += 1;
+        return "Unexpected evidence";
+      })
+    ).toMatchObject({
+      error: { attempts: 0, code: "PROVIDER_UNAVAILABLE", provider: "laya" },
+      ok: false,
+    });
+  }
+  expect(checks).toBe(3);
+  expect(calls).toBe(0);
+  expect(reads).toBe(0);
+  expect(await service.classify({ questions }, signal)).toHaveProperty(
+    "error.code",
+    "INVALID_INPUT"
+  );
+  expect(checks).toBe(3);
+});
+test("cancellation during strategy preflight prevents evidence and dispatch", async () => {
+  const options = parseOptions({ backend: { provider: "laya" } });
+  const controller = new AbortController();
+  let calls = 0;
+  let reads = 0;
+  const adapter: DecisionAdapter = {
+    async decide() {
+      calls += 1;
+      return normalizedResponse();
+    },
+    preflight() {
+      controller.abort();
+    },
+    provider: "laya",
+    supportedTypes: ["noul", "choice", "score"],
+  };
+  await expect(
+    createClassifier(options, adapter).classify(
+      { questions, state: { files: ["never-read.ts"], type: "evidence" } },
+      controller.signal,
+      async () => {
+        reads += 1;
+        return "Unexpected evidence";
+      }
+    )
+  ).rejects.toThrow();
+  expect(calls).toBe(0);
+  expect(reads).toBe(0);
 });
 test("OpenAI gate wins over capability checks without credentials or network", async () => {
   const options = parseOptions(examples[4]);
@@ -265,6 +390,7 @@ test("expected failures have no partial results; unexpected messages are sanitiz
       decide() {
         return Promise.reject(error);
       },
+      preflight: createPreflight(["noul", "choice", "score"]),
       provider: "typesafe",
       supportedTypes: ["noul", "choice", "score"],
     };
@@ -286,6 +412,7 @@ test("session interruption remains a rejection, even if adapter completes", asyn
       controller.abort();
       return normalizedResponse();
     },
+    preflight: createPreflight(["noul", "choice", "score"]),
     provider: "typesafe",
     supportedTypes: ["noul", "choice", "score"],
   };

@@ -10,15 +10,9 @@ import {
   MIN_SCORE_LEVELS,
   NAME_PATTERN,
 } from "./limits.js";
-import {
-  boundedJson,
-  fields,
-  nonblank,
-  record,
-  validateAnswer,
-  validateUsage,
-} from "./schema.js";
 import { type ClassifyOutput, ERROR_CODES } from "./types.js";
+import { validateAnswer, validateUsage } from "./validation/answers.js";
+import { boundedJson, fields, nonblank, record } from "./validation/json.js";
 
 const probability = { maximum: 1, minimum: 0, type: "number" };
 const nonnegative = { minimum: 0, type: "number" };

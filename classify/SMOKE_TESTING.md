@@ -398,11 +398,16 @@ Timed-out or cancelled hosted requests may already have incurred charges.
 
 | Suite | Coverage |
 | --- | --- |
-| `tests/schema.test.ts` | Input/output contracts, JSON limits, labels, distributions, structured legends, criteria-list normalization. |
+| `tests/json.test.ts` | JSON byte/depth limits, cycles, accessors, and non-JSON values. |
+| `tests/input.test.ts` | Input contracts, native question bounds, special labels, and criteria-list normalization. |
+| `tests/response.test.ts` | Provider response contracts and shared answer validation: distributions, structured legends, usage, truncation, and atomic failure. |
+| `tests/tool-schema.test.ts` | Generated tool-schema constraints, discovery descriptions, and named-classifier branches. |
+| `tests/tool-description.test.ts` | Tool guidance, named-classifier state modes, and the mixed-type example. |
+| `tests/preflight.test.ts` | Provider strategy selection, supported-question checks, cancellation, side-effect-free preflight, and the direct OpenAI gate. |
 | `tests/evidence.test.ts` | Files, symlinks, Git evidence, byte budgets, atomic failure, interruption and unavailable-provider guards. |
 | `tests/config.test.ts` | Defaults, option bounds, origins, credentials-source selection, immutable named classifiers. |
 | `tests/credentials.test.ts` | Key files, rotation, source isolation, sanitization, cancellation, OpenAI no-read guard. |
-| `tests/service.test.ts` | Named/ad hoc dispatch, capability checks, result/error envelopes, OpenAI gate, cancellation. |
+| `tests/service.test.ts` | Named/ad hoc dispatch, preflight-before-evidence ordering, provider-independent availability gates, result/error envelopes, OpenAI gate, cancellation. |
 | `tests/transport.test.ts` | HTTP/auth/status handling, retries/deadlines/streams, native-response validation, request IDs, interruption. |
 | `tests/plugin.test.ts` | Real entry registration/execution, session-location evidence, named/ad hoc list normalization, structured legends, TUI separation. |
 

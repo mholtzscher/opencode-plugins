@@ -10,7 +10,7 @@ import type {
 } from "@opencode/plugin/promise/tool";
 import { file, serve } from "bun";
 import plugin from "../index.js";
-import { parseInput } from "../schema.js";
+import { parseInput } from "../validation/input.js";
 import { input, questions, response } from "./fixtures.js";
 
 async function register(

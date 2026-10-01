@@ -1,19 +1,13 @@
 import { isAbsolute } from "node:path";
 import { NAME_PATTERN } from "./limits.js";
 import {
-  boundedJson,
-  fields,
-  nonblank,
-  parseQuestions,
-  record,
-  validateState,
-} from "./schema.js";
-import {
   ClassificationError,
   type Content,
   type EvidenceState,
   type Questions,
 } from "./types.js";
+import { parseQuestions, validateState } from "./validation/input.js";
+import { boundedJson, fields, nonblank, record } from "./validation/json.js";
 
 export type BackendOptions =
   | {
