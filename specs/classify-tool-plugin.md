@@ -2,13 +2,13 @@
 
 Status: Reviewed with no feedback. Ready for task breakdown. Implementation has not started.
 Date: 2026-09-30
-Effort: L for the TypeSafe/Kev release. OpenAI implementation requires a separate estimate after its API contract is verified.
+Effort: L for the TypeSafe/Laya release. OpenAI implementation requires a separate estimate after its API contract is verified.
 
 ## Problem
 
 OpenCode agents need a tool for bounded judgments without asking a generative model to produce and parse an answer. The caller supplies the content to evaluate and typed questions. The tool returns decisions and the provider's uncertainty measurements.
 
-The plugin must support ad hoc questions and reusable named classifiers. The user chooses the backend in configuration, not in tool arguments. The target backends are TypeSafe AI, OpenAI Decisions, and a locally running Kev server.
+The plugin must support ad hoc questions and reusable named classifiers. The user chooses the backend in configuration, not in tool arguments. The target backends are TypeSafe AI, OpenAI Decisions, and an externally managed Laya server. The former `kev` provider is rejected; it is not an alias for `laya`.
 
 ## Agreed scope
 
@@ -17,9 +17,9 @@ The plugin must support ad hoc questions and reusable named classifiers. The use
 - Evaluate a question map against one shared state per call.
 - Support ad hoc question maps and named classifiers stored in plugin options.
 - Return native results. Do not threshold probabilities into booleans or decide what counts as uncertain.
-- Implement TypeSafe and Kev using their shared System One HTTP contract.
-- Include an explicit OpenAI adapter gate. TypeSafe/Kev may ship before OpenAI is available.
-- Connect to an externally managed Kev HTTP server. Do not manage model processes.
+- Implement TypeSafe and Laya using their shared System One HTTP contract.
+- Include an explicit OpenAI adapter gate. TypeSafe/Laya may ship before OpenAI is available.
+- Connect to an externally managed Laya HTTP server. Do not manage model processes in the plugin.
 
 ## Discovery and constraints
 
@@ -38,21 +38,21 @@ Do not automatically activate the plugin in the root `opencode.jsonc`. Update th
 | Backend | Verified contract | Consequence |
 | --- | --- | --- |
 | TypeSafe AI | `POST https://api.typesafe.ai/v1/systemone`; bearer authentication; `state`, `model`, and `questions`; typed `answers` and token usage | Implement directly against the official HTTP API. |
-| Kev | `POST /v1/systemone`; TypeSafe-compatible shapes; optional bearer authentication via `KEV_API_KEY` | Share request serialization and response validation with TypeSafe. |
+| Laya | `POST /v1/systemone`; TypeSafe-compatible answer shapes; optional bearer authentication via `LAYA_API_KEY` | Share request serialization and response validation with TypeSafe, but document different limits and confidence semantics. |
 | OpenAI Decisions | Announced as a limited preview using Luna with predefined answers. No public wire contract found in the documentation checked on this date | Do not guess its endpoint, model ID, schemas, probability semantics, or batching behavior. |
 
 `noul` is a probability of yes in `[0, 1]`, not a misspelling of boolean. It has no separate native confidence field. `choice` returns one allowed label and a distribution. `score` returns a probability-weighted position on ordered levels and may be fractional. Choice and score have provider-supplied confidence, which is not a probability of correctness.
 
-The official TypeSafe API permits at most 255 choice options and 10 score levels. Kev accepts a broader score range. The plugin uses the conservative shared limits of 2–255 choices and 2–10 score levels. These are plugin validation rules, not claims that all providers have identical limits.
+The official TypeSafe API permits at most 255 choice options and 10 score levels. The plugin validates 2–255 choices and 2–10 score levels. Laya's HTTP server caps choice questions at 100 options, with smaller practical token budgets that can trim similar labels into indistinguishable inputs. These are plugin validation rules, not claims that all providers have identical limits. Laya's choice/score confidence is one minus normalized entropy, unlike Jev's confidence formula; thresholds must be validated for the chosen backend. Long states can be silently truncated, and the plugin does not expose Laya's token-budget controls or extra routing/confidence metadata.
 
 ## Recommendation and alternatives
 
-Use a small shared classification service, a System One adapter reused by TypeSafe/Kev, and a separate gated OpenAI adapter. Keep provider wire formats out of tool registration.
+Use a small shared classification service, a System One adapter reused by TypeSafe/Laya, and a separate gated OpenAI adapter. Keep provider wire formats out of tool registration.
 
 | Approach | Benefit | Cost | Decision |
 | --- | --- | --- | --- |
 | Ad hoc TypeSafe-only tool | Smallest implementation | Omits reusable classifiers and local inference | Does not meet the agreed scope. |
-| Shared service with TypeSafe/Kev and gated OpenAI | Working hosted and local paths with a stable tool contract | OpenAI cannot be advertised as working yet | Recommended. |
+| Shared service with TypeSafe/Laya and gated OpenAI | Working hosted and local paths with a stable tool contract | OpenAI cannot be advertised as working yet | Recommended. |
 | Model hosting, backend routing, fallback, and classifier UI | More automation and controls | Adds process management, privacy policy, persistent state, and UI work | Outside v1. |
 
 Use native `fetch` rather than a provider SDK for the verified System One contract. This keeps cancellation, request limits, retries, and error sanitization under one implementation. Revisit if the real OpenAI contract requires an SDK.
@@ -349,7 +349,7 @@ Named-mode success additionally includes `result.classifier`. `requestID` is opt
   "ok": false,
   "error": {
     "code": "PROVIDER_UNAVAILABLE",
-    "message": "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Kev instead.",
+    "message": "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
     "retryable": false,
     "provider": "openai-decisions"
   }
@@ -372,7 +372,7 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 
 export type Content = string | JsonValue[] | { [key: string]: JsonValue };
-export type ProviderID = "typesafe" | "kev" | "openai-decisions";
+export type ProviderID = "typesafe" | "laya" | "openai-decisions";
 export type QuestionType = "noul" | "choice" | "score";
 
 export type Question =
@@ -461,7 +461,7 @@ export type ClassifyOutput =
   | { ok: false; error: Failure };
 ```
 
-TypeSafe and Kev require all their documented fields, including choice/score distributions and confidence, score legends, and token usage. The optional fields in the common response allow future OpenAI results without invented measurements. Missing native fields in TypeSafe/Kev are errors, not permission to omit them.
+TypeSafe and Laya require all their documented fields, including choice/score distributions and confidence, score legends, and token usage. The optional fields in the common response allow future OpenAI results without invented measurements. Missing native fields in TypeSafe/Laya are errors, not permission to omit them.
 
 An OpenAI adapter must not convert an arbitrary confidence score into `noul`. It may support `noul` only if it can obtain a documented probability of yes. A categorical yes/no selection alone is not equivalent. Capability failures return `UNSUPPORTED_TYPE` before dispatch, never a disguised chat request.
 
@@ -475,7 +475,7 @@ export type BackendOptions =
       apiKeyEnv?: string;
     }
   | {
-      provider: "kev";
+      provider: "laya";
       baseURL?: string;
       model?: string;
       apiKeyEnv?: string;
@@ -501,7 +501,7 @@ export interface ClassifyOptions {
 
 - `backend` is required. Do not infer a backend from available keys or select a cloud backend by default.
 - TypeSafe defaults to model `jev-latest`, environment variable `TYPESAFE_API_KEY`, and the fixed official endpoint.
-- Kev defaults to model `kev-latest` and origin `http://127.0.0.1:8009`. It sends no authorization header unless `apiKeyEnv` is configured. If configured, the variable must be present and nonempty.
+- Laya defaults to checkpoint `english` and origin `http://127.0.0.1:8000`. Other checkpoint names include `multilingual` and `typed-decisions`. It sends no authorization header unless a credential source is configured. If `apiKeyEnv` is configured, the variable must be present and nonempty. `model` selects a checkpoint per request, not a serving alias.
 - OpenAI reserves environment variable `OPENAI_API_KEY`. Its model default is deliberately not defined before the implementation gate. The gated implementation does not resolve credentials or send a request.
 - `timeoutMs` defaults to 30,000. Accept integers from 1,000 through 300,000.
 - `maxRetries` defaults to 1. Accept integers from 0 through 2. It counts retries after the initial attempt.
@@ -531,7 +531,7 @@ Each example is an alternative `opencode.jsonc` configuration. Merge its plugin 
 
 Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest`, a 30-second invocation deadline, and one permitted retry for explicit rate-limit/overload responses. With no configured classifiers, only ad hoc mode appears in the tool schema. To select an available pinned model, set `backend.model` to the exact model ID documented by TypeSafe; do not assume the illustrative response version is available to the account.
 
-#### Unauthenticated loopback Kev with a named classifier
+#### Unauthenticated loopback Laya with a named classifier
 
 ```jsonc
 {
@@ -541,8 +541,8 @@ Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest
       "package": "./classify",
       "options": {
         "backend": {
-          "provider": "kev",
-          "baseURL": "http://127.0.0.1:8009"
+          "provider": "laya",
+          "baseURL": "http://127.0.0.1:8000"
         },
         "classifiers": {
           "incident-triage": {
@@ -561,9 +561,9 @@ Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest
 }
 ```
 
-Run Kev separately on port 8009. This configuration sends no authorization header, uses its `kev-latest` serving alias, and enables both ad hoc requests and `incident-triage`.
+Run Laya separately on port 8000. This configuration sends no authorization header, selects the `english` checkpoint, and enables both ad hoc requests and `incident-triage`.
 
-#### Authenticated local Kev with reusable classifiers
+#### Authenticated local Laya with reusable classifiers
 
 ```jsonc
 {
@@ -573,10 +573,10 @@ Run Kev separately on port 8009. This configuration sends no authorization heade
       "package": "./classify",
       "options": {
         "backend": {
-          "provider": "kev",
-          "baseURL": "http://127.0.0.1:8009",
-          "model": "kev-latest",
-          "apiKeyEnv": "KEV_API_KEY"
+          "provider": "laya",
+          "baseURL": "http://127.0.0.1:8000",
+          "model": "english",
+          "apiKeyEnv": "LAYA_API_KEY"
         },
         "timeoutMs": 120000,
         "maxRetries": 0,
@@ -617,11 +617,11 @@ Run Kev separately on port 8009. This configuration sends no authorization heade
 }
 ```
 
-Set `KEV_API_KEY` for both the separately started Kev process and the OpenCode server. The values must match. The longer deadline permits slower local inference; the plugin still does not start Kev or wait for it to boot. `maxRetries: 0` disables automatic retries.
+Set `LAYA_API_KEY` for both the separately started Laya process and the OpenCode server. The values must match. The longer deadline permits slower local inference; the plugin still does not start Laya or wait for it to boot. `maxRetries: 0` disables automatic retries.
 
 With this config, the agent can invoke `classify` with `{ "state": "Fix stale cache after deploy", "classifier": "change-kind" }`, or submit an ad hoc question map. Both use the same configured backend.
 
-#### Self-hosted Kev behind HTTPS
+#### Self-hosted Laya behind HTTPS
 
 ```jsonc
 {
@@ -631,9 +631,9 @@ With this config, the agent can invoke `classify` with `{ "state": "Fix stale ca
       "package": "./classify",
       "options": {
         "backend": {
-          "provider": "kev",
-          "baseURL": "https://kev.example.com",
-          "apiKeyEnv": "COMPANY_KEV_API_KEY"
+          "provider": "laya",
+          "baseURL": "https://laya.example.com",
+          "apiKeyEnv": "COMPANY_LAYA_API_KEY"
         },
         "timeoutMs": 60000,
         "maxRetries": 0
@@ -643,7 +643,7 @@ With this config, the agent can invoke `classify` with `{ "state": "Fix stale ca
 }
 ```
 
-Replace the example origin with the operator's endpoint and set `COMPANY_KEV_API_KEY` in the OpenCode server environment. The server or proxy must expose `/v1/systemone` without redirecting. Non-loopback HTTP origins are rejected. This uses the same Kev adapter, not a fourth backend or a plugin-managed deployment.
+Replace the example origin with the operator's endpoint and set `COMPANY_LAYA_API_KEY` in the OpenCode server environment. The server or proxy must expose `/v1/systemone` without redirecting. Non-loopback HTTP origins are rejected. This uses the same Laya adapter, not a fourth backend or a plugin-managed deployment.
 
 #### Reserved OpenAI Decisions configuration
 
@@ -685,7 +685,7 @@ export function parseQuestions(value: unknown): Questions;
 export function validateResponse(
   value: unknown,
   request: DecisionRequest,
-  provider: "typesafe" | "kev"
+  provider: "typesafe" | "laya"
 ): DecisionResponse;
 
 // service.ts
@@ -700,7 +700,7 @@ export function createClassifier(
 export function createAdapter(options: ClassifyOptions): DecisionAdapter;
 ```
 
-The adapter factory returns a TypeSafe/Kev adapter or an unavailable OpenAI adapter. The unavailable adapter exposes no supported types and reports `PROVIDER_UNAVAILABLE`, rather than allowing the generic capability check to report an unsupported type. It must fail without accessing credentials or the network.
+The adapter factory returns a TypeSafe/Laya adapter or an unavailable OpenAI adapter. The unavailable adapter exposes no supported types and reports `PROVIDER_UNAVAILABLE`, rather than allowing the generic capability check to report an unsupported type. It must fail without accessing credentials or the network.
 
 Internal code may throw typed classification errors. The service converts expected failures into `ClassifyOutput`. Unexpected failures become a sanitized `INTERNAL_ERROR`. Session cancellation is rethrown and remains an OpenCode interruption, not a successful tool completion containing a cancellation message.
 
@@ -720,18 +720,18 @@ Invalid configuration stops this plugin's setup with a sanitized configuration e
 - Reject a serialized System One request exceeding 1 MiB and JSON nesting deeper than 32 levels before dispatch. Apply the same bounded traversal to options and tool inputs.
 - Bound the response body to 1 MiB while reading its stream. A larger response is `INVALID_RESPONSE`. Do not rely only on `Content-Length`.
 - Response question IDs must exactly match the requested IDs and answer types must match their questions.
-- Noul and confidence values must be finite and within `[0, 1]`. All distributions must contain exactly the requested labels or score indices, with finite probabilities in `[0, 1]` and absolute sum error less than `0.02`. This tolerance accommodates Kev's four-decimal serialization. Do not renormalize distributions.
+- Noul and confidence values must be finite and within `[0, 1]`. All distributions must contain exactly the requested labels or score indices, with finite probabilities in `[0, 1]` and absolute sum error less than `0.02`. This is a plugin validation tolerance for rounded distributions. Do not renormalize distributions.
 - Choice must be an allowed label. Score legends must contain exactly the expected level indices with string values. Return the validated upstream legend, including its rendering of structured levels.
 - Native token counts must be nonnegative integers. `model` must be a nonblank string. Preserve the model reported by the provider rather than replacing it with the requested alias.
-- If Kev reports `truncated: true`, reject with `INPUT_TRUNCATED`. Do not return a judgment on silently shortened input. A missing marker does not prove an arbitrary server never truncates.
+- If Laya reports `truncated: true`, reject with `INPUT_TRUNCATED`. A missing marker does not prove the server read the input in full; Laya can silently truncate long states. Use short inputs and validate them on the selected checkpoint.
 
 ## Transport, errors, and privacy
 
 ### System One requests
 
-Serialize `{ state, model, questions }` without merging state and instructions into a prompt. TypeSafe uses its fixed HTTPS endpoint. For Kev, `baseURL` is an HTTP or HTTPS origin with an optional trailing slash, not a URL containing an API path, query, fragment, or user information. Append `/v1/systemone` exactly once.
+Serialize `{ state, model, questions }` without merging state and instructions into a prompt. TypeSafe uses its fixed HTTPS endpoint. For Laya, `baseURL` is an HTTP or HTTPS origin with an optional trailing slash, not a URL containing an API path, query, fragment, or user information. Append `/v1/systemone` exactly once.
 
-Permit HTTP only for `localhost`, `127.0.0.1`, and `[::1]`. Non-loopback Kev endpoints require HTTPS. This is a transport constraint, not protection against malicious user configuration or DNS changes. Tool arguments cannot change the configured destination. Use `redirect: "error"` so credentials and state cannot follow a redirect.
+Permit HTTP only for `localhost`, `127.0.0.1`, and `[::1]`. Non-loopback Laya endpoints require HTTPS. This is a transport constraint, not protection against malicious user configuration or DNS changes. Tool arguments cannot change the configured destination. Use `redirect: "error"` so credentials and state cannot follow a redirect.
 
 Resolve the selected API-key environment variable at invocation time. Never enumerate unrelated environment variables. Do not copy credentials into tool output, descriptions, errors, logs, or storage.
 
@@ -768,20 +768,19 @@ Calls may send private content to the configured backend and incur API charges. 
 
 Error messages are locally constructed. Do not include raw upstream bodies, arbitrary thrown messages, input snippets, or authorization headers. High confidence does not authorize another tool or make a decision correct. Normal OpenCode permissions still govern subsequent actions.
 
-## Local Kev integration
+## Local Laya integration
 
-Recommend Kev's own HTTP server, not an OpenAI-compatible chat server. Its model size and hardware selection belong to the operator, not the plugin.
+Use Laya's HTTP server, not an OpenAI-compatible chat server. Checkpoint, hardware, precision, and runtime requirements belong to the operator, not the plugin.
 
-In a separately checked-out Kev repository:
+Start a separately managed Laya 0.3.22 server:
 
 ```sh
-uv sync --extra serve
-uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.8b --port 8009
+LAYA_HOST=127.0.0.1 LAYA_PORT=8000 LAYA_MODELS=english uv tool run --python 3.12 --torch-backend=auto --from 'laya[serve]==0.3.22' laya-serve
 ```
 
-This is an upstream-documented starting point, not a server started by the plugin. The first run downloads weights and hardware/runtime requirements depend on the checkpoint. The server binds to loopback by default. For authenticated local use, set `KEV_API_KEY` when starting Kev and configure the plugin's `apiKeyEnv` to name the server-side variable holding the same key.
+The first run installs dependencies and downloads weights. Set `LAYA_HOST=127.0.0.1` explicitly because Laya otherwise binds to all interfaces. For authenticated local use, set `LAYA_API_KEY` when starting Laya and configure the plugin's `apiKeyEnv` to name the server-side variable holding the same key. The repository also offers opt-in `mise daemons start laya` with mise 2026.9.18 or later; `mise run opencode` does not start Laya or change the root TypeSafe backend.
 
-`kev-latest` is a serving alias for the checkpoint loaded by that process, not a selector that loads a new checkpoint on each call. Kev's current implementation echoes the requested alias in `model`. Its `GET /v1/models` endpoint reports checkpoint, backend, and precision details. Document this distinction; do not claim the result's alias identifies immutable weights. Inspect `/v1/models` manually when verifying a local deployment.
+`model` selects `english`, `multilingual`, or `typed-decisions` per request. `LAYA_MODELS` controls preloading, not which checkpoints clients can select. Unknown model names fall back to Laya's automatic routing, so check configured names carefully. The response's model string does not identify immutable weights. Inspect `GET /health` for loaded checkpoints, revisions, and actual devices when verifying a local deployment.
 
 Do not install Python, download weights, expose a listener, poll the server, or kill its process as part of plugin setup/unload. A down server produces a normal network error.
 
@@ -800,7 +799,7 @@ Before implementing the real adapter, its implementer must obtain authoritative 
 
 If OpenAI only supports one question per request, document the fan-out behavior, partial-failure policy, usage aggregation, concurrency bound, and cost before enabling question-map calls. Do not silently add that policy during adapter implementation.
 
-Gate owner: the implementing developer. The user provides preview materials/access if private documentation is needed. Completion of this gate is not required to release the TypeSafe/Kev plugin. The initial README must label OpenAI unavailable, not supported.
+Gate owner: the implementing developer. The user provides preview materials/access if private documentation is needed. Completion of this gate is not required to release the TypeSafe/Laya plugin. The initial README must label OpenAI unavailable, not supported.
 
 ## Project layout
 
@@ -821,7 +820,7 @@ classify/                           # new: independent plugin package
 ├── transport.ts                    # new: bounded fetch, deadlines, retries, HTTP error mapping
 ├── providers/
 │   ├── adapter.ts                  # new: DecisionAdapter interface and factory
-│   ├── system-one.ts               # new: shared TypeSafe/Kev serialization and decoding
+│   ├── system-one.ts               # new: shared TypeSafe/Laya serialization and decoding
 │   └── openai-decisions.ts         # new: unavailable adapter, later replaced after gate
 └── tests/
     ├── config.test.ts              # new: options, defaults, credential/URL restrictions
@@ -841,7 +840,7 @@ Existing plugin code, root dependencies, and the root plugin activation list are
 | ID | Outcome | Effort | Owning paths | Dependencies | Acceptance |
 | --- | --- | --- | --- | --- | --- |
 | D1 | Independent package plus validated types, configuration, and tool schema | M | `classify/package.json`, `bun.lock`, `tsconfig.json`, `types.ts`, `config.ts`, `schema.ts`, `tests/config.test.ts`, `tests/schema.test.ts` | None | A1, A2, A3 |
-| D2 | Working System One transport for TypeSafe and Kev, with failures and cancellation | L | `classify/transport.ts`, `providers/adapter.ts`, `providers/system-one.ts`, `tests/transport.test.ts`, response tests in `tests/schema.test.ts` | D1 | A4, A5, A6, A7, A8 |
+| D2 | Working System One transport for TypeSafe and Laya, with failures and cancellation | L | `classify/transport.ts`, `providers/adapter.ts`, `providers/system-one.ts`, `tests/transport.test.ts`, response tests in `tests/schema.test.ts` | D1 | A4, A5, A6, A7, A8 |
 | D3 | Ad hoc/named service, gated OpenAI behavior, and OpenCode tool integration | M | `classify/service.ts`, `providers/openai-decisions.ts`, `index.ts`, `tui.ts`, `tests/service.test.ts`, `tests/plugin.test.ts` | D1, D2 | A9, A10, A11 |
 | D4 | Documentation and release validation for the verified backends | M | `classify/README.md`, root `README.md`, all package verification | D3 | A12, A13 |
 | D5 | Real OpenAI Decisions adapter after verified API discovery | Estimate after gate | `classify/providers/openai-decisions.ts`, any new OpenAI contract tests, `classify/README.md`, this spec's OpenAI contract | D3 and OpenAI gate | A14 |
@@ -857,7 +856,7 @@ Run these commands from `classify/` after installing dependencies there. `bun ru
 | A1 | Independent package and both entries compile | No root workspace required; server and no-op TUI typecheck | In `classify/`, run `bun install`, then `bun run typecheck`. |
 | A2 | Input union, JSON bounds, and native question constraints | Both valid modes pass; both/neither selectors, blank input, excess questions/options/levels, deep JSON, and unknown fields fail before HTTP | `bun test tests/schema.test.ts`. Include minimum/maximum boundaries and special choice labels. |
 | A3 | User-controlled backend configuration | Correct defaults; no inferred cloud provider; invalid URL/options fail; named classifier map obeys constraints | `bun test tests/config.test.ts`. |
-| A4 | TypeSafe/Kev request contract | All three types and structured state/instructions serialize into the same correct System One body; only endpoint/model/auth differ | `bun test tests/transport.test.ts` against an injected fetch/local fixture server. Assert HTTP method, path, headers, and body. |
+| A4 | TypeSafe/Laya request contract | All three types and structured state/instructions serialize into the same correct System One body; only endpoint/model/auth differ | `bun test tests/transport.test.ts` against an injected fetch/local fixture server. Assert HTTP method, path, headers, and body. |
 | A5 | Upstream answer validation | Valid values pass unchanged, including fractional scores; missing/extra question IDs, wrong types/labels, bad probability sums, nonfinite/out-of-range values, bad legends/usage, and truncated input fail atomically | `bun test tests/schema.test.ts`. Include a rounded 255-label distribution within tolerance and one outside it. |
 | A6 | Deadline and session interruption | Abort reaches in-flight requests, response reads, and retry waits; pre-abort sends no request; deadline covers all attempts; no retry or completed success after cancellation | `bun test tests/transport.test.ts` and `bun test tests/plugin.test.ts`. Use controlled signals and delayed local responses. |
 | A7 | Retry/error mapping | Only 429/529 automatically retry; configured attempt limit and Retry-After/deadline rules hold; 401/422, network failures, timeouts, and bad 200 bodies do not auto-retry | `bun test tests/transport.test.ts`. Assert attempt counts and terminal codes, including `maxRetries: 0`. |
@@ -865,8 +864,8 @@ Run these commands from `classify/` after installing dependencies there. `bun ru
 | A9 | Named/ad hoc resolution | Stored questions are unchanged; unknown names and illegal overrides send no request; response reports provider, model, optional classifier, usage, and duration | `bun test tests/service.test.ts` with a recording adapter. |
 | A10 | OpenAI gate | Configuring OpenAI gives `PROVIDER_UNAVAILABLE` with zero credential reads and HTTP calls; no chat fallback | `bun test tests/service.test.ts`. Assert the factory's unavailable behavior. |
 | A11 | OpenCode registration and lifecycle | Exactly one unnamespaced `classify` tool; named classifiers discoverable; content is a valid output envelope; signal forwarded; setup has no network side effects; TUI has no inference | `bun test tests/plugin.test.ts`, then manually load only this plugin in a temporary V2 project and exercise the tool in the TUI or web client. |
-| A12 | TypeSafe/Kev live smoke checks | A mixed question map returns validated noul/choice/score answers; native values/distributions survive; usage/model recorded; stopped Kev gives a sanitized network error | Manually load the plugin in a temporary project. Use TypeSafe with a valid server-side API key, then a separately started Kev server. Submit the ad hoc example and a named request. Inspect Kev `/v1/models`; stop only the test server and repeat. Access/hardware required. Exact automated live command is outside this spec; document a tested procedure in `classify/README.md`. |
-| A13 | Release docs, examples, and regression checks | README includes the concrete tool definition/contract, each native usage example, named/mixed usage, output envelopes, and the five config scenarios. Config examples validate, and their named calls resolve. Docs distinguish working TypeSafe/Kev from gated OpenAI; no root activation change; typecheck/tests pass; no new lint failures | In `classify/`, `bun run typecheck` and `bun test`; add example fixtures to `tests/config.test.ts` and `tests/service.test.ts` and validate them without external HTTP. From root, `bun run check`. Compare any existing lint failures against the unchanged baseline. Review `git diff` for unintended files. |
+| A12 | TypeSafe/Laya live smoke checks | A mixed question map returns validated noul/choice/score answers; native values/distributions survive; usage/model recorded; stopped Laya gives a sanitized network error | Manually load the plugin in a temporary project. Use TypeSafe with a valid server-side API key, then a separately started Laya server. Submit the ad hoc example and a named request. Inspect Laya `/health`; stop only the test server and repeat. Access/hardware required. Exact automated live command is outside this spec; document a tested procedure in `classify/README.md`. |
+| A13 | Release docs, examples, and regression checks | README includes the concrete tool definition/contract, each native usage example, named/mixed usage, output envelopes, and the five config scenarios. Config examples validate, and their named calls resolve. Docs distinguish working TypeSafe/Laya from gated OpenAI; no root activation change; typecheck/tests pass; no new lint failures | In `classify/`, `bun run typecheck` and `bun test`; add example fixtures to `tests/config.test.ts` and `tests/service.test.ts` and validate them without external HTTP. From root, `bun run check`. Compare any existing lint failures against the unchanged baseline. Review `git diff` for unintended files. |
 | A14 | Real OpenAI implementation | Verified documentation captured, only faithful supported types enabled, fixtures pass, live call succeeds, no synthesized probabilities or hidden fallback | Requires preview/public docs and account access. Add the exact fixture command and live procedure to this spec before D5 starts. A10 then becomes tests of the documented unavailable/access-denied cases rather than a permanent stub. |
 
 Deterministic tests prove the tool contract and transport behavior, not model accuracy. Live smoke checks prove connectivity and valid native responses. Threshold tuning and comparative accuracy require representative labeled data and are outside v1.
@@ -878,7 +877,7 @@ Deterministic tests prove the tool contract and transport behavior, not model ac
 | OpenAI's eventual API does not match System One types or batching | A false claim of backend interchangeability | Keep the adapter unavailable until documented; use capability checks and a separate contract update. |
 | A valid classification is incorrect or responds to hostile content | The agent may choose a bad next action | Keep classification separate from action execution; return uncertainty data without claiming correctness; retain normal tool permissions. |
 | Probability/confidence semantics differ across backends or checkpoints | Shared thresholds give misleading results | Preserve provider identity and native fields; do not fabricate or normalize confidence; document alias and calibration limitations. |
-| Local Kev precision, context limits, or optional truncation changes the judgment | Local results differ from hosted results or omit content | Reject reported truncation; document `/v1/models` inspection and operator-owned serving settings. |
+| Local Laya precision, context limits, or optional truncation changes the judgment | Local results differ from hosted results or omit content | Reject reported truncation; document `/health` inspection, short inputs, and operator-owned serving settings. |
 | External calls leak state or expose credentials in failures | Private source material or keys escape | User-selected backend, no fallback/redirects, explicit payload only, sanitized errors, no extra logging/storage. |
 | Automatic retries incur additional charges | A single tool call costs more than one upstream attempt | Only retry explicit rate-limit/overload replies; bounded attempts/deadline; document that usage may not include failed attempts. |
 
@@ -887,7 +886,7 @@ Deterministic tests prove the tool contract and transport behavior, not model ac
 - Training/fine-tuning classifiers or measuring model quality against a dataset.
 - Boolean threshold policies, abstention decisions, multilabel fan-out, or action execution.
 - Image/audio inputs, arbitrary string generation, extraction schemas, or embeddings.
-- Starting Kev, choosing GPU hardware, downloading models, or deploying a server.
+- Starting Laya from the plugin, choosing GPU hardware, downloading models, or deploying a server.
 - Per-call backend/model overrides, automatic routing, provider fallback, or credential login UI.
 - Session/file/URL ingestion, bulk state batches, persistent result caches, classifier editing tools, custom TUI panels, or RPC exports.
 
@@ -895,19 +894,17 @@ Deterministic tests prove the tool contract and transport behavior, not model ac
 
 - The user reviewed this specification and submitted no annotations. No design changes were requested.
 - The implementing developer owns OpenAI contract discovery. The gate blocks D5 only.
-- Live TypeSafe and Kev verification requires credentials/runtime access. If unavailable during implementation, report these checks as unverified rather than replacing them with mocked success claims.
+- Live TypeSafe and Laya verification requires credentials/runtime access. If unavailable during implementation, report these checks as unverified rather than replacing them with mocked success claims.
 
 ## Sources
 
-Checked on 2026-09-30. Upstream `main` links are discovery evidence, not immutable version pins; record the Kev revision used for live verification during implementation.
+Original discovery checked on 2026-09-30; Laya provider references updated on 2026-10-01. Upstream `main` links are discovery evidence, not immutable version pins; record the Laya version and checkpoint revisions used for live verification. The serving command pins Laya 0.3.22, matching the repository's mise daemon.
 
 - [OpenCode V2 server plugins](https://opencode.ai/v2/docs/build/plugins)
 - [OpenCode V2 CLI plugins and exports](https://opencode.ai/v2/docs/build/plugins/cli)
 - [TypeSafe official API reference](https://docs.typesafe.ai/api.md)
 - [TypeSafe Noul semantics](https://docs.typesafe.ai/primitives/noul.md)
 - [TypeSafe JavaScript SDK](https://docs.typesafe.ai/sdk/javascript.md)
-- [Kev repository and serving instructions](https://github.com/jaredpalmer/kev)
-- [Kev request/answer implementation](https://github.com/jaredpalmer/kev/blob/main/kev/api.py)
-- [Kev server, auth, aliases, and truncation](https://github.com/jaredpalmer/kev/blob/main/kev/serve.py)
+- [Laya repository, System One serving, limits, and checkpoint routing](https://github.com/NandhaKishorM/laya)
 - [OpenAI DevDay announcements, Decisions preview](https://community.openai.com/t/devday-2026-announcements-and-developer-resources/1402006)
 - [OpenAI public API documentation index checked for the wire contract](https://developers.openai.com/api/docs)

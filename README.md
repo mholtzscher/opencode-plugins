@@ -6,7 +6,7 @@ Six independent plugins for OpenCode V2. Each directory is its own Bun package, 
 
 ### [Classify](./classify/README.md)
 
-A server-side `classify` tool for ad hoc typed questions and reusable named classifiers. TypeSafe AI and externally managed Kev servers return native yes probabilities, categorical choices, fractional rubric scores, and uncertainty data. OpenAI Decisions is unavailable pending a verified API adapter. The backend is user-configured; the tool does not execute decisions.
+A server-side `classify` tool for ad hoc typed questions and reusable named classifiers. TypeSafe AI and externally managed Laya servers return native yes probabilities, categorical choices, fractional rubric scores, and uncertainty data. OpenAI Decisions is unavailable pending a verified API adapter. The backend is user-configured; the tool does not execute decisions.
 
 ### [Cache metrics](./cache-metrics/README.md)
 
