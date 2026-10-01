@@ -1,3 +1,18 @@
+[settings]
+experimental = true
+
+[tools]
+uv = "0.12.17"
+pitchfork = "2.25.0"
+
+[daemons.laya]
+run = "exec uv tool run --python 3.12 --torch-backend=auto --from 'laya[serve]==0.3.22' laya-serve"
+port = 8000
+proxy = false
+ready_http = { url = "http://127.0.0.1:8000/health", timeout = "20m" }
+env = { LAYA_HOST = "127.0.0.1", LAYA_PORT = "8000", LAYA_MODELS = "english", LAYA_PRELOAD = "1" }
+
 [tasks.opencode]
 description = "Launch OpenCode with local plugins and an isolated development config"
+daemons = "laya"
 run = "XDG_CONFIG_HOME={{config_root}}/.opencode-dev GIT_CONFIG_GLOBAL=$HOME/.config/git/config opencode --standalone"

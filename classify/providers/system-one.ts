@@ -20,7 +20,7 @@ export function createSystemOneAdapter(
       const payload = {
         model:
           backend.model ??
-          (backend.provider === "typesafe" ? "jev-latest" : "kev-latest"),
+          (backend.provider === "typesafe" ? "jev-latest" : "english"),
         questions: request.questions,
         state: request.state,
       };
@@ -32,7 +32,7 @@ export function createSystemOneAdapter(
           endpoint:
             backend.provider === "typesafe"
               ? "https://api.typesafe.ai/v1/systemone"
-              : `${backend.baseURL ?? "http://127.0.0.1:8009"}/v1/systemone`,
+              : `${backend.baseURL ?? "http://127.0.0.1:8000"}/v1/systemone`,
           key,
           maxRetries: options.maxRetries ?? 1,
           timeoutMs: options.timeoutMs ?? 30_000,

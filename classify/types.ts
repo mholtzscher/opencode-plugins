@@ -16,7 +16,7 @@ export interface EvidenceState {
   text?: Content;
   type: "evidence";
 }
-export type ProviderID = "typesafe" | "kev" | "openai-decisions";
+export type ProviderID = "typesafe" | "laya" | "openai-decisions";
 export type QuestionType = "noul" | "choice" | "score";
 export type Question =
   | {

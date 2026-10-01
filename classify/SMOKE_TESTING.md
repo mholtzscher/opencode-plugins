@@ -114,7 +114,7 @@ JS
 ```
 
 Save the printed path as `SMOKE_DIR` and open OpenCode in that directory. If using
-a key file or Kev instead of the default TypeSafe environment source, change
+a key file or Laya instead of the default TypeSafe environment source, change
 **only the disposable project's** backend using a configuration from
 [README.md](./README.md). Reload after changing options: they are an immutable
 setup snapshot. Do not overwrite an existing user's configuration.
@@ -350,7 +350,7 @@ Use disposable configuration/key fixtures. Negative configuration cases fail
 | C06 | Timeout 1,000–300,000 ms; retries 0–2 | Boundaries accepted; nonintegers/out-of-range values rejected. Defaults: 30,000 ms and one retry. |
 | C07 | Up to 32 classifiers; name and description bounds | Valid definitions accepted; 33 classifiers, invalid names, blank/>512-character descriptions, invalid question maps rejected. |
 | C08 | TypeSafe defaults and endpoint | `jev-latest`, default `TYPESAFE_API_KEY`, fixed TypeSafe endpoint; no endpoint override. |
-| C09 | Kev defaults and origin validation | Loopback HTTP accepted; other hosts require HTTPS. Reject API paths, userinfo, queries, fragments, malformed origins. |
+| C09 | Laya defaults and origin validation | Default model `english`, origin `http://127.0.0.1:8000`. Loopback HTTP accepted; other hosts require HTTPS. Reject API paths, userinfo, queries, fragments, malformed origins and the former `kev` provider name. |
 | C10 | Environment credential present/missing/blank | Selected variable used at invocation; missing/blank yields `MISSING_CREDENTIALS` without HTTP. No secret output. |
 | C11 | Key file at absolute or `~/` path; whitespace/final newline; symlink to regular file | Valid key used; surrounding whitespace trimmed. Relative/`~otheruser` paths rejected at setup. |
 | C12 | Both `apiKeyEnv` and `apiKeyFile` | Setup rejection; file source never falls back to environment. |
@@ -364,18 +364,18 @@ Use disposable configuration/key fixtures. Negative configuration cases fail
 ## 10. Provider transport, output validation, and cancellation
 
 Run these with `bun test`, recording adapters, injected fetch, or a disposable
-System One HTTP server. Live TypeSafe tests do not establish live Kev behavior.
-Never configure an arbitrary OpenAI-compatible chat endpoint as Kev.
+System One HTTP server. Live TypeSafe tests do not establish live Laya behavior.
+Never configure an arbitrary OpenAI-compatible chat endpoint as Laya.
 
 | ID | Case | Expected result |
 | --- | --- | --- |
-| T01 | TypeSafe and Kev request construction | POST `/v1/systemone`, JSON model/questions/expanded state, selected authentication only. Unauthenticated loopback Kev sends no authorization header. |
+| T01 | TypeSafe and Laya request construction | POST `/v1/systemone`, JSON model/questions/expanded state, selected authentication only. Unauthenticated loopback Laya sends no authorization header. |
 | T02 | HTTP 401/403 | `AUTH_FAILED`, no retry. |
 | T03 | HTTP 429 | `RATE_LIMITED` after permitted retries; `retryable: true`. |
 | T04 | HTTP 529 | `PROVIDER_UNAVAILABLE` after permitted retries; `retryable: true`. |
 | T05 | Other 5xx | `PROVIDER_UNAVAILABLE`, retryable flag true but **no automatic retry**. |
 | T06 | Other unsuccessful status, e.g. 422 | `REQUEST_REJECTED`, no retry. |
-| T07 | Network failure / unreachable disposable Kev | `NETWORK_ERROR`; no automatic retry. |
+| T07 | Network failure / unreachable disposable Laya | `NETWORK_ERROR`; no automatic retry. |
 | T08 | Deadline exceeded during fetch/body/retry wait | `TIMEOUT` or original retryable response when another retry cannot fit; one deadline covers the invocation. No automatic timeout retry. |
 | T09 | Retry count 0/1/2, 500/1,000 ms waits, valid `Retry-After` | Attempt counts/delays obey limits and one deadline; backend/model never change. |
 | T10 | Redirect response | Not followed; unsuccessful response mapped locally. |
@@ -384,11 +384,11 @@ Never configure an arbitrary OpenAI-compatible chat endpoint as Kev.
 | T13 | Nonfinite/out-of-range native measurements, missing confidence/distribution/usage, invalid legend keys/content | `INVALID_RESPONSE`; do not invent missing values. |
 | T14 | Probability keys mismatch or absolute sum error >=0.02 | `INVALID_RESPONSE`; rounded distributions within tolerance preserved without normalization. |
 | T15 | Native fractional score and structured legend; choice special labels | Values/shapes/labels preserved exactly. |
-| T16 | Kev explicitly reports `truncated: true` | `INPUT_TRUNCATED`. Missing marker does not prove an arbitrary server never truncates. |
+| T16 | Laya fixture explicitly reports `truncated: true` | `INPUT_TRUNCATED`. Missing marker does not prove Laya read the whole input; live Laya can silently truncate. |
 | T17 | Valid/invalid request-ID header | Preserve bounded safe ID only; unsafe header ignored. |
 | T18 | Extra upstream fields / raw error body / unexpected exception | Strip unrecognized answer/response fields; locally sanitized errors; no raw bodies, credentials, or arbitrary thrown messages leaked. |
 | T19 | Abort before invocation, while resolving evidence/credentials, during fetch/body/retry wait, or just before adapter completion | Cancellation rejects to OpenCode, not a failure/success envelope; no late successful completion. |
-| T20 | Stop only a separately managed disposable Kev instance | Subsequent call fails with sanitized `NETWORK_ERROR`; plugin never starts/stops/downloads that service itself. |
+| T20 | Stop only a separately managed disposable Laya instance | Subsequent call fails with sanitized `NETWORK_ERROR`; plugin never starts/stops/downloads that service itself. |
 
 For interactive cancellation, use a **separate test client/session** and cancel
 its pending request. Do not interrupt the session coordinating this checklist.
@@ -419,7 +419,7 @@ Date / tester:
 OpenCode version / interface (Code Mode, TUI, web):
 Plugin revision / effective configuration (redacted):
 Backend / requested and reported model:
-Kev revision / checkpoint / backend / precision (if tested):
+Laya version / checkpoint revision / actual device / precision (if tested):
 Automated checks: command, status, test count, unrelated failures:
 Case IDs: PASS / FAIL / NOT RUN / KNOWN LIMITATION:
 Failed case: synthetic arguments, expected result, sanitized actual result:
@@ -440,6 +440,7 @@ On 2026-09-30, live TypeSafe Code Mode checks against `jev-1.13.0` exercised the
 primary text/file/diff/named/limit/rejection paths. The subsequent structured
 legend and safe-label-list fixes passed a combined live regression call, plus
 52 automated tests and typecheck. The upstream `__proto__` **object-map** transport
-limitation remains; the entry-list form is the supported workaround. No live Kev
-or separate TUI/web smoke verification was claimed. Repeat this plan after
+limitation remains; the entry-list form is the supported workaround. A subsequent
+local Laya adapter/service call verified `noul`, `choice`, and `score` on a short
+synthetic incident report. No separate Laya TUI/web smoke verification was claimed. Repeat this plan after
 changes rather than treating that historical run as verification of a new build.

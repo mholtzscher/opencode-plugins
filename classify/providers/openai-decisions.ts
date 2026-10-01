@@ -7,7 +7,7 @@ export function unavailableOpenAI(): DecisionAdapter {
       return Promise.reject(
         new ClassificationError(
           "PROVIDER_UNAVAILABLE",
-          "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Kev instead."
+          "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead."
         )
       );
     },

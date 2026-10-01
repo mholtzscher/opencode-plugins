@@ -83,7 +83,7 @@ test("executor resolves evidence in the session location before provider HTTP", 
   try {
     await writeFile(join(directory, "a.ts"), "actual contents");
     const tools = await register(
-      { backend: { baseURL: fixture.url.origin, provider: "kev" } },
+      { backend: { baseURL: fixture.url.origin, provider: "laya" } },
       {
         directory,
         tools: [
@@ -139,7 +139,7 @@ test("executor forwards interruption to an in-flight request", async () => {
   });
   try {
     const tools = await register({
-      backend: { baseURL: fixture.url.origin, provider: "kev" },
+      backend: { baseURL: fixture.url.origin, provider: "laya" },
     });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20);
@@ -213,7 +213,7 @@ test("entry normalizes transport-safe criteria and preserves structured provider
   };
   try {
     const [tool] = await register({
-      backend: { baseURL: fixture.url.origin, provider: "kev" },
+      backend: { baseURL: fixture.url.origin, provider: "laya" },
       classifiers: { review: { description: "Review", questions: q } },
     });
     const context = { signal: new AbortController().signal } as ToolContext;

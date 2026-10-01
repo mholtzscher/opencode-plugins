@@ -13,7 +13,7 @@ import { examples, input, questions, response } from "./fixtures.js";
 
 test("named and ad hoc requests retain maps, reported model and native measurements", async () => {
   const options = parseOptions({
-    backend: { provider: "kev" },
+    backend: { provider: "laya" },
     classifiers: { triage: { description: "Triage", questions } },
   });
   const calls: DecisionRequest[] = [];
@@ -24,7 +24,7 @@ test("named and ad hoc requests retain maps, reported model and native measureme
       calls.push(request);
       return response();
     },
-    provider: "kev",
+    provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
   };
   const service = createClassifier(options, adapter);
@@ -33,7 +33,7 @@ test("named and ad hoc requests retain maps, reported model and native measureme
     expect(output.ok).toBe(true);
     if (output.ok) {
       expect(output.result.model).toBe("resolved-model");
-      expect(output.result.provider).toBe("kev");
+      expect(output.result.provider).toBe("laya");
       expect(output.result.usage).toEqual(response().usage);
       expect(output.result.durationMs).toBeGreaterThanOrEqual(0);
       expect(output.result.classifier).toBe(
@@ -118,7 +118,7 @@ test("OpenAI gate wins over capability checks without credentials or network", a
     error: {
       code: "PROVIDER_UNAVAILABLE",
       message:
-        "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Kev instead.",
+        "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
       provider: "openai-decisions",
       retryable: false,
     },

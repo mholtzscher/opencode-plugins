@@ -36,7 +36,7 @@ test("key files support absolute and home-relative paths and rotation", async ()
   );
   expect(
     await resolveKey(
-      { apiKeyFile: `~/${relative(homedir(), path)}`, provider: "kev" },
+      { apiKeyFile: `~/${relative(homedir(), path)}`, provider: "laya" },
       new AbortController().signal
     )
   ).toBe("sentinel-second");
@@ -75,7 +75,7 @@ test("invalid files return sanitized failures without HTTP or fallback", async (
     }
     await expect(
       resolveKey(
-        { apiKeyFile: directories[0], provider: "kev" },
+        { apiKeyFile: directories[0], provider: "laya" },
         new AbortController().signal
       )
     ).rejects.toHaveProperty("failure.code", "MISSING_CREDENTIALS");

@@ -30,7 +30,7 @@ test("invalid selectors, content, fields and native criteria fail", () => {
   for (const value of [
     { state: "x" },
     { ...input, classifier: "named" },
-    { ...input, provider: "kev" },
+    { ...input, provider: "laya" },
     { ...input, state: " " },
     { ...input, state: {} },
     { ...input, state: [] },
@@ -130,7 +130,7 @@ test("question, choice and score boundaries include special own labels", () => {
       usage: { input_tokens: 0, output_tokens: 0 },
     },
     special,
-    "kev"
+    "laya"
   );
   expect(JSON.stringify(result)).toContain('"__proto__":0.8');
 });
@@ -214,12 +214,12 @@ test("malformed native responses fail atomically and extras are stripped", () =>
   for (const mutate of mutations) {
     const r = response();
     mutate(r);
-    expect(() => validateResponse(r, input, "kev")).toThrow(
+    expect(() => validateResponse(r, input, "laya")).toThrow(
       "invalid classification response"
     );
   }
   expect(() =>
-    validateResponse({ ...response(), truncated: true }, input, "kev")
+    validateResponse({ ...response(), truncated: true }, input, "laya")
   ).toThrow("truncated input");
   const withExtras = response();
   Object.assign(withExtras.answers.urgent, {
@@ -248,14 +248,14 @@ test("255-label rounded distribution passes tolerance without normalization", ()
     model: "m",
     usage: { input_tokens: 0, output_tokens: 0 },
   };
-  expect(validateResponse(r, request, "kev").answers.q).toHaveProperty(
+  expect(validateResponse(r, request, "laya").answers.q).toHaveProperty(
     "probabilities",
     probabilities
   );
   r.answers.q.probabilities = Object.fromEntries(
     Object.keys(criteria).map((key) => [key, 0.0038])
   );
-  expect(() => validateResponse(r, request, "kev")).toThrow();
+  expect(() => validateResponse(r, request, "laya")).toThrow();
 });
 test("score legends preserve native string, object, and array descriptions", () => {
   const criteria = [
@@ -284,7 +284,7 @@ test("score legends preserve native string, object, and array descriptions", () 
     model: "jev-test",
     usage: { input_tokens: 1, output_tokens: 1 },
   };
-  for (const provider of ["typesafe", "kev"] as const) {
+  for (const provider of ["typesafe", "laya"] as const) {
     expect(validateResponse(native, request, provider)).toEqual(native);
     for (const level of [null, true, 1, " ", {}, []]) {
       expect(() =>

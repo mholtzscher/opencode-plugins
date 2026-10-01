@@ -1,6 +1,6 @@
 # Classify
 
-One server-side `classify` tool for bounded judgments. TypeSafe AI and an externally managed Kev HTTP server use the verified System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
+One server-side `classify` tool for bounded judgments. TypeSafe AI and an externally managed Laya HTTP server use the System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
 
 The TUI entry is a no-op. Credentials and classification run on the OpenCode server, including when the TUI connects remotely. Setup makes no network calls and downloads no models.
 
@@ -12,7 +12,30 @@ Merge one of the following plugin entries into your existing `plugins` array. Do
 github:mholtzscher/opencode-plugins#main::path:classify
 ```
 
-The repository's root configuration activates this plugin with TypeSafe AI. Set `TYPESAFE_API_KEY` in the OpenCode server environment before invoking it.
+The repository's root configuration uses the `laya` provider. `mise run opencode` starts the Laya daemon and waits for its health endpoint before launching OpenCode. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
+
+### Local Laya with mise
+
+From the repository root:
+
+```sh
+mise run opencode
+```
+
+Mise uses Pitchfork to supervise Laya 0.3.22 on `http://127.0.0.1:8000`. The first start uses uv to install `laya[serve]` in a cached Python 3.12 environment and downloads the English checkpoint from Hugging Face. PyTorch's backend is selected automatically for the host. Startup allows up to 20 minutes for installation and model loading. No API key is configured; the listener is loopback-only.
+
+To manage the server separately:
+
+```sh
+mise daemons start laya
+mise daemons status laya
+mise daemons logs laya
+mise daemons stop laya
+```
+
+The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; the classify endpoint and model are in `opencode.jsonc`. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
+
+Laya serves `/v1/systemone`, and results report `provider: "laya"`. Laya's confidence semantics differ from Jev's, choice questions have a 100-option HTTP cap and smaller practical token budgets, and long states can be silently truncated. The plugin does not expose Laya's token-budget controls or extra confidence and routing metadata. Use short inputs and validate accuracy and thresholds on your own examples.
 
 ### Hosted TypeSafe
 
@@ -43,9 +66,9 @@ The file must contain only the key, not JSON or an `export` statement. Surroundi
 
 `apiKeyFile` accepts an absolute path or a `~/` path relative to the OpenCode server user's home directory. Relative project paths and `~otheruser` paths are rejected. The file must exist on the server, not the remote TUI machine. It must be a readable regular UTF-8 file of at most 16 KiB containing one nonblank key without internal whitespace or control characters. Symlinks to regular files are permitted.
 
-Choose either `apiKeyFile` or `apiKeyEnv`, never both. Selecting a file disables the default environment source and never falls back to it. The plugin reads the file at each invocation, so key rotation does not require a reload. It never reads the file during setup. Missing, unreadable, empty, oversized, or malformed files return sanitized `MISSING_CREDENTIALS` errors before HTTP. Kev also accepts `apiKeyFile`. OpenAI accepts the option but its unavailable adapter never opens it.
+Choose either `apiKeyFile` or `apiKeyEnv`, never both. Selecting a file disables the default environment source and never falls back to it. The plugin reads the file at each invocation, so key rotation does not require a reload. It never reads the file during setup. Missing, unreadable, empty, oversized, or malformed files return sanitized `MISSING_CREDENTIALS` errors before HTTP. Laya also accepts `apiKeyFile`. OpenAI accepts the option but its unavailable adapter never opens it.
 
-### Unauthenticated loopback Kev
+### Unauthenticated loopback Laya
 
 ```jsonc
 {
@@ -53,7 +76,7 @@ Choose either `apiKeyFile` or `apiKeyEnv`, never both. Selecting a file disables
   "plugins": [{
     "package": "./classify",
     "options": {
-      "backend": { "provider": "kev", "baseURL": "http://127.0.0.1:8009" },
+      "backend": { "provider": "laya", "baseURL": "http://127.0.0.1:8000" },
       "classifiers": {
         "incident-triage": {
           "description": "Check whether a report describes an active production incident.",
@@ -67,9 +90,9 @@ Choose either `apiKeyFile` or `apiKeyEnv`, never both. Selecting a file disables
 }
 ```
 
-This sends no authorization header and uses `kev-latest`. Start Kev separately before invoking the tool.
+This sends no authorization header and uses `english`. Start Laya separately before invoking the tool.
 
-### Authenticated local Kev
+### Authenticated local Laya
 
 ```jsonc
 {
@@ -78,10 +101,10 @@ This sends no authorization header and uses `kev-latest`. Start Kev separately b
     "package": "./classify",
     "options": {
       "backend": {
-        "provider": "kev",
-        "baseURL": "http://127.0.0.1:8009",
-        "model": "kev-latest",
-        "apiKeyEnv": "KEV_API_KEY"
+        "provider": "laya",
+        "baseURL": "http://127.0.0.1:8000",
+        "model": "english",
+        "apiKeyEnv": "LAYA_API_KEY"
       },
       "timeoutMs": 120000,
       "maxRetries": 0,
@@ -118,9 +141,9 @@ This sends no authorization header and uses `kev-latest`. Start Kev separately b
 }
 ```
 
-Set matching `KEV_API_KEY` values for the Kev process and the OpenCode server. `apiKeyEnv` names an environment variable; it is not a literal key. The longer deadline allows slower local inference. `maxRetries: 0` disables automatic retries.
+Set matching `LAYA_API_KEY` values for the Laya process and the OpenCode server. `apiKeyEnv` names an environment variable; it is not a literal key. The longer deadline allows slower local inference. `maxRetries: 0` disables automatic retries.
 
-### Self-hosted Kev behind HTTPS
+### Self-hosted Laya behind HTTPS
 
 ```jsonc
 {
@@ -129,9 +152,9 @@ Set matching `KEV_API_KEY` values for the Kev process and the OpenCode server. `
     "package": "./classify",
     "options": {
       "backend": {
-        "provider": "kev",
-        "baseURL": "https://kev.example.com",
-        "apiKeyEnv": "COMPANY_KEV_API_KEY"
+        "provider": "laya",
+        "baseURL": "https://laya.example.com",
+        "apiKeyEnv": "COMPANY_LAYA_API_KEY"
       },
       "timeoutMs": 60000,
       "maxRetries": 0
@@ -158,7 +181,7 @@ This registers the tool but returns `PROVIDER_UNAVAILABLE` on valid invocations 
 
 ### Option limits
 
-`backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Kev defaults to `http://127.0.0.1:8009`, `kev-latest`, and no authentication. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
+`backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
 
 `timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters and a valid question map. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
 
@@ -187,7 +210,7 @@ Put content to evaluate in `state` and the judgment in each question's `instruct
 | `choice` | Map of 2–255 distinct nonblank labels, at most 128 characters each, to descriptions or null; alternatively a list of `{ label, description }` entries | One allowed `choice`, the exact label distribution, and native `confidence`. |
 | `score` | Ordered array of 2–10 nonempty level descriptions | Fractional `score` in `[0, levels.length - 1]`, the upstream legend, distribution, and native `confidence`. |
 
-Descriptions accept the same content shapes as instructions. The choice/score limits are conservative shared plugin rules. Confidence is not a probability of correctness. Distributions must match all requested labels or indices and have absolute sum error below `0.02`; the plugin never renormalizes, rounds, thresholds, or rescales values. Missing required native measurements, mismatched IDs/types, invalid usage or legends fail the entire result. No partial answers escape. Reported Kev truncation fails with `INPUT_TRUNCATED`; a missing marker does not prove an arbitrary server never truncates.
+Descriptions accept the same content shapes as instructions. These are plugin validation limits, not a guarantee that a backend accepts the request. Laya imposes tighter choice and token budgets. Confidence is not a probability of correctness. Distributions must match all requested labels or indices and have absolute sum error below `0.02`; the plugin never renormalizes, rounds, thresholds, or rescales values. Missing required native measurements, mismatched IDs/types, invalid usage or legends fail the entire result. No partial answers escape. A Laya response reporting `truncated: true` fails with `INPUT_TRUNCATED`; absence of that marker does not prove the input was read in full.
 
 Score legends preserve native nonblank strings, nonempty objects, and nonempty arrays rather than converting structured descriptions to strings. The legend must contain exactly the requested zero-based level indices; null, primitive booleans/numbers, and empty descriptions are rejected.
 
@@ -287,7 +310,7 @@ An illustrative `1.6` remains `1.6` on the zero-based scale 0–2, not a percent
 { "state": { "message": "Production is down after the deploy." }, "classifier": "incident-triage" }
 ```
 
-Named mode sends the stored questions unchanged. The caller cannot override them. With the authenticated Kev example, `{ "state": "Fix stale cache after deploy", "classifier": "change-kind" }` also works.
+Named mode sends the stored questions unchanged. The caller cannot override them. With the authenticated Laya example, `{ "state": "Fix stale cache after deploy", "classifier": "change-kind" }` also works.
 
 ### Files and diffs as first-class evidence
 
@@ -346,7 +369,7 @@ Named success adds `result.classifier`. `model` preserves the provider's reporte
   "ok": false,
   "error": {
     "code": "PROVIDER_UNAVAILABLE",
-    "message": "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Kev instead.",
+    "message": "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
     "retryable": false,
     "provider": "openai-decisions"
   }
@@ -369,7 +392,7 @@ Only explicit HTTP 429 and 529 responses automatically retry. Delays are 500 ms,
 | `PROVIDER_UNAVAILABLE` | HTTP 529 or other 5xx is retryable. Other 5xx do not automatically retry. The OpenAI gate is not retryable. |
 | `REQUEST_REJECTED` | Other unsuccessful status, including 422. No retry. |
 | `NETWORK_ERROR`, `TIMEOUT` | Connection failure or invocation deadline. Retryable but never automatically retried. |
-| `INVALID_RESPONSE`, `INPUT_TRUNCATED` | Invalid/oversized JSON, native contract violation, or explicit Kev truncation. No retry. |
+| `INVALID_RESPONSE`, `INPUT_TRUNCATED` | Invalid/oversized JSON, native contract violation, or explicit Laya truncation marker. No retry. |
 | `INTERNAL_ERROR` | Unexpected local failure, sanitized. |
 
 Errors use locally constructed messages and may include HTTP `status`; raw upstream bodies and arbitrary thrown messages are never included. `retryable` means a caller could retry later, not that doing so is free or idempotent. A timed-out request may already have incurred cost. Usage only preserves what the successful upstream response reports; it may omit failed-attempt costs.
@@ -380,18 +403,17 @@ Calls may send private content to the configured backend and incur API charges. 
 
 Never put literal secrets in plugin options. Keys are resolved at invocation time from only the selected environment variable or credential file. Key contents and file read errors never appear in tool output. Keys on a remote TUI machine do not configure the server. High confidence neither makes a decision correct nor authorizes another tool. Normal OpenCode permissions still govern subsequent actions.
 
-## Run Kev separately
+## Run Laya separately
 
-Use Kev's own HTTP server, not an OpenAI-compatible chat server. In a separate checkout of [Kev](https://github.com/jaredpalmer/kev):
+Use [Laya's HTTP server](https://github.com/NandhaKishorM/laya), not an OpenAI-compatible chat server:
 
 ```sh
-uv sync --extra serve
-uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.8b --port 8009
+LAYA_HOST=127.0.0.1 LAYA_PORT=8000 LAYA_MODELS=english uv tool run --python 3.12 --torch-backend=auto --from 'laya[serve]==0.3.22' laya-serve
 ```
 
-This is the upstream-documented starting point. The first run downloads weights; checkpoint, hardware, precision, and runtime requirements belong to the operator. Kev binds to loopback by default. Set `KEV_API_KEY` when starting authenticated Kev and give OpenCode the same key through `apiKeyEnv`.
+The first run installs dependencies and downloads weights. Checkpoint, hardware, precision, and runtime requirements belong to the operator. Set `LAYA_HOST=127.0.0.1` explicitly because Laya otherwise binds to all interfaces. Set `LAYA_API_KEY` when starting authenticated Laya and give OpenCode the same key through `apiKeyEnv`.
 
-`kev-latest` is a serving alias for the checkpoint already loaded by the process, not a per-call checkpoint selector. Kev currently echoes the requested alias as `model`. It does not identify immutable weights. Inspect `GET /v1/models` manually for checkpoint, backend, and precision details. The plugin never installs Python, downloads weights, starts or stops Kev, exposes a listener, or polls for readiness. A stopped server produces a sanitized network error.
+`model` selects a Laya checkpoint per request. `LAYA_MODELS` controls preloading, not which checkpoints clients can select. Unknown model names fall back to Laya's automatic routing, so check configured names carefully. The response's model string does not identify immutable weights; inspect `GET /health` for loaded checkpoints, revisions, and actual devices. The plugin never installs Python, downloads weights, starts or stops Laya, exposes a listener, or polls for readiness. The repository's mise daemon manages startup separately. A stopped server produces a sanitized network error.
 
 ## Verification
 
@@ -401,13 +423,13 @@ See [SMOKE_TESTING.md](./SMOKE_TESTING.md) for disposable-fixture setup, the com
 
 ### Manual OpenCode and live smoke procedure
 
-Live TypeSafe calls through OpenCode Code Mode have verified text/file/diff evidence, named classifiers, native answer types, structured score legends, and transport-safe choice criteria lists against synthetic inputs (`jev-1.13.0`). This is a connectivity/contract smoke check, not a general model-accuracy claim. No live Kev or separate TUI/web-client smoke check has been performed. The following is the full manual procedure for additional verification:
+Live TypeSafe calls through OpenCode Code Mode have verified text/file/diff evidence, named classifiers, native answer types, structured score legends, and transport-safe choice criteria lists against synthetic inputs (`jev-1.13.0`). A local Laya adapter/service smoke check verified all three native answer types on a short synthetic incident report. These are connectivity/contract checks, not general model-accuracy claims. No separate Laya TUI/web-client smoke check has been performed. The following is the full manual procedure for additional verification:
 
 1. Create a temporary project outside this repository, for example under `/tmp/opencode/classify-smoke`. Give its `opencode.jsonc` only this plugin's absolute directory path and one of the configurations above. Start a V2 TUI or web client in that project. Verify the effective plugin list because global configuration can still load other plugins.
 2. Configure TypeSafe and set its key on the actual server. Ask the agent to invoke `classify` with the mixed example exactly as written. Check `ok: true`, all three native answer types, unchanged fractional score, complete distributions and legends, reported model, token usage, and duration. Record the OpenCode version and model. Interrupt a pending call and verify it does not complete as a successful tool result.
 3. Reload with a named classifier and submit the named example. Check `result.classifier` and the configured answer IDs. Verify the tool description and schema list only your configured names.
-4. Start only your separately managed test Kev instance. Record `git rev-parse HEAD` in that Kev checkout. Inspect `http://127.0.0.1:8009/v1/models` manually, using authentication if configured. Record checkpoint, backend, and precision. Load the Kev configuration and repeat the mixed and named requests.
-5. Stop only the test Kev process you started, repeat a request, and check `NETWORK_ERROR` without submitted content or keys. Do not stop unrelated servers.
+4. Start only your separately managed test Laya instance. Record the Laya version. Inspect `http://127.0.0.1:8000/health` manually. Record loaded checkpoints, revisions, and actual devices. Load the Laya configuration and repeat the mixed and named requests.
+5. Stop only the test Laya process you started, repeat a request, and check `NETWORK_ERROR` without submitted content or keys. Do not stop unrelated servers.
 6. Configure the reserved OpenAI backend and verify `PROVIDER_UNAVAILABLE`, with no request to OpenAI or substitute provider.
 
 Threshold tuning and comparative accuracy require representative labeled data and are outside v1.

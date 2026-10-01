@@ -17,7 +17,7 @@ export type BackendOptions =
       apiKeyFile?: string;
     }
   | {
-      provider: "kev";
+      provider: "laya";
       baseURL?: string;
       model?: string;
       apiKeyEnv?: string;
@@ -58,7 +58,7 @@ function freeze(value: unknown): void {
     Object.freeze(value);
   }
 }
-function kevOrigin(value: unknown): string {
+function layaOrigin(value: unknown): string {
   if (typeof value !== "string" || !ORIGIN.test(value)) {
     return configError();
   }
@@ -84,7 +84,7 @@ function kevOrigin(value: unknown): string {
 function parseBackend(value: unknown): BackendOptions {
   const backend = record(value);
   if (
-    !["typesafe", "kev", "openai-decisions"].includes(
+    !["typesafe", "laya", "openai-decisions"].includes(
       backend.provider as string
     )
   ) {
@@ -92,7 +92,7 @@ function parseBackend(value: unknown): BackendOptions {
   }
   fields(
     backend,
-    backend.provider === "kev"
+    backend.provider === "laya"
       ? ["provider", "model", "apiKeyEnv", "apiKeyFile", "baseURL"]
       : ["provider", "model", "apiKeyEnv", "apiKeyFile"]
   );
@@ -120,12 +120,12 @@ function parseBackend(value: unknown): BackendOptions {
   ) {
     backend.apiKeyEnv ??= "OPENAI_API_KEY";
   }
-  if (backend.provider === "kev") {
-    backend.model ??= "kev-latest";
-    backend.baseURL = kevOrigin(
+  if (backend.provider === "laya") {
+    backend.model ??= "english";
+    backend.baseURL = layaOrigin(
       Object.hasOwn(backend, "baseURL")
         ? backend.baseURL
-        : "http://127.0.0.1:8009"
+        : "http://127.0.0.1:8000"
     );
   }
   return backend as BackendOptions;

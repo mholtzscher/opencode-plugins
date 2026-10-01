@@ -30,7 +30,7 @@ function options(endpoint: string, overrides = {}) {
     ...overrides,
   };
 }
-test("Kev sends the complete System One body, auth and fixed path", async () => {
+test("Laya sends the complete System One body, auth and fixed path", async () => {
   const keyName = "CLASSIFY_TEST_KEY";
   process.env[keyName] = "sentinel-key";
   const calls: { url: string; body: unknown; auth: string | null }[] = [];
@@ -51,7 +51,7 @@ test("Kev sends the complete System One body, auth and fixed path", async () => 
       const config = parseOptions({
         backend: {
           baseURL: origin,
-          provider: "kev",
+          provider: "laya",
           ...(apiKeyEnv ? { apiKeyEnv } : {}),
         },
       });
@@ -61,7 +61,7 @@ test("Kev sends the complete System One body, auth and fixed path", async () => 
     expect(calls).toEqual(
       [undefined, "Bearer sentinel-key"].map((auth) => ({
         auth: auth ?? null,
-        body: { ...input, model: "kev-latest" },
+        body: { ...input, model: "english" },
         url: `${origin}/v1/systemone`,
       }))
     );
@@ -346,7 +346,7 @@ test("invalid native 200 responses are not retried or leaked", async () => {
     return Response.json({ answers: {}, model: "SECRET" });
   });
   const config = parseOptions({
-    backend: { baseURL: origin, provider: "kev" },
+    backend: { baseURL: origin, provider: "laya" },
     maxRetries: 2,
   });
   const output = await createClassifier(config, createAdapter(config)).classify(

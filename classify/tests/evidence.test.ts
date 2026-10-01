@@ -205,12 +205,12 @@ test("service expands evidence before the provider and fails atomically on resol
       requests.push(request);
       return response();
     },
-    provider: "kev",
+    provider: "laya",
     supportedTypes: ["noul", "choice", "score"],
   };
   const service = createClassifier(
     parseOptions({
-      backend: { provider: "kev" },
+      backend: { provider: "laya" },
       classifiers: { review: { description: "Review", questions } },
     }),
     adapter

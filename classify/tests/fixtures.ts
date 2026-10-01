@@ -41,7 +41,7 @@ export function response() {
 export const examples = [
   { backend: { provider: "typesafe" } },
   {
-    backend: { baseURL: "http://127.0.0.1:8009", provider: "kev" },
+    backend: { baseURL: "http://127.0.0.1:8000", provider: "laya" },
     classifiers: {
       "incident-triage": {
         description:
@@ -58,10 +58,10 @@ export const examples = [
   },
   {
     backend: {
-      apiKeyEnv: "KEV_API_KEY",
-      baseURL: "http://127.0.0.1:8009",
-      model: "kev-latest",
-      provider: "kev",
+      apiKeyEnv: "LAYA_API_KEY",
+      baseURL: "http://127.0.0.1:8000",
+      model: "english",
+      provider: "laya",
     },
     classifiers: {
       "change-kind": {
@@ -105,9 +105,9 @@ export const examples = [
   },
   {
     backend: {
-      apiKeyEnv: "COMPANY_KEV_API_KEY",
-      baseURL: "https://kev.example.com",
-      provider: "kev",
+      apiKeyEnv: "COMPANY_LAYA_API_KEY",
+      baseURL: "https://laya.example.com",
+      provider: "laya",
     },
     maxRetries: 0,
     timeoutMs: 60_000,

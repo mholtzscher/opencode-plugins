@@ -30,16 +30,16 @@ test("defaults are explicit, independent and immutable", () => {
   });
   expect(original).toEqual({ backend: { provider: "typesafe" } });
   expect(Object.isFrozen(options.backend)).toBe(true);
-  expect(parseOptions({ backend: { provider: "kev" } }).backend).toEqual({
-    baseURL: "http://127.0.0.1:8009",
-    model: "kev-latest",
-    provider: "kev",
+  expect(parseOptions({ backend: { provider: "laya" } }).backend).toEqual({
+    baseURL: "http://127.0.0.1:8000",
+    model: "english",
+    provider: "laya",
   });
   expect(parseOptions(examples[4]).backend.model).toBeUndefined();
 });
 test("named classifiers normalize criteria lists into immutable native maps", () => {
   const original = {
-    backend: { provider: "kev" },
+    backend: { provider: "laya" },
     classifiers: {
       review: {
         description: "Review an outage",
@@ -85,13 +85,14 @@ test("configuration rejects unknown fields and invalid limits without echoing va
     {},
     { backend: {} },
     { backend: { provider: "auto" } },
+    { backend: { provider: "kev" } },
     { backend: { apiKey: "SECRET", provider: "typesafe" } },
     { backend: { baseURL: "https://other", provider: "typesafe" } },
-    { backend: { apiKeyEnv: " ", provider: "kev" } },
+    { backend: { apiKeyEnv: " ", provider: "laya" } },
     { ...examples[0], timeoutMs: 999 },
     { ...examples[0], timeoutMs: null },
     { ...examples[0], maxRetries: null },
-    { backend: { baseURL: null, provider: "kev" } },
+    { backend: { baseURL: null, provider: "laya" } },
     { ...examples[0], timeoutMs: 300_001 },
     { ...examples[0], maxRetries: 3 },
     { ...examples[0], maxRetries: 0.5 },
@@ -105,7 +106,7 @@ test("configuration rejects unknown fields and invalid limits without echoing va
     ).toBe(timeoutMs);
   }
 });
-test("Kev origins reject paths, credentials, queries, fragments and remote plaintext", () => {
+test("Laya origins reject paths, credentials, queries, fragments and remote plaintext", () => {
   for (const baseURL of [
     "http://example.com",
     "https://example.com/v1",
@@ -118,17 +119,17 @@ test("Kev origins reject paths, credentials, queries, fragments and remote plain
     "https://example.com//",
   ]) {
     expect(() =>
-      parseOptions({ backend: { baseURL, provider: "kev" } })
+      parseOptions({ backend: { baseURL, provider: "laya" } })
     ).toThrow();
   }
   for (const baseURL of [
-    "http://localhost:8009/",
-    "http://[::1]:8009",
+    "http://localhost:8000/",
+    "http://[::1]:8000",
     "https://example.com/",
   ]) {
     expect(
-      parseOptions({ backend: { baseURL, provider: "kev" } }).backend.provider
-    ).toBe("kev");
+      parseOptions({ backend: { baseURL, provider: "laya" } }).backend.provider
+    ).toBe("laya");
   }
 });
 test("classifier names, descriptions and question maps obey bounds", () => {
@@ -159,7 +160,7 @@ test("classifier names, descriptions and question maps obey bounds", () => {
   ).toHaveLength(32);
 });
 test("key-file paths are explicit and mutually exclusive with environment sources", () => {
-  for (const provider of ["typesafe", "kev", "openai-decisions"]) {
+  for (const provider of ["typesafe", "laya", "openai-decisions"]) {
     for (const apiKeyFile of [
       "/private/key",
       "~/.config/opencode/typesafe.key",

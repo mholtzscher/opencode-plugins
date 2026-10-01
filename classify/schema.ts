@@ -369,15 +369,15 @@ function validateAnswer(value: unknown, question: Question): Answer {
 export function validateResponse(
   value: unknown,
   request: DecisionRequest,
-  provider: "typesafe" | "kev"
+  provider: "typesafe" | "laya"
 ): DecisionResponse {
   try {
     boundedJson(value);
     const response = record(value);
-    if (provider === "kev" && response.truncated === true) {
+    if (provider === "laya" && response.truncated === true) {
       throw new ClassificationError(
         "INPUT_TRUNCATED",
-        "Kev reported truncated input."
+        "Laya reported truncated input."
       );
     }
     if (!nonblank(response.model)) {
