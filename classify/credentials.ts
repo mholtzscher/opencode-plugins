@@ -3,93 +3,101 @@ import { open } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import {
+  Config,
+  ConfigProvider,
+  Context,
+  Effect,
+  Layer,
+  Redacted,
+} from "effect";
+
+import { readRegularFile } from "./bounded-file.js";
 import type { BackendOptions } from "./config.js";
-import { ClassificationError } from "./types.js";
+import { ClassificationError } from "./errors.js";
 
 const MAX_KEY_BYTES = 16 * 1024;
-// Reject whitespace and control characters before constructing a bearer header.
-// oxlint-disable-next-line eslint/no-control-regex -- Matching controls is the credential validation invariant.
+// oxlint-disable-next-line eslint/no-control-regex -- Bearer keys must not contain controls.
 const INVALID_KEY = /[\s\u0000-\u001F\u007F]/u;
 const missingFile = (): ClassificationError =>
   new ClassificationError(
     "MISSING_CREDENTIALS",
     "The configured API-key file must be a readable regular UTF-8 file containing one nonblank key, at most 16 KiB, on the OpenCode server."
   );
-const fileKey = async (
-  keyPath: string,
-  signal: AbortSignal
-): Promise<string> => {
-  signal.throwIfAborted();
-  // Nonblocking open avoids waiting on a mistakenly configured FIFO. Only
-  // regular files are accepted, and the read remains bounded if the file grows.
-  const handle = await open(
-    keyPath.startsWith("~/") ? path.join(homedir(), keyPath.slice(2)) : keyPath,
-    // Node filesystem open flags are a bitmask; both flags are required.
-    // oxlint-disable-next-line eslint/no-bitwise -- Node's fs.open flags use bitwise composition.
-    constants.O_RDONLY | constants.O_NONBLOCK
+const missingEnvironmentKey = () =>
+  new ClassificationError(
+    "MISSING_CREDENTIALS",
+    "Set the configured API-key environment variable on the OpenCode server."
   );
-  try {
-    signal.throwIfAborted();
-    const stat = await handle.stat();
-    if (!stat.isFile() || stat.size > MAX_KEY_BYTES) {
-      throw missingFile();
-    }
-    signal.throwIfAborted();
-    const buffer = Buffer.alloc(MAX_KEY_BYTES + 1);
-    let size = 0;
-    // Reads stay sequential so each bounded chunk and cancellation check completes before the next read.
-    for (;;) {
-      // oxlint-disable-next-line eslint/no-await-in-loop -- Sequential bounded reads preserve cancellation and byte-limit checks.
-      const { bytesRead } = await handle.read(
-        buffer,
-        size,
-        buffer.length - size,
-        size
-      );
-      signal.throwIfAborted();
-      size += bytesRead;
-      if (size > MAX_KEY_BYTES) {
-        throw missingFile();
-      }
-      if (bytesRead === 0) {
-        break;
-      }
-    }
-    const key = new TextDecoder("utf-8", { fatal: true })
-      .decode(buffer.subarray(0, size))
-      .trim();
-    if (!key || INVALID_KEY.test(key)) {
-      throw missingFile();
-    }
-    return key;
-  } finally {
-    await handle.close();
+const fileKey = Effect.fn("fileKey")(function* readFileKey(keyPath: string) {
+  const handle = yield* Effect.acquireRelease(
+    Effect.tryPromise({
+      catch: missingFile,
+      try: () =>
+        open(
+          keyPath.startsWith("~/")
+            ? path.join(homedir(), keyPath.slice(2))
+            : keyPath,
+          // oxlint-disable-next-line eslint/no-bitwise -- Node open flags are a bitmask.
+          constants.O_RDONLY | constants.O_NONBLOCK
+        ),
+    }),
+    (file) =>
+      Effect.tryPromise({ catch: missingFile, try: () => file.close() }).pipe(
+        Effect.ignore
+      )
+  );
+  const bytes = yield* readRegularFile(handle, MAX_KEY_BYTES, missingFile);
+  const key = yield* Effect.try({
+    catch: missingFile,
+    try: () => new TextDecoder("utf-8", { fatal: true }).decode(bytes).trim(),
+  });
+  if (!key || INVALID_KEY.test(key)) {
+    return yield* missingFile();
   }
-};
-export const resolveKey = async (
-  backend: BackendOptions,
-  signal: AbortSignal,
-  defaultKeyEnv?: string
-): Promise<string | undefined> => {
-  signal.throwIfAborted();
+  return Redacted.make(key);
+}, Effect.scoped);
+// Environment keys are read per invocation so rotation applies without a restart.
+export const resolveKey = Effect.fn("resolveKey")(function* resolveCredentials(
+  backend: BackendOptions
+): Effect.fn.Return<
+  Redacted.Redacted<string> | undefined,
+  ClassificationError
+> {
   if (backend.apiKeyFile !== undefined) {
-    try {
-      const key = await fileKey(backend.apiKeyFile, signal);
-      signal.throwIfAborted();
-      return key;
-    } catch {
-      signal.throwIfAborted();
-      // Filesystem errors expose secret-file paths and must not escape.
-      throw missingFile();
-    }
+    return yield* fileKey(backend.apiKeyFile);
   }
-  const env = backend.apiKeyEnv ?? defaultKeyEnv;
-  const key = env === undefined ? undefined : process.env[env];
-  if (env !== undefined && !key?.trim()) {
-    throw new ClassificationError(
-      "MISSING_CREDENTIALS",
-      "Set the configured API-key environment variable on the OpenCode server."
-    );
+  const env = backend.apiKeyEnv;
+  if (env === undefined) {
+    return undefined;
+  }
+  // fromEnv snapshots its source. Refresh it per invocation unless a provider
+  // was explicitly supplied, so both live rotation and ConfigProvider overrides work.
+  const provider =
+    Context.getOrUndefined(
+      yield* Effect.context(),
+      ConfigProvider.ConfigProvider
+    ) ?? ConfigProvider.fromEnv();
+  const key = yield* Config.redacted(env)
+    .parse(provider)
+    .pipe(Effect.mapError(missingEnvironmentKey));
+  if (!Redacted.value(key).trim()) {
+    return yield* missingEnvironmentKey();
   }
   return key;
-};
+});
+export class Credentials extends Context.Service<
+  Credentials,
+  {
+    resolve: (
+      backend: BackendOptions
+    ) => Effect.Effect<
+      Redacted.Redacted<string> | undefined,
+      ClassificationError
+    >;
+  }
+>()("classify/Credentials") {}
+export const CredentialsLive = Layer.succeed(
+  Credentials,
+  Credentials.of({ resolve: resolveKey })
+);

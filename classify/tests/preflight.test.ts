@@ -1,83 +1,211 @@
 import { expect, test } from "bun:test";
 
-import { parseOptions } from "../config.js";
-import { createAdapter } from "../providers/adapter.js";
-import { createPreflight } from "../providers/preflight.js";
-import { input, questions } from "./fixtures.js";
+import { Cause, Effect, Exit, Fiber, Layer, Redacted } from "effect";
+import { HttpClient, HttpClientResponse } from "effect/unstable/http";
+import type { HttpClientRequest } from "effect/unstable/http";
 
-test("provider preflight performs no credential lookups or HTTP calls", () => {
-  const adapters = ["typesafe", "laya", "openai-decisions"].map((provider) =>
-    createAdapter(
-      parseOptions({
-        backend: { apiKeyEnv: "CLASSIFY_PREFLIGHT_SENTINEL", provider },
+import { loadOptions } from "../config.js";
+import { Credentials } from "../credentials.js";
+import { backendLayer } from "../layers.js";
+import { DecisionBackend, createPreflight } from "../providers/backend.js";
+import { providerLayer } from "../providers/registry.js";
+import { input, questions, response } from "./fixtures.js";
+
+test("provider preflight performs no credential lookups or HTTP calls", async () => {
+  let reads = 0;
+  let calls = 0;
+  const dependencies = Layer.merge(
+    Layer.succeed(
+      Credentials,
+      Credentials.of({
+        resolve: () =>
+          Effect.sync(() => {
+            reads += 1;
+          }).pipe(Effect.andThen(Effect.die("Unexpected credential lookup"))),
       })
+    ),
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make(() =>
+        Effect.sync(() => {
+          calls += 1;
+        }).pipe(Effect.andThen(Effect.die("Unexpected preflight HTTP request")))
+      )
     )
   );
-  const originalEnv = process.env;
-  const originalFetch = globalThis.fetch;
-  const reads: string[] = [];
-  let calls = 0;
-  process.env = new Proxy(originalEnv, {
-    get(target, property) {
-      reads.push(String(property));
-      return target[String(property)];
-    },
-  });
-  const unexpectedFetch: typeof fetch = Object.assign(
-    () => {
-      calls += 1;
-      throw new Error("Unexpected preflight HTTP request");
-    },
-    { preconnect: originalFetch.preconnect }
+  const observed = await Effect.runPromise(
+    Effect.gen(function* observed() {
+      const result: string[] = [];
+      for (const provider of [
+        "typesafe",
+        "laya",
+        "openai-decisions",
+      ] as const) {
+        const options = yield* loadOptions({
+          backend: { apiKeyEnv: "CLASSIFY_PREFLIGHT_SENTINEL", provider },
+        });
+        yield* Effect.gen(function* providerPreflight() {
+          const adapter = yield* DecisionBackend;
+          result.push(adapter.provider);
+          const exit = yield* Effect.exit(adapter.preflight(questions));
+          if (provider === "openai-decisions") {
+            expect(Exit.isFailure(exit)).toBe(true);
+            if (Exit.isFailure(exit)) {
+              expect(Cause.squash(exit.cause)).toHaveProperty(
+                "failure.code",
+                "PROVIDER_UNAVAILABLE"
+              );
+            }
+          } else {
+            expect(Exit.isSuccess(exit)).toBe(true);
+          }
+        }).pipe(
+          Effect.provide(
+            providerLayer(options).pipe(Layer.provide(dependencies))
+          )
+        );
+      }
+      return result;
+    })
   );
-  globalThis.fetch = unexpectedFetch;
-  const { signal } = new AbortController();
-  let gatedError: unknown;
-  try {
-    adapters[0].preflight(questions, signal);
-    adapters[1].preflight(questions, signal);
-    try {
-      adapters[2].preflight(questions, signal);
-    } catch (error) {
-      gatedError = error;
-    }
-  } finally {
-    process.env = originalEnv;
-    globalThis.fetch = originalFetch;
-  }
-  expect(adapters.map((adapter) => adapter.provider)).toEqual([
-    "typesafe",
-    "laya",
-    "openai-decisions",
-  ]);
-  expect(gatedError).toHaveProperty("failure.code", "PROVIDER_UNAVAILABLE");
-  expect(reads).toEqual([]);
+  expect(observed).toEqual(["typesafe", "laya", "openai-decisions"]);
+  expect(reads).toBe(0);
   expect(calls).toBe(0);
 });
-test("capability preflight accepts supported questions and rejects mixed unsupported types", () => {
+
+test("capability preflight accepts supported questions and rejects mixed unsupported types", async () => {
   const preflight = createPreflight(["noul"]);
-  const { signal } = new AbortController();
-  expect(() => preflight({ urgent: questions.urgent }, signal)).not.toThrow();
-  expect(() => preflight(questions, signal)).toThrow(
-    "Configured provider does not support the requested question type."
-  );
-});
-test("every provider preflight preserves session cancellation", () => {
-  const controller = new AbortController();
-  const reason = new Error("Interrupted before preflight");
-  controller.abort(reason);
-  for (const provider of ["typesafe", "laya", "openai-decisions"]) {
-    const adapter = createAdapter(parseOptions({ backend: { provider } }));
-    expect(() => adapter.preflight(questions, controller.signal)).toThrow(
-      reason
+  await Effect.runPromise(preflight({ urgent: questions.urgent }));
+  const exit = await Effect.runPromiseExit(preflight(questions));
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    expect(Cause.squash(exit.cause)).toHaveProperty(
+      "failure.message",
+      "Configured provider does not support the requested question type."
     );
   }
 });
-test("unavailable strategy also rejects direct decide calls", async () => {
-  const adapter = createAdapter(
-    parseOptions({ backend: { provider: "openai-decisions" } })
+
+test("every provider preflight preserves fiber interruption", async () => {
+  const dependencies = Layer.merge(
+    Layer.succeed(
+      Credentials,
+      Credentials.of({ resolve: () => Effect.die("Unexpected credentials") })
+    ),
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make(() => Effect.die("Unexpected HTTP"))
+    )
   );
-  await expect(
-    adapter.decide(input, new AbortController().signal)
-  ).rejects.toHaveProperty("failure.code", "PROVIDER_UNAVAILABLE");
+  await Effect.runPromise(
+    Effect.gen(function* interruptedPreflight() {
+      for (const provider of [
+        "typesafe",
+        "laya",
+        "openai-decisions",
+      ] as const) {
+        const options = yield* loadOptions({ backend: { provider } });
+        const exit = yield* Effect.gen(function* exit() {
+          const adapter = yield* DecisionBackend;
+          const fiber = yield* Effect.forkChild(
+            Effect.interrupt.pipe(Effect.andThen(adapter.preflight(questions)))
+          );
+          return yield* Fiber.await(fiber);
+        }).pipe(
+          Effect.provide(
+            providerLayer(options).pipe(Layer.provide(dependencies))
+          )
+        );
+        expect(Exit.isFailure(exit)).toBe(true);
+        if (Exit.isFailure(exit)) {
+          expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+        }
+      }
+    })
+  );
+});
+
+test("unavailable strategy also rejects direct decide calls", async () => {
+  const options = Effect.runSync(
+    loadOptions({ backend: { provider: "openai-decisions" } })
+  );
+  const exit = await Effect.runPromiseExit(
+    Effect.gen(function* exit() {
+      const adapter = yield* DecisionBackend;
+      return yield* adapter.decide(input);
+    }).pipe(Effect.provide(backendLayer(options)))
+  );
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    expect(Cause.squash(exit.cause)).toHaveProperty(
+      "failure.code",
+      "PROVIDER_UNAVAILABLE"
+    );
+  }
+});
+
+test("factory layer uses injected credentials and HTTP client instead of live dependencies", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backend: { apiKeyEnv: "CLASSIFY_INJECTED_KEY", provider: "typesafe" },
+    })
+  );
+  let credentials = 0;
+  const requests: HttpClientRequest.HttpClientRequest[] = [];
+  const dependencies = Layer.merge(
+    Layer.succeed(
+      Credentials,
+      Credentials.of({
+        resolve: (backend) =>
+          Effect.sync(() => {
+            expect(backend).toBe(options.backend);
+            credentials += 1;
+            return Redacted.make("injected-secret");
+          }),
+      })
+    ),
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.sync(() => {
+          requests.push(request);
+          return HttpClientResponse.fromWeb(
+            request,
+            Response.json(response(), {
+              headers: { "x-typesafe-request-id": "injected-request" },
+            })
+          );
+        })
+      )
+    )
+  );
+  const result = await Effect.runPromise(
+    Effect.gen(function* result() {
+      const adapter = yield* DecisionBackend;
+      expect(adapter.provider).toBe("typesafe");
+      yield* adapter.preflight(questions);
+      expect(credentials).toBe(0);
+      expect(requests).toHaveLength(0);
+      return yield* adapter.decide(input);
+    }).pipe(
+      Effect.provide(providerLayer(options).pipe(Layer.provide(dependencies)))
+    )
+  );
+  expect(credentials).toBe(1);
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).toMatchObject({
+    headers: { authorization: "Bearer injected-secret" },
+    url: "https://api.typesafe.ai/v1/systemone",
+  });
+  if (requests[0].body._tag !== "Uint8Array") {
+    throw new Error("Expected an encoded JSON request body");
+  }
+  expect(
+    JSON.parse(new TextDecoder().decode(requests[0].body.body))
+  ).toMatchObject({
+    ...input,
+    model: "jev-latest",
+  });
+  expect(result).toHaveProperty("requestID", "injected-request");
+  expect(result).toHaveProperty("model", "resolved-model");
 });

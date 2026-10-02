@@ -5,7 +5,10 @@
     "": {
       "name": "opencode-classify-plugin",
       "dependencies": {
-        "@opencode/plugin": "^2.0.12",
+        "@effect/platform-node": "4.0.0-rc.112",
+        "@opencode/plugin": "2.0.21",
+        "@opencode/schema": "2.0.21",
+        "effect": "4.0.0-rc.112",
       },
       "devDependencies": {
         "@types/bun": "latest",

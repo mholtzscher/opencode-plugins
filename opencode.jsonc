@@ -10,8 +10,10 @@
       "package": "./classify",
       "options": {
         "backend": {
-          "provider": "typesafe",
-          "apiKeyFile": "~/.local/share/agenix/typesafe-api-key",
+          "provider": "cloudflare",
+          // Replace with your 32-character hexadecimal Cloudflare account ID.
+          "accountID": "f3ccf566c685532060346747f4610aa6",
+          "apiKeyFile": "/home/michael/.local/share/agenix/cloudflare-workers-ai-key",
         },
         "timeoutMs": 120000,
         "maxRetries": 0,

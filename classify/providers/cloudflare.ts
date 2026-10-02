@@ -1,43 +1,26 @@
+import { Effect, Schema } from "effect";
+
+import type { BackendOptions } from "../config.js";
+import { decodeWith, rejectTruncated } from "../protocols/response.js";
 import type { SystemOneDefinition } from "../protocols/system-one.js";
-import { createSystemOneAdapter } from "../protocols/system-one.js";
-import { ClassificationError } from "../types.js";
-import { invalid, nonblank, record } from "../validation/json.js";
+import { JsonValueSchema } from "../schemas.js";
+import { boundedCodec } from "../validation/codec.js";
 
-const ACCOUNT_ID = /^[a-fA-F0-9]{32}$/u;
+export const CloudflareResponseSchema = boundedCodec(
+  Schema.Struct({
+    result: Schema.Record(Schema.String, JsonValueSchema),
+    success: Schema.Literal(true),
+  })
+);
 
-export const cloudflare: SystemOneDefinition = {
-  configure(backend) {
-    if (
-      !nonblank(backend.accountID) ||
-      !ACCOUNT_ID.test(backend.accountID) ||
-      !["clef", "clef-flash"].includes(String(backend.model))
-    ) {
-      invalid();
-    }
-  },
-  createAdapter: (options) => createSystemOneAdapter(options, cloudflare),
-  decode(value) {
-    const envelope = record(value);
-    if (envelope.success !== true) {
-      return invalid();
-    }
-    const result = record(envelope.result);
-    if (result.truncated === true) {
-      throw new ClassificationError(
-        "INPUT_TRUNCATED",
-        "Cloudflare reported truncated input."
-      );
-    }
-    return result;
-  },
-  defaultKeyEnv: "CLOUDFLARE_AUTH_TOKEN",
-  defaultModel: "clef",
-  endpoint(backend) {
-    if (backend.provider !== "cloudflare") {
-      return invalid();
-    }
-    return `https://api.cloudflare.com/client/v4/accounts/${backend.accountID}/ai/run/@cf/cloudflare/${backend.model ?? "clef"}`;
-  },
-  fields: ["accountID"],
+export const cloudflare: SystemOneDefinition<
+  Extract<BackendOptions, { provider: "cloudflare" }>
+> = {
+  decode: (value) =>
+    decodeWith(CloudflareResponseSchema)(value).pipe(
+      Effect.flatMap(({ result }) => rejectTruncated("Cloudflare")(result))
+    ),
+  endpoint: (backend) =>
+    `https://api.cloudflare.com/client/v4/accounts/${backend.accountID}/ai/run/@cf/cloudflare/${backend.model}`,
   requestIDHeader: "cf-ray",
 };

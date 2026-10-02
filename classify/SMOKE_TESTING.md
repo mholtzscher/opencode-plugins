@@ -108,7 +108,7 @@ On platforms without symlink support, mark symlink cases NOT RUN. Git must be in
 
 These examples are **tool arguments**, not provider HTTP bodies. Ask the agent to invoke `classify` exactly as specified, or call `tools.classify` in Code Mode. Do not have the agent read and copy file contents into `state` for evidence cases.
 
-Check the `ok` discriminator before reading answers. In Code Mode, parse the returned JSON string before making assertions.
+Check the `ok` discriminator before reading answers. The migrated tool returns structured output; do not call `JSON.parse` on it. Rerun these smoke checks in the real OpenCode host to verify Code Mode handling and native permissions.
 
 For successes, require:
 
@@ -299,7 +299,7 @@ For accepted upper bounds, use repeated **empty** file references/patches so fix
 | L09 | Serialized JSON at exactly 1 MiB; one byte over | Unit boundary check; exact limit accepted, over rejected. Provider payload includes model/questions/escaping, not just file bytes. |
 | L10 | JSON traversal depth 32; 33 | Unit boundary check; 32 accepted, 33 rejected. |
 | I01 | Missing `questions`/`classifier`, or both supplied | `INVALID_INPUT`. |
-| I02 | Unknown classifier | `UNKNOWN_CLASSIFIER`, or host enum rejection; no evidence reads/provider dispatch. |
+| I02 | Unknown classifier | `INVALID_INPUT` at `/classifier`, or host enum rejection; no evidence reads/provider dispatch. |
 | I03 | Empty question map, blank instructions, unsupported type such as `boolean` | `INVALID_INPUT`. |
 | I04 | Unknown top-level/question/evidence/diff/entry fields; attempted provider/model/header override | `INVALID_INPUT`. |
 | I05 | Blank state, empty object/array, top-level null/boolean/number | `INVALID_INPUT`. Nested JSON primitives remain allowed. |
@@ -370,7 +370,6 @@ For interactive cancellation, use a **separate test client/session** and cancel 
 | `tests/json.test.ts` | JSON byte/depth limits, cycles, accessors, and non-JSON values. |
 | `tests/input.test.ts` | Input contracts, native question bounds, special labels, and criteria-list normalization. |
 | `tests/response.test.ts` | Provider response contracts and shared answer validation: distributions, structured legends, usage, truncation, and atomic failure. |
-| `tests/tool-schema.test.ts` | Generated tool-schema constraints, discovery descriptions, and named-classifier branches. |
 | `tests/tool-description.test.ts` | Tool guidance, named-classifier state modes, and the mixed-type example. |
 | `tests/preflight.test.ts` | Provider strategy selection, supported-question checks, cancellation, side-effect-free preflight, and the direct OpenAI gate. |
 | `tests/evidence.test.ts` | Files, symlinks, Git evidence, byte budgets, atomic failure, interruption and unavailable-provider guards. |

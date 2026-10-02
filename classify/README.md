@@ -4,6 +4,8 @@ One server-side `classify` tool for bounded judgments. TypeSafe AI, Cloudflare C
 
 The TUI entry is a no-op. Credentials and classification run on the OpenCode server, including when the TUI connects remotely. Setup makes no network calls and downloads no models.
 
+The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the registration scope and interrupts the native Effect pipeline. Each provider supplies a layer implementing `DecisionBackend`; credentials, evidence access, OpenCode integration, and HTTP transport are injectable services. Tool input and output use Effect Schema. Results are structured objects rather than JSON strings, so Code Mode callers should no longer call `JSON.parse`.
+
 ## Install and configure
 
 Merge one of the following plugin entries into your existing `plugins` array. Do not replace unrelated settings. A local checkout uses `"package": "./classify"`; install its dependencies with `bun install` from `classify/`. For installation from GitHub, replace that package value with:
@@ -234,30 +236,32 @@ The plugin supports text and structured JSON, not Clef's separate image input ex
 
 ## Provider architecture
 
-[`providers/adapter.ts`](./providers/adapter.ts) defines the `DecisionAdapter` interface and registry-driven `createAdapter` factory. [`providers/registry.ts`](./providers/registry.ts) supplies provider definitions for configuration and adapter selection. Each provider module owns its extra configuration fields, defaults, validation, and adapter factory. The dependency-free [`providers/ids.ts`](./providers/ids.ts) defines the provider IDs and derives the `ProviderID` type; the registry must implement every ID, and the output schema uses the same list without importing adapters or credential code. TypeSafe, Laya, and Cloudflare reuse [`protocols/system-one.ts`](./protocols/system-one.ts) for bounded requests, credentials, cancellation, retries, and native answer validation. System One is their shared API contract, not a provider. Its adapter, `SystemOneDefinition` type, and response validation live under `protocols/`. Response decoding belongs to `SystemOneDefinition`, so other protocols need not implement it. The reserved OpenAI strategy lives in [`providers/openai-decisions.ts`](./providers/openai-decisions.ts). Shared adapter selection and configuration parsing do not branch on provider identity.
+[`providers/backend.ts`](./providers/backend.ts) defines the `DecisionBackend` Effect service, and [`providers/registry.ts`](./providers/registry.ts) selects the provider layer for the configured backend. Configuration defaults (model, key variable, Laya origin) are applied by the options schema in [`schemas.ts`](./schemas.ts); each provider module owns its endpoint and response decoding. TypeSafe, Laya, and Cloudflare share System One backend construction in [`protocols/system-one.ts`](./protocols/system-one.ts). The unavailable OpenAI layer fails preflight without IO. [`layers.ts`](./layers.ts) composes the selected provider with credentials, transport, and evidence services. The plugin builds these layers once in its lifetime scope; each tool invocation passes its own OpenCode execution context.
 
-To add a provider, implement `ProviderDefinition` in a provider module, register it in `registry.ts`, add its ID to `providers/ids.ts`, and extend `BackendOptions`. For System One-compatible APIs, implement `SystemOneDefinition` with an endpoint, response decoder, and optional request-ID header and reuse the shared adapter. Other protocols can supply their own adapter without changing the service. Add configuration rejection, HTTP contract, malformed response, and output parser tests. Setup and preflight must remain free of credential, evidence, and network reads. Keep providers in individual modules until one needs several files, then move that provider into a folder and update its registry import.
+To add a provider, implement `ProviderDefinition` with a `DecisionBackend` layer in a provider module, register it in `registry.ts`, add its ID to `providers/ids.ts`, and extend the backend configuration schema. For System One-compatible APIs, implement `SystemOneDefinition` with an endpoint, response decoder, and optional request-ID header and reuse the shared layer construction. Other protocols can supply their own layer without changing the classifier program. Add configuration rejection, HTTP contract, malformed response, and output parser tests. Layer construction and preflight must remain free of credential, evidence, and network reads.
 
-Each strategy exposes `provider`, `supportedTypes`, a synchronous `preflight(questions, signal)`, and an asynchronous `decide(request, signal)`. Preflight owns availability and capability checks and must not read evidence, credentials, or the network. [`service.ts`](./service.ts) validates input and resolves named classifiers, calls preflight **before** resolving evidence, and then dispatches through `decide`. The shared [`providers/preflight.ts`](./providers/preflight.ts) helper implements supported-question checks; unavailable strategies reject directly. Direct adapter calls remain guarded, including the OpenAI no-HTTP gate.
+Each backend exposes `provider`, `preflight(questions)`, and `decide(request)`. Both methods return Effects with typed failures. Preflight owns availability and capability checks and must not read evidence, credentials, or the network. [`service.ts`](./service.ts) validates input and resolves named classifiers, calls preflight before resolving evidence, and then dispatches through `decide`. The OpenAI layer also rejects direct `decide` calls without HTTP.
 
 ## Tool contract
 
-The server entry uses `Plugin.define({ id: "classify", setup })` and `ctx.tool.transform(editor => editor.add(...))`. The concrete registration is in [`index.ts`](./index.ts); the generated tool JSON Schema is in [`tool-schema.ts`](./tool-schema.ts). Runtime validation is separated into [`validation/json.ts`](./validation/json.ts) for bounded JSON and common checks, [`validation/input.ts`](./validation/input.ts) for questions and tool arguments, [`validation/answers.ts`](./validation/answers.ts) for shared native measurements, and [`protocols/response.ts`](./protocols/response.ts) for System One responses. Its definition is:
+The server entry uses `Plugin.define({ id: "classify", effect })`. The registration in [`index.ts`](./index.ts) uses the input and output codecs from [`schemas.ts`](./schemas.ts). Bounded JSON security checks run before structural decoding. Request-aware checks validate provider distributions and score legends. The executor provides the services built in the plugin scope:
 
 ```ts
 {
   name: "classify",
   description, // Includes configured names and descriptions.
-  input: buildToolInputSchema(options.classifiers ?? {}),
-  execute: async (input, context) => ({
-    content: JSON.stringify(await service.classify(input, context.signal)),
-  }),
+  input: buildInputSchema(options.classifiers),
+  output: ClassifyOutputSchema,
+  execute: (input, context) => classify(options, input, context).pipe(
+    Effect.provideContext(services),
+    Effect.map((output) => ({ output })),
+  ),
 }
 ```
 
 Tool arguments are exactly one of `{ state, questions }`, `{ state, classifier }` for a classifier without configured state, or `{ classifier }` for a classifier with configured state. Never supply both `questions` and `classifier`. Without named classifiers only the ad hoc branch is advertised. Named branches enumerate configured names separately according to whether state is configured. All branches reject extra fields. Tool arguments cannot override configured state, backend, endpoint, model, credentials, or headers.
 
-The agent-facing description is built by [`tool-description.ts`](./tool-description.ts) and includes a mixed-type request, Code Mode JSON-string parsing and `ok` handling, answer fields, scale/confidence semantics, and the self-contained evidence boundary. Input-schema field descriptions repeat constraints that Code Mode's generated TypeScript signature may otherwise omit. Agents do not need to read this README to make and interpret a call.
+The agent-facing description is built by [`tool-description.ts`](./tool-description.ts) and includes a mixed-type request, structured output and `ok` handling, answer fields, scale/confidence semantics, and the self-contained evidence boundary. Input-schema field descriptions repeat constraints that Code Mode's generated TypeScript signature may otherwise omit. Agents do not need to read this README to make and interpret a call.
 
 Put content to evaluate in `state` and the judgment in each question's `instructions`. Both accept nonblank strings, nonempty JSON objects, or nonempty JSON arrays. `state` also supports the explicit evidence wrapper below, which reads files and generates Git diffs on the server. Nested JSON permits null, booleans, and finite numbers. Question IDs are response keys, not model instructions. Each call evaluates 1–64 independent questions against one shared state. For judgments depending on prior answers, make another call.
 
@@ -537,7 +541,7 @@ The existing envelope and native field names (`noul`, `confidence`, etc.) remain
 ```ts
 import { parseClassifyOutput } from "opencode-classify-plugin/output";
 
-const output = parseClassifyOutput(raw); // Code Mode JSON string or decoded object.
+const output = parseClassifyOutput(raw); // Structured object, or JSON text from older versions.
 if (output.ok) {
   console.log(output.result.answers);
 } else {
@@ -545,7 +549,9 @@ if (output.ok) {
 }
 ```
 
-The parser checks the envelope, required measurements, distributions, score bounds, and diagnostics without rounding or renormalizing. It throws a sanitized `TypeError` for malformed output, including `null`. The JSON Schema expresses structural constraints; the parser additionally enforces distribution sums and cross-field consistency. Neither verifies agreement with an original request it has not received. OpenCode still receives JSON text; this does not change Code Mode's `string | null` return signature. Existing `JSON.parse` callers remain supported.
+The parser checks the envelope, required measurements, distributions, score bounds, and diagnostics without rounding or renormalizing. It throws a sanitized `TypeError` for malformed output, including `null`. The JSON Schema expresses structural constraints; the parser additionally enforces distribution sums and cross-field consistency. Neither verifies agreement with an original request it has not received. OpenCode receives a typed output object. This is a compatibility change for callers that previously parsed a JSON string; the parser still accepts legacy JSON text.
+
+The exported JSON Schema is generated from the Effect output definition. It uses `anyOf` for discriminated alternatives and includes `$defs` for referenced definitions. Consumers that inspect the previous inline `oneOf` layout must update those lookups; JSON Schema validators should consume the complete document, including `$defs`.
 
 ## Transport and errors
 
@@ -553,7 +559,7 @@ Only explicit HTTP 429 and 529 responses automatically retry. Delays are 500 ms,
 
 | Code | Meaning |
 | --- | --- |
-| `INVALID_INPUT`, `UNKNOWN_CLASSIFIER`, `UNSUPPORTED_TYPE` | Invalid arguments, missing configured name, or unsupported type. No HTTP. |
+| `INVALID_INPUT`, `UNSUPPORTED_TYPE` | Invalid arguments (including an unknown classifier name or the wrong state mode for a named classifier, reported at `/classifier` or `/state`) or unsupported type. No HTTP. |
 | `EVIDENCE_ERROR` | File/Git evidence could not be resolved, access was denied, or a required native tool is unavailable. No HTTP. |
 | `MISSING_CREDENTIALS` | Set the configured server-side variable or supply a valid configured key file. No HTTP. |
 | `AUTH_FAILED` | HTTP 401/403. No retry. |
@@ -592,7 +598,7 @@ See [SMOKE_TESTING.md](./SMOKE_TESTING.md) for disposable-fixture setup, the com
 
 ### Manual OpenCode and live smoke procedure
 
-Live TypeSafe calls through OpenCode Code Mode have verified text/file/diff evidence, named classifiers, native answer types, structured score legends, and transport-safe choice criteria lists against synthetic inputs (`jev-1.13.0`). A local Laya adapter/service smoke check verified all three native answer types on a short synthetic incident report. These are connectivity/contract checks, not general model-accuracy claims. No separate Laya TUI/web-client smoke check has been performed. The following is the full manual procedure for additional verification:
+Before the Effect migration, live TypeSafe calls through OpenCode Code Mode verified text/file/diff evidence, named classifiers, native answer types, structured score legends, and transport-safe choice criteria lists against synthetic inputs (`jev-1.13.0`). A local Laya adapter/service smoke check verified all three native answer types on a short synthetic incident report. These are connectivity/contract checks, not general model-accuracy claims. The migrated runtime has automated layer and loopback HTTP coverage; its real-host and hosted-provider smoke checks still need to be rerun. No separate Laya TUI/web-client smoke check has been performed. The following is the full manual procedure for additional verification:
 
 1. Create a temporary project outside this repository, for example under `/tmp/opencode/classify-smoke`. Give its `opencode.jsonc` only this plugin's absolute directory path and one of the configurations above. Start a V2 TUI or web client in that project. Verify the effective plugin list because global configuration can still load other plugins.
 2. Configure TypeSafe and set its key on the actual server. Ask the agent to invoke `classify` with the mixed example exactly as written. Check `ok: true`, all three native answer types, unchanged fractional score, complete distributions and legends, reported model, token usage, and duration. Record the OpenCode version and model. Interrupt a pending call and verify it does not complete as a successful tool result.

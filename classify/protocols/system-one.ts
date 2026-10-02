@@ -1,78 +1,83 @@
-import type { BackendOptions, ClassifyOptions } from "../config.js";
-import { resolveKey } from "../credentials.js";
-import type { DecisionAdapter } from "../providers/adapter.js";
-import type { ProviderDefinition } from "../providers/definition.js";
-import { createPreflight } from "../providers/preflight.js";
-import { systemOneFetch } from "../transport.js";
-import { ClassificationError } from "../types.js";
-import type { JsonValue } from "../types.js";
-import { boundedJson } from "../validation/json.js";
-import { validateResponse } from "./response.js";
+import { Effect, Layer, Redacted } from "effect";
+import { HttpClient } from "effect/unstable/http";
 
-export interface SystemOneDefinition extends ProviderDefinition {
-  decode: (value: JsonValue) => JsonValue;
-  endpoint: (backend: BackendOptions) => string;
+import type { BackendOptions, ClassifyOptions } from "../config.js";
+import { Credentials } from "../credentials.js";
+import { createPreflight, DecisionBackend } from "../providers/backend.js";
+import { makeDecisionRequest } from "../transport.js";
+import type { TransportResult } from "../transport.js";
+import type { DecisionRequest } from "../types.js";
+import { requireBoundedJson } from "../validation/json.js";
+import { decodeResponse } from "./response.js";
+import type { NativeDecoder } from "./response.js";
+
+export interface SystemOneDefinition<Backend extends BackendOptions> {
+  decode: NativeDecoder;
+  endpoint: (backend: Backend) => string;
   readonly requestIDHeader?: string;
 }
 
-export const createSystemOneAdapter = (
-  options: ClassifyOptions,
-  definition: SystemOneDefinition
-): DecisionAdapter => {
-  const { backend } = options;
-  const supportedTypes = ["noul", "choice", "score"] as const;
-  const preflight = createPreflight(supportedTypes);
-  const model = backend.model ?? definition.defaultModel;
-  if (model === undefined) {
-    throw new ClassificationError(
-      "INTERNAL_ERROR",
-      "Invalid adapter configuration."
-    );
+const encodeRequest = Effect.fn("SystemOne.encodeRequest")(
+  function* encodeRequest(model: string, request: DecisionRequest) {
+    const payload = {
+      model,
+      questions: request.questions,
+      state: request.state,
+    };
+    yield* requireBoundedJson(payload);
+    return JSON.stringify(payload);
   }
-  const endpoint = definition.endpoint(backend);
-  return {
-    async decide(request, signal) {
-      preflight(request.questions, signal);
-      const payload = {
-        model,
-        questions: request.questions,
-        state: request.state,
-      };
-      boundedJson(payload);
-      const key = await resolveKey(backend, signal, definition.defaultKeyEnv);
-      const response = await systemOneFetch(
-        {
-          body: JSON.stringify(payload),
-          endpoint,
-          key,
-          maxRetries: options.maxRetries ?? 1,
-          requestIDHeader: definition.requestIDHeader,
-          timeoutMs: options.timeoutMs ?? 30_000,
-        },
-        signal
-      );
-      const metadata = response.requestID
-        ? { attempts: response.attempts, requestID: response.requestID }
-        : { attempts: response.attempts };
-      try {
-        return {
-          ...validateResponse(
-            response.value,
-            request,
-            definition.decode,
-            response.attempts
-          ),
-          ...metadata,
-        };
-      } catch (error) {
-        if (error instanceof ClassificationError) {
-          Object.assign(error.failure, metadata);
-        }
-        throw error;
-      }
-    },
-    preflight,
-    provider: backend.provider,
-    supportedTypes,
-  };
-};
+);
+
+const decodeDecision = Effect.fn("SystemOne.decodeDecision")(
+  function* decodeDecision(
+    response: TransportResult,
+    request: DecisionRequest,
+    decode: NativeDecoder
+  ) {
+    const metadata = response.requestID
+      ? { attempts: response.attempts, requestID: response.requestID }
+      : { attempts: response.attempts };
+    const result = yield* decodeResponse(response.value, request, decode).pipe(
+      Effect.mapError((error) => error.withDetails(metadata))
+    );
+    return { ...result, ...metadata };
+  }
+);
+
+export const systemOneLayer = <
+  Backend extends BackendOptions & { model: string },
+>(
+  options: ClassifyOptions,
+  backend: Backend,
+  definition: SystemOneDefinition<Backend>
+) =>
+  Layer.effect(
+    DecisionBackend,
+    Effect.gen(function* buildSystemOneBackend() {
+      const credentials = yield* Credentials;
+      const client = yield* HttpClient.HttpClient;
+      const sendRequest = makeDecisionRequest(client, {
+        endpoint: definition.endpoint(backend),
+        maxRetries: options.maxRetries,
+        requestIDHeader: definition.requestIDHeader,
+        timeoutMs: options.timeoutMs,
+      });
+      const decide = Effect.fn("SystemOne.decide")(function* decide(
+        request: DecisionRequest
+      ) {
+        const body = yield* encodeRequest(backend.model, request);
+        const key = yield* credentials.resolve(backend);
+        const response = yield* sendRequest({
+          body,
+          key: key === undefined ? undefined : Redacted.value(key),
+        });
+        return yield* decodeDecision(response, request, definition.decode);
+      });
+      return DecisionBackend.of({
+        decide,
+        preflight: createPreflight(["noul", "choice", "score"]),
+        provider: backend.provider,
+      });
+    })
+  );

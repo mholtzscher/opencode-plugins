@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
 
 import { file } from "bun";
+import { Effect } from "effect";
 
-import { parseOptions } from "../config.js";
+import { loadOptions } from "../config.js";
 import type { Content, EvidenceState } from "../types.js";
 import { examples } from "./fixtures.js";
 
@@ -19,13 +20,13 @@ test("README configuration blocks match validated example fixtures", async () =>
   });
   expect(configs).toEqual(examples);
   for (const config of configs) {
-    expect(() => parseOptions(config)).not.toThrow();
+    expect(() => Effect.runSync(loadOptions(config))).not.toThrow();
   }
 });
 
 test("defaults are explicit, independent and immutable", () => {
   const original = { backend: { provider: "typesafe" } };
-  const options = parseOptions(original);
+  const options = Effect.runSync(loadOptions(original));
   expect(options).toEqual({
     backend: {
       apiKeyEnv: "TYPESAFE_API_KEY",
@@ -38,12 +39,16 @@ test("defaults are explicit, independent and immutable", () => {
   });
   expect(original).toEqual({ backend: { provider: "typesafe" } });
   expect(Object.isFrozen(options.backend)).toBe(true);
-  expect(parseOptions({ backend: { provider: "laya" } }).backend).toEqual({
+  expect(
+    Effect.runSync(loadOptions({ backend: { provider: "laya" } })).backend
+  ).toEqual({
     baseURL: "http://127.0.0.1:8000",
     model: "english",
     provider: "laya",
   });
-  expect(parseOptions(examples[4]).backend.model).toBeUndefined();
+  expect(
+    Effect.runSync(loadOptions(examples[4])).backend.model
+  ).toBeUndefined();
 });
 test("named classifiers normalize criteria lists into immutable native maps", () => {
   const original = {
@@ -64,7 +69,7 @@ test("named classifiers normalize criteria lists into immutable native maps", ()
       },
     },
   };
-  const options = parseOptions(original);
+  const options = Effect.runSync(loadOptions(original));
   const criteria = options.classifiers?.review.questions.kind.criteria;
   expect(criteria).toEqual(
     JSON.parse('{"__proto__":{"meaning":"Outage"},"constructor":null}')
@@ -82,7 +87,7 @@ test("named classifiers normalize criteria lists into immutable native maps", ()
 });
 test("all documented scenarios validate", () => {
   for (const example of examples) {
-    expect(String(parseOptions(example).backend.provider)).toBe(
+    expect(String(Effect.runSync(loadOptions(example)).backend.provider)).toBe(
       example.backend.provider
     );
   }
@@ -96,16 +101,18 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
     { diffs: [{ base: "HEAD" }], text: "Review", type: "evidence" },
   ];
   for (const state of states) {
-    const options = parseOptions({
-      backend: { provider: "laya" },
-      classifiers: {
-        review: {
-          description: "Review",
-          questions: { active: { instructions: "Active?", type: "noul" } },
-          state,
+    const options = Effect.runSync(
+      loadOptions({
+        backend: { provider: "laya" },
+        classifiers: {
+          review: {
+            description: "Review",
+            questions: { active: { instructions: "Active?", type: "noul" } },
+            state,
+          },
         },
-      },
-    });
+      })
+    );
     const configured = options.classifiers?.review.state;
     expect(configured).toEqual(state);
     if (
@@ -140,16 +147,18 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
     { extra: true, text: "Private", type: "evidence" },
   ]) {
     expect(() =>
-      parseOptions({
-        backend: { provider: "laya" },
-        classifiers: {
-          review: {
-            description: "Review",
-            questions: { active: { instructions: "Active?", type: "noul" } },
-            state,
+      Effect.runSync(
+        loadOptions({
+          backend: { provider: "laya" },
+          classifiers: {
+            review: {
+              description: "Review",
+              questions: { active: { instructions: "Active?", type: "noul" } },
+              state,
+            },
           },
-        },
-      })
+        })
+      )
     ).toThrow("Invalid classify options");
   }
 });
@@ -172,11 +181,14 @@ test("configuration rejects unknown fields and invalid limits without echoing va
     { ...examples[0], maxRetries: 0.5 },
     { ...examples[0], extra: true },
   ]) {
-    expect(() => parseOptions(value)).toThrow("Invalid classify options");
+    const error = Effect.runSync(loadOptions(value).pipe(Effect.flip));
+    expect(error.failure.code).toBe("INVALID_CONFIG");
+    expect(error.message).toContain("Invalid classify options");
   }
   for (const timeoutMs of [1000, 300_000]) {
     expect(
-      parseOptions({ ...examples[0], maxRetries: 2, timeoutMs }).timeoutMs
+      Effect.runSync(loadOptions({ ...examples[0], maxRetries: 2, timeoutMs }))
+        .timeoutMs
     ).toBe(timeoutMs);
   }
 });
@@ -193,7 +205,7 @@ test("Laya origins reject paths, credentials, queries, fragments and remote plai
     "https://example.com//",
   ]) {
     expect(() =>
-      parseOptions({ backend: { baseURL, provider: "laya" } })
+      Effect.runSync(loadOptions({ backend: { baseURL, provider: "laya" } }))
     ).toThrow();
   }
   for (const baseURL of [
@@ -202,7 +214,8 @@ test("Laya origins reject paths, credentials, queries, fragments and remote plai
     "https://example.com/",
   ]) {
     expect(
-      parseOptions({ backend: { baseURL, provider: "laya" } }).backend.provider
+      Effect.runSync(loadOptions({ backend: { baseURL, provider: "laya" } }))
+        .backend.provider
     ).toBe("laya");
   }
 });
@@ -220,16 +233,20 @@ test("classifier names, descriptions and question maps obey bounds", () => {
       Array.from({ length: 33 }, (_, i) => [`c${i}`, definition])
     ),
   ]) {
-    expect(() => parseOptions({ ...examples[0], classifiers })).toThrow();
+    expect(() =>
+      Effect.runSync(loadOptions({ ...examples[0], classifiers }))
+    ).toThrow();
   }
   expect(
     Object.keys(
-      parseOptions({
-        ...examples[0],
-        classifiers: Object.fromEntries(
-          Array.from({ length: 32 }, (_, i) => [`c${i}`, definition])
-        ),
-      }).classifiers ?? {}
+      Effect.runSync(
+        loadOptions({
+          ...examples[0],
+          classifiers: Object.fromEntries(
+            Array.from({ length: 32 }, (_, i) => [`c${i}`, definition])
+          ),
+        })
+      ).classifiers ?? {}
     )
   ).toHaveLength(32);
 });
@@ -239,7 +256,9 @@ test("key-file paths are explicit and mutually exclusive with environment source
       "/private/key",
       "~/.config/opencode/typesafe.key",
     ]) {
-      const options = parseOptions({ backend: { apiKeyFile, provider } });
+      const options = Effect.runSync(
+        loadOptions({ backend: { apiKeyFile, provider } })
+      );
       expect(options.backend.apiKeyFile).toBe(apiKeyFile);
       expect(options.backend.apiKeyEnv).toBeUndefined();
     }
@@ -252,14 +271,16 @@ test("key-file paths are explicit and mutually exclusive with environment source
       null,
       3,
     ]) {
-      expect(() => parseOptions({ backend: { apiKeyFile, provider } })).toThrow(
-        "Invalid classify options"
-      );
+      expect(() =>
+        Effect.runSync(loadOptions({ backend: { apiKeyFile, provider } }))
+      ).toThrow("Invalid classify options");
     }
     expect(() =>
-      parseOptions({
-        backend: { apiKeyEnv: "KEY", apiKeyFile: "/private/key", provider },
-      })
+      Effect.runSync(
+        loadOptions({
+          backend: { apiKeyEnv: "KEY", apiKeyFile: "/private/key", provider },
+        })
+      )
     ).toThrow("Invalid classify options");
   }
 });

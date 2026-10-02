@@ -1,28 +1,20 @@
-import { ClassificationError } from "../types.js";
-import type { DecisionAdapter } from "./adapter.js";
-import type { ProviderDefinition } from "./definition.js";
+import { Effect, Layer } from "effect";
 
-const unavailableError = (): ClassificationError =>
+import { ClassificationError } from "../errors.js";
+import { DecisionBackend } from "./backend.js";
+
+const unavailable = Effect.fail(
   new ClassificationError(
     "PROVIDER_UNAVAILABLE",
     "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead."
-  );
+  )
+);
 
-export const unavailableOpenAI = (): DecisionAdapter => ({
-  decide(_request, signal) {
-    signal.throwIfAborted();
-    return Promise.reject(unavailableError());
-  },
-  preflight(_questions, signal) {
-    signal.throwIfAborted();
-    throw unavailableError();
-  },
-  provider: "openai-decisions",
-  supportedTypes: [],
-});
-
-export const openaiDecisions: ProviderDefinition = {
-  createAdapter: () => unavailableOpenAI(),
-  defaultKeyEnv: "OPENAI_API_KEY",
-  fields: [],
-};
+export const openaiDecisionsLayer = Layer.succeed(
+  DecisionBackend,
+  DecisionBackend.of({
+    decide: () => unavailable,
+    preflight: () => unavailable,
+    provider: "openai-decisions",
+  })
+);

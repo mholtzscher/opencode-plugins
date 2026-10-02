@@ -1,13 +1,13 @@
 import { expect, test } from "bun:test";
 
-import { validateResponse } from "../protocols/response.js";
-import { providers } from "../providers/registry.js";
+import { decoders, validateResponse } from "./effect-fixtures.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
 test("mixed native responses pass unchanged with derived score bounds", () => {
-  expect(
-    validateResponse(response(), input, providers.typesafe.decode)
-  ).toEqual(normalizedResponse());
+  const { attempts: _attempts, ...expected } = normalizedResponse();
+  expect(validateResponse(response(), input, decoders.typesafe)).toEqual(
+    expected
+  );
 });
 test("native responses preserve special own labels", () => {
   const special = {
@@ -34,11 +34,12 @@ test("native responses preserve special own labels", () => {
       usage: { input_tokens: 0, output_tokens: 0 },
     },
     special,
-    providers.laya.decode
+    decoders.laya
   );
   expect(JSON.stringify(result)).toContain('"__proto__":0.8');
 });
 test("malformed native responses fail atomically and extras are stripped", () => {
+  const { attempts: _attempts, ...expected } = normalizedResponse();
   const mutations: ((r: ReturnType<typeof response>) => void)[] = [
     (r) => {
       // SAFETY: This mutation deliberately violates the response contract to verify atomic rejection.
@@ -94,16 +95,12 @@ test("malformed native responses fail atomically and extras are stripped", () =>
   for (const mutate of mutations) {
     const r = response();
     mutate(r);
-    expect(() => validateResponse(r, input, providers.laya.decode)).toThrow(
+    expect(() => validateResponse(r, input, decoders.laya)).toThrow(
       "invalid classification response"
     );
   }
   expect(() =>
-    validateResponse(
-      { ...response(), truncated: true },
-      input,
-      providers.laya.decode
-    )
+    validateResponse({ ...response(), truncated: true }, input, decoders.laya)
   ).toThrow("truncated input");
   const withExtras = response();
   Object.assign(withExtras.answers.urgent, {
@@ -114,9 +111,9 @@ test("malformed native responses fail atomically and extras are stripped", () =>
     validateResponse(
       { ...withExtras, private: "secret" },
       input,
-      providers.typesafe.decode
+      decoders.typesafe
     )
-  ).toEqual(normalizedResponse());
+  ).toEqual(expected);
 });
 test("255-label rounded distribution passes tolerance without normalization", () => {
   const criteria = Object.fromEntries(
@@ -136,13 +133,14 @@ test("255-label rounded distribution passes tolerance without normalization", ()
     model: "m",
     usage: { input_tokens: 0, output_tokens: 0 },
   };
-  expect(
-    validateResponse(r, request, providers.laya.decode).answers.q
-  ).toHaveProperty("probabilities", probabilities);
+  expect(validateResponse(r, request, decoders.laya).answers.q).toHaveProperty(
+    "probabilities",
+    probabilities
+  );
   r.answers.q.probabilities = Object.fromEntries(
     Object.keys(criteria).map((key) => [key, 0.0038])
   );
-  expect(() => validateResponse(r, request, providers.laya.decode)).toThrow();
+  expect(() => validateResponse(r, request, decoders.laya)).toThrow();
 });
 test("score legends preserve native string, object, and array descriptions", () => {
   const criteria = [
@@ -172,14 +170,11 @@ test("score legends preserve native string, object, and array descriptions", () 
     usage: { input_tokens: 1, output_tokens: 1 },
   };
   for (const provider of ["typesafe", "laya"] as const) {
-    expect(
-      validateResponse(native, request, providers[provider].decode)
-    ).toEqual({
+    expect(validateResponse(native, request, decoders[provider])).toEqual({
       ...native,
       answers: {
         impact: { ...native.answers.impact, scale: { max: 2, min: 0 } },
       },
-      attempts: 1,
     });
     for (const level of [null, true, 1, " ", {}, []]) {
       expect(() =>
@@ -194,7 +189,7 @@ test("score legends preserve native string, object, and array descriptions", () 
             },
           },
           request,
-          providers[provider].decode
+          decoders[provider]
         )
       ).toThrow("invalid classification response");
     }

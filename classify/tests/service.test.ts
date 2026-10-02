@@ -1,12 +1,29 @@
 import { expect, test } from "bun:test";
 
-import { parseOptions } from "../config.js";
-import { createAdapter } from "../providers/adapter.js";
-import type { DecisionAdapter } from "../providers/adapter.js";
-import { createPreflight } from "../providers/preflight.js";
-import { createClassifier } from "../service.js";
+import {
+  Cause,
+  Clock,
+  Deferred,
+  Effect,
+  Exit,
+  Fiber,
+  Layer,
+  Result,
+} from "effect";
+import { TestClock } from "effect/testing";
+
+import { loadOptions } from "../config.js";
+import { backendLayer } from "../layers.js";
+import { createPreflight } from "../providers/backend.js";
+import type { DecisionAdapter } from "../providers/backend.js";
 import { ClassificationError } from "../types.js";
-import type { ClassifyOutput, DecisionRequest, JsonValue } from "../types.js";
+import type { DecisionRequest, JsonValue } from "../types.js";
+import {
+  classify,
+  decisionLayer,
+  evidenceLayer,
+  toolContext,
+} from "./effect-fixtures.js";
 import {
   examples,
   input,
@@ -15,344 +32,438 @@ import {
   response,
 } from "./fixtures.js";
 
+const recordingAdapter = (
+  calls: DecisionRequest[],
+  provider: DecisionAdapter["provider"] = "laya"
+): DecisionAdapter => ({
+  decide: (request) =>
+    Effect.sync(() => {
+      calls.push(request);
+      return normalizedResponse();
+    }),
+  preflight: createPreflight(["noul", "choice", "score"]),
+  provider,
+});
+
 test("missing question content returns invalid input rather than an internal error", async () => {
-  const options = parseOptions({ backend: { provider: "openai-decisions" } });
-  const service = createClassifier(options, createAdapter(options));
-  const output = await service.classify(
-    { questions: { q: { type: "noul" } }, state: "x" },
-    new AbortController().signal
+  const options = Effect.runSync(
+    loadOptions({ backend: { provider: "openai-decisions" } })
+  );
+  const output = await Effect.runPromise(
+    classify(
+      options,
+      { questions: { q: { type: "noul" } }, state: "x" },
+      toolContext()
+    ).pipe(Effect.provide(Layer.merge(backendLayer(options), evidenceLayer())))
   );
   expect(output).toHaveProperty("ok", false);
   expect(output).toHaveProperty("error.code", "INVALID_INPUT");
 });
 
 test("named and ad hoc requests retain maps, reported model and native measurements", async () => {
-  const options = parseOptions({
-    backend: { provider: "laya" },
-    classifiers: { triage: { description: "Triage", questions } },
-  });
-  const calls: DecisionRequest[] = [];
-  const { signal } = new AbortController();
-  const adapter: DecisionAdapter = {
-    decide(request, forwarded) {
-      expect(forwarded).toBe(signal);
-      calls.push(request);
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight: createPreflight(["noul", "choice", "score"]),
-    provider: "laya",
-    supportedTypes: ["noul", "choice", "score"],
-  };
-  const service = createClassifier(options, adapter);
-  for (const args of [input, { classifier: "triage", state: input.state }]) {
-    // Each invocation is asserted before the next call mutates the recording adapter state.
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Maintain per-case call order.
-    const output = await service.classify(args, signal);
-    expect(output.ok).toBe(true);
-    if (output.ok) {
-      expect(output.result.model).toBe("resolved-model");
-      expect(output.result.provider).toBe("laya");
-      expect(output.result.usage).toEqual(response().usage);
-      expect(output.result.durationMs).toBeGreaterThanOrEqual(0);
-      expect(output.result.classifier).toBe(
-        "classifier" in args ? "triage" : undefined
-      );
-    }
-  }
-  expect(calls[1].questions === options.classifiers?.triage.questions).toBe(
-    true
+  const options = Effect.runSync(
+    loadOptions({
+      backend: { provider: "laya" },
+      classifiers: { triage: { description: "Triage", questions } },
+    })
   );
-  for (const args of [
-    { classifier: "unknown", state: "x" },
-    { ...input, classifier: "triage" },
-    { classifier: "constructor", state: "x" },
-  ]) {
-    // Each invalid case is checked in order to keep the dispatch count attributable.
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve ordered case assertions.
-    const output = await service.classify(args, signal);
-    expect(output.ok).toBe(false);
-  }
-  expect(calls).toHaveLength(2);
+  const calls: DecisionRequest[] = [];
+  await Effect.runPromise(
+    Effect.gen(function* namedAndAdHoc() {
+      for (const args of [
+        input,
+        { classifier: "triage", state: input.state },
+      ]) {
+        const output = yield* classify(options, args, toolContext());
+        expect(output.ok).toBe(true);
+        if (output.ok) {
+          expect(output.result.model).toBe("resolved-model");
+          expect(output.result.provider).toBe("laya");
+          expect(output.result.usage).toEqual(response().usage);
+          expect(output.result.durationMs).toBeGreaterThanOrEqual(0);
+          expect(output.result.classifier).toBe(
+            "classifier" in args ? "triage" : undefined
+          );
+        }
+      }
+      expect(calls[1].questions === options.classifiers?.triage.questions).toBe(
+        true
+      );
+      for (const args of [
+        { classifier: "unknown", state: "x" },
+        { ...input, classifier: "triage" },
+        { classifier: "constructor", state: "x" },
+      ]) {
+        expect(yield* classify(options, args, toolContext())).toHaveProperty(
+          "ok",
+          false
+        );
+      }
+      expect(calls).toHaveLength(2);
+    }).pipe(
+      Effect.provide(
+        Layer.merge(decisionLayer(recordingAdapter(calls)), evidenceLayer())
+      )
+    )
+  );
 });
+
 test("configured example names resolve without external HTTP", async () => {
-  for (const example of examples) {
-    const options = parseOptions(example);
-    const calls: DecisionRequest[] = [];
-    const adapter: DecisionAdapter = {
-      decide(request) {
-        calls.push(request);
-        return Promise.resolve({
-          answers: {},
-          attempts: 1,
-          model: "fixture",
-          usage: { input_tokens: 0, output_tokens: 0 },
-        });
-      },
-      preflight: createPreflight(["noul", "choice", "score"]),
-      provider: options.backend.provider,
-      supportedTypes: ["noul", "choice", "score"],
-    };
-    for (const name of Object.keys(options.classifiers ?? {})) {
-      // The recording adapter's latest request is checked before advancing to the next preset.
-      // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve per-classifier request attribution.
-      const output = await createClassifier(options, adapter).classify(
-        { classifier: name, state: "Fix stale cache after deploy" },
-        new AbortController().signal
-      );
-      expect(output.ok).toBe(true);
-      expect(calls.at(-1)?.questions).toBe(
-        options.classifiers?.[name].questions
-      );
-    }
-  }
+  await Effect.runPromise(
+    Effect.gen(function* configuredExamples() {
+      for (const example of examples) {
+        const options = yield* loadOptions(example);
+        const calls: DecisionRequest[] = [];
+        const adapter = recordingAdapter(calls, options.backend.provider);
+        adapter.decide = (request) =>
+          Effect.sync(() => {
+            calls.push(request);
+            return {
+              answers: {},
+              attempts: 1,
+              model: "fixture",
+              usage: { input_tokens: 0, output_tokens: 0 },
+            };
+          });
+        for (const name of Object.keys(options.classifiers ?? {})) {
+          const output = yield* classify(
+            options,
+            {
+              classifier: name,
+              state: "Fix stale cache after deploy",
+            },
+            toolContext()
+          ).pipe(Effect.provide(decisionLayer(adapter)));
+          expect(output.ok).toBe(true);
+          expect(calls.at(-1)?.questions).toBe(
+            options.classifiers?.[name].questions
+          );
+        }
+      }
+    }).pipe(Effect.provide(evidenceLayer()))
+  );
 });
+
 test("presets use stored state and questions and reject overrides before dispatch", async () => {
   const states = ["Fixed report", { message: "Report" }, [null, false, 2]];
-  const options = parseOptions({
-    backend: { provider: "laya" },
-    classifiers: {
-      caller: { description: "Caller state", questions },
-      ...Object.fromEntries(
-        states.map((state, i) => [
-          `preset${i}`,
-          { description: "Preset", questions, state },
-        ])
-      ),
-    },
-  });
-  const calls: DecisionRequest[] = [];
-  const adapter: DecisionAdapter = {
-    decide(request) {
-      calls.push(request);
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight: createPreflight(["noul", "choice", "score"]),
-    provider: "laya",
-    supportedTypes: ["noul", "choice", "score"],
-  };
-  const service = createClassifier(options, adapter);
-  const { signal } = new AbortController();
-  for (const [i, state] of states.entries()) {
-    const classifier = `preset${i}`;
-    // Assert each preset result before moving to the next recorded adapter call.
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Keep preset ordering observable.
-    expect(await service.classify({ classifier }, signal)).toHaveProperty(
-      "result.classifier",
-      classifier
-    );
-    expect(
-      calls.at(-1)?.state === options.classifiers?.[classifier].state
-    ).toBe(true);
-    expect(calls.at(-1)?.questions).toBe(
-      options.classifiers?.[classifier].questions
-    );
-    const invalidArgs: JsonValue[] = [
-      { classifier, state },
-      { classifier, state: "Override" },
-      { classifier, questions },
-    ];
-    for (const args of invalidArgs) {
-      // Verify rejection before starting the next override case.
-      // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve sequential assertions against the shared call recorder.
-      expect(await service.classify(args, signal)).toHaveProperty(
-        "error.code",
-        "INVALID_INPUT"
-      );
-    }
-  }
-  expect(
-    await service.classify({ classifier: "caller" }, signal)
-  ).toHaveProperty("error.code", "INVALID_INPUT");
-  expect(
-    await service.classify({ classifier: "unknown" }, signal)
-  ).toHaveProperty("error.code", "UNKNOWN_CLASSIFIER");
-  expect(calls).toHaveLength(states.length);
-});
-test("preset evidence preserves the unavailable-provider gate", async () => {
-  const options = parseOptions({
-    backend: { provider: "openai-decisions" },
-    classifiers: {
-      review: {
-        description: "Review",
-        questions,
-        state: { files: ["never-read.ts"], type: "evidence" },
+  const options = Effect.runSync(
+    loadOptions({
+      backend: { provider: "laya" },
+      classifiers: {
+        caller: { description: "Caller state", questions },
+        ...Object.fromEntries(
+          states.map((state, i) => [
+            `preset${i}`,
+            { description: "Preset", questions, state },
+          ])
+        ),
       },
-    },
-  });
+    })
+  );
+  const calls: DecisionRequest[] = [];
+  await Effect.runPromise(
+    Effect.gen(function* presetOverrides() {
+      for (const [i, state] of states.entries()) {
+        const classifier = `preset${i}`;
+        expect(
+          yield* classify(options, { classifier }, toolContext())
+        ).toHaveProperty("result.classifier", classifier);
+        expect(
+          calls.at(-1)?.state === options.classifiers?.[classifier].state
+        ).toBe(true);
+        expect(calls.at(-1)?.questions).toBe(
+          options.classifiers?.[classifier].questions
+        );
+        const invalidArgs: JsonValue[] = [
+          { classifier, state },
+          { classifier, state: "Override" },
+          { classifier, questions },
+        ];
+        for (const args of invalidArgs) {
+          expect(yield* classify(options, args, toolContext())).toHaveProperty(
+            "error.code",
+            "INVALID_INPUT"
+          );
+        }
+      }
+      expect(
+        yield* classify(options, { classifier: "caller" }, toolContext())
+      ).toHaveProperty("error.code", "INVALID_INPUT");
+      expect(
+        yield* classify(options, { classifier: "unknown" }, toolContext())
+      ).toMatchObject({
+        error: { code: "INVALID_INPUT", path: "/classifier" },
+      });
+      expect(calls).toHaveLength(states.length);
+    }).pipe(
+      Effect.provide(
+        Layer.merge(decisionLayer(recordingAdapter(calls)), evidenceLayer())
+      )
+    )
+  );
+});
+
+test("preset evidence preserves the unavailable-provider gate", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backend: { provider: "openai-decisions" },
+      classifiers: {
+        review: {
+          description: "Review",
+          questions,
+          state: { files: ["never-read.ts"], type: "evidence" },
+        },
+      },
+    })
+  );
   let reads = 0;
-  const output = await createClassifier(
-    options,
-    createAdapter(options)
-  ).classify({ classifier: "review" }, new AbortController().signal, () => {
-    reads += 1;
-    return Promise.resolve("Unexpected read");
-  });
+  const output = await Effect.runPromise(
+    classify(options, { classifier: "review" }, toolContext()).pipe(
+      Effect.provide(
+        Layer.merge(
+          backendLayer(options),
+          evidenceLayer(() =>
+            Effect.sync(() => {
+              reads += 1;
+              return "Unexpected read";
+            })
+          )
+        )
+      )
+    )
+  );
   expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
   expect(reads).toBe(0);
 });
+
 test("capabilities and missing keys fail before dispatch", async () => {
-  const options = parseOptions(examples[0]);
-  let calls = 0;
+  const options = Effect.runSync(loadOptions(examples[0]));
+  const calls: DecisionRequest[] = [];
   let reads = 0;
-  const adapter: DecisionAdapter = {
-    decide() {
-      calls += 1;
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight: createPreflight(["noul"]),
-    provider: "typesafe",
-    supportedTypes: ["noul"],
-  };
-  expect(
-    await createClassifier(options, adapter).classify(
+  const adapter = recordingAdapter(calls, "typesafe");
+  adapter.preflight = createPreflight(["noul"]);
+  const output = await Effect.runPromise(
+    classify(
+      options,
       { questions, state: { files: ["never-read.ts"], type: "evidence" } },
-      new AbortController().signal,
-      () => {
-        reads += 1;
-        return Promise.resolve("Unexpected evidence");
-      }
+      toolContext()
+    ).pipe(
+      Effect.provide(
+        Layer.merge(
+          decisionLayer(adapter),
+          evidenceLayer(() =>
+            Effect.sync(() => {
+              reads += 1;
+              return "Unexpected evidence";
+            })
+          )
+        )
+      )
     )
-  ).toHaveProperty("error.code", "UNSUPPORTED_TYPE");
-  expect(calls).toBe(0);
+  );
+  expect(output).toHaveProperty("error.code", "UNSUPPORTED_TYPE");
+  expect(calls).toHaveLength(0);
   expect(reads).toBe(0);
-  const missing = parseOptions({
-    backend: { apiKeyEnv: "CLASSIFY_TEST_MISSING_KEY", provider: "typesafe" },
-  });
+  const missing = Effect.runSync(
+    loadOptions({
+      backend: { apiKeyEnv: "CLASSIFY_TEST_MISSING_KEY", provider: "typesafe" },
+    })
+  );
   expect(
-    await createClassifier(missing, createAdapter(missing)).classify(
-      input,
-      new AbortController().signal
+    await Effect.runPromise(
+      classify(missing, input, toolContext()).pipe(
+        Effect.provide(Layer.merge(backendLayer(missing), evidenceLayer()))
+      )
     )
   ).toHaveProperty("error.code", "MISSING_CREDENTIALS");
 });
-test("strategy preflight runs before evidence and dispatch with the same questions and signal", async () => {
-  const options = parseOptions({
-    backend: { provider: "laya" },
-    classifiers: { review: { description: "Review", questions } },
-  });
+
+test("strategy preflight runs before evidence and dispatch with the same questions and context", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backend: { provider: "laya" },
+      classifiers: { review: { description: "Review", questions } },
+    })
+  );
   const events: string[] = [];
   const selectedQuestions = options.classifiers?.review.questions;
   if (!selectedQuestions) {
     throw new Error("Missing classifier questions");
   }
-  const { signal } = new AbortController();
+  const context = toolContext();
   const adapter: DecisionAdapter = {
-    decide(request, forwarded) {
-      events.push("decide");
-      expect(request.state).toBe("Resolved evidence");
-      expect(request.questions).toBe(selectedQuestions);
-      expect(forwarded).toBe(signal);
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight(selected, forwarded) {
-      events.push("preflight");
-      expect(selected).toBe(selectedQuestions);
-      expect(forwarded).toBe(signal);
-    },
+    decide: (request) =>
+      Effect.sync(() => {
+        events.push("decide");
+        expect(request.state).toBe("Resolved evidence");
+        expect(request.questions).toBe(selectedQuestions);
+        return normalizedResponse();
+      }),
+    preflight: (selected) =>
+      Effect.sync(() => {
+        events.push("preflight");
+        expect(selected).toBe(selectedQuestions);
+      }),
     provider: "laya",
-    supportedTypes: ["noul", "choice", "score"],
   };
-  const output = await createClassifier(options, adapter).classify(
-    { classifier: "review", state: { files: ["a.ts"], type: "evidence" } },
-    signal,
-    (_state, forwarded) => {
-      events.push("evidence");
-      expect(forwarded).toBe(signal);
-      return Promise.resolve("Resolved evidence");
-    }
+  const output = await Effect.runPromise(
+    classify(
+      options,
+      { classifier: "review", state: { files: ["a.ts"], type: "evidence" } },
+      context
+    ).pipe(
+      Effect.provide(
+        Layer.merge(
+          decisionLayer(adapter),
+          evidenceLayer((_state, forwarded) =>
+            Effect.sync(() => {
+              events.push("evidence");
+              expect(forwarded).toBe(context);
+              return "Resolved evidence";
+            })
+          )
+        )
+      )
+    )
   );
   expect(output).toHaveProperty("ok", true);
   expect(events).toEqual(["preflight", "evidence", "decide"]);
 });
+
 test("service honors any strategy's availability gate without checking provider identity", async () => {
-  const options = parseOptions({ backend: { provider: "laya" } });
-  let calls = 0;
+  const options = Effect.runSync(
+    loadOptions({ backend: { provider: "laya" } })
+  );
+  const calls: DecisionRequest[] = [];
   let reads = 0;
   let checks = 0;
-  const adapter: DecisionAdapter = {
-    decide() {
-      calls += 1;
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight() {
+  const adapter = recordingAdapter(calls);
+  adapter.preflight = () =>
+    Effect.sync(() => {
       checks += 1;
-      throw new ClassificationError(
-        "PROVIDER_UNAVAILABLE",
-        "Strategy unavailable."
-      );
-    },
-    provider: "laya",
-    supportedTypes: [],
-  };
-  const service = createClassifier(options, adapter);
-  const { signal } = new AbortController();
-  const states: JsonValue[] = [
-    "Plain content",
-    { text: "Text evidence", type: "evidence" },
-    { files: ["never-read.ts"], type: "evidence" },
-  ];
-  const unexpectedResolver = () => {
-    reads += 1;
-    return Promise.resolve("Unexpected evidence");
-  };
-  for (const state of states) {
-    // Validate each preflight gate before moving to the next distinct state.
-    expect(
-      // oxlint-disable-next-line eslint/no-await-in-loop -- Keep gate and evidence-read counters tied to each case.
-      await service.classify({ questions, state }, signal, unexpectedResolver)
-    ).toMatchObject({
-      error: { attempts: 0, code: "PROVIDER_UNAVAILABLE", provider: "laya" },
-      ok: false,
-    });
-  }
-  expect(checks).toBe(3);
-  expect(calls).toBe(0);
-  expect(reads).toBe(0);
-  expect(await service.classify({ questions }, signal)).toHaveProperty(
-    "error.code",
-    "INVALID_INPUT"
-  );
-  expect(checks).toBe(3);
-});
-test("cancellation during strategy preflight prevents evidence and dispatch", async () => {
-  const options = parseOptions({ backend: { provider: "laya" } });
-  const controller = new AbortController();
-  let calls = 0;
-  let reads = 0;
-  const adapter: DecisionAdapter = {
-    decide() {
-      calls += 1;
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight() {
-      controller.abort();
-    },
-    provider: "laya",
-    supportedTypes: ["noul", "choice", "score"],
-  };
-  await expect(
-    createClassifier(options, adapter).classify(
-      { questions, state: { files: ["never-read.ts"], type: "evidence" } },
-      controller.signal,
-      () => {
-        reads += 1;
-        return Promise.resolve("Unexpected evidence");
+    }).pipe(
+      Effect.andThen(
+        Effect.fail(
+          new ClassificationError(
+            "PROVIDER_UNAVAILABLE",
+            "Strategy unavailable."
+          )
+        )
+      )
+    );
+  await Effect.runPromise(
+    Effect.gen(function* availabilityGate() {
+      const states: JsonValue[] = [
+        "Plain content",
+        { text: "Text evidence", type: "evidence" },
+        { files: ["never-read.ts"], type: "evidence" },
+      ];
+      for (const state of states) {
+        expect(
+          yield* classify(options, { questions, state }, toolContext())
+        ).toMatchObject({
+          error: {
+            attempts: 0,
+            code: "PROVIDER_UNAVAILABLE",
+            provider: "laya",
+          },
+          ok: false,
+        });
       }
+      expect(checks).toBe(3);
+      expect(calls).toHaveLength(0);
+      expect(reads).toBe(0);
+      expect(
+        yield* classify(options, { questions }, toolContext())
+      ).toHaveProperty("error.code", "INVALID_INPUT");
+      expect(checks).toBe(3);
+    }).pipe(
+      Effect.provide(
+        Layer.merge(
+          decisionLayer(adapter),
+          evidenceLayer(() =>
+            Effect.sync(() => {
+              reads += 1;
+              return "Unexpected evidence";
+            })
+          )
+        )
+      )
     )
-  ).rejects.toThrow();
-  expect(calls).toBe(0);
-  expect(reads).toBe(0);
+  );
 });
+
+for (const phase of ["preflight", "decide"] as const) {
+  test(`fiber interruption during ${phase} remains interruption and runs cleanup`, async () => {
+    const options = Effect.runSync(
+      loadOptions({ backend: { provider: "laya" } })
+    );
+    const calls: DecisionRequest[] = [];
+    let reads = 0;
+    let released = false;
+    const exit = await Effect.runPromise(
+      Effect.gen(function* exit() {
+        const started = yield* Deferred.make<boolean>();
+        const pending = Effect.acquireUseRelease(
+          Effect.void,
+          () =>
+            Deferred.succeed(started, true).pipe(Effect.andThen(Effect.never)),
+          () =>
+            Effect.sync(() => {
+              released = true;
+            })
+        );
+        const adapter = recordingAdapter(calls);
+        if (phase === "preflight") {
+          adapter.preflight = () => pending;
+        } else {
+          adapter.decide = (request) =>
+            Effect.sync(() => {
+              calls.push(request);
+            }).pipe(Effect.andThen(pending));
+        }
+        const fiber = yield* Effect.forkChild(
+          classify(
+            options,
+            { questions, state: { files: ["a.ts"], type: "evidence" } },
+            toolContext()
+          ).pipe(
+            Effect.provide(
+              Layer.merge(
+                decisionLayer(adapter),
+                evidenceLayer(() =>
+                  Effect.sync(() => {
+                    reads += 1;
+                    return "Resolved";
+                  })
+                )
+              )
+            )
+          )
+        );
+        yield* Deferred.await(started);
+        yield* Fiber.interrupt(fiber);
+        return yield* Fiber.await(fiber);
+      })
+    );
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+    }
+    expect(released).toBe(true);
+    expect(reads).toBe(phase === "preflight" ? 0 : 1);
+    expect(calls).toHaveLength(phase === "preflight" ? 0 : 1);
+  });
+}
+
 test("OpenAI gate wins over capability checks without credentials or network", async () => {
-  const options = parseOptions(examples[4]);
-  const adapter = createAdapter(options);
-  expect(adapter.supportedTypes).toEqual([]);
-  expect(
-    await createClassifier(options, adapter).classify(
-      input,
-      new AbortController().signal
-    )
-  ).toMatchObject({
+  const options = Effect.runSync(loadOptions(examples[4]));
+  const output = await Effect.runPromise(
+    Effect.gen(function* output() {
+      return yield* classify(options, input, toolContext());
+    }).pipe(Effect.provide(Layer.merge(backendLayer(options), evidenceLayer())))
+  );
+  expect(output).toMatchObject({
     error: {
       attempts: 0,
       code: "PROVIDER_UNAVAILABLE",
@@ -365,13 +476,16 @@ test("OpenAI gate wins over capability checks without credentials or network", a
     ok: false,
   });
 });
+
 test("OpenAI factory and invocation perform zero environment reads and HTTP calls", async () => {
-  const options = parseOptions({
-    backend: {
-      apiKeyEnv: "CLASSIFY_GATE_SENTINEL",
-      provider: "openai-decisions",
-    },
-  });
+  const options = Effect.runSync(
+    loadOptions({
+      backend: {
+        apiKeyEnv: "CLASSIFY_GATE_SENTINEL",
+        provider: "openai-decisions",
+      },
+    })
+  );
   const originalEnv = process.env;
   const originalFetch = globalThis.fetch;
   const reads: string[] = [];
@@ -389,60 +503,147 @@ test("OpenAI factory and invocation perform zero environment reads and HTTP call
     },
     { preconnect: originalFetch.preconnect }
   );
-  let output: ClassifyOutput;
   try {
-    output = await createClassifier(options, createAdapter(options)).classify(
-      input,
-      new AbortController().signal
+    const output = await Effect.runPromise(
+      classify(options, input, toolContext()).pipe(
+        Effect.provide(Layer.merge(backendLayer(options), evidenceLayer()))
+      )
     );
+    expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
   } finally {
     process.env = originalEnv;
     globalThis.fetch = originalFetch;
   }
-  expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
   expect(reads).toEqual([]);
   expect(calls).toBe(0);
 });
+
 test("expected failures have no partial results; unexpected messages are sanitized", async () => {
-  const options = parseOptions(examples[0]);
-  for (const error of [
-    new Error("SECRET"),
-    new ClassificationError("AUTH_FAILED", "Provider authentication failed."),
+  const options = Effect.runSync(loadOptions(examples[0]));
+  await Effect.runPromise(
+    Effect.gen(function* sanitizedFailures() {
+      for (const error of [
+        new Error("SECRET"),
+        new ClassificationError(
+          "AUTH_FAILED",
+          "Provider authentication failed."
+        ),
+      ]) {
+        const adapter = recordingAdapter([], "typesafe");
+        adapter.decide = () =>
+          error instanceof ClassificationError
+            ? Effect.fail(error)
+            : Effect.die(error);
+        const output = yield* classify(options, input, toolContext()).pipe(
+          Effect.provide(decisionLayer(adapter))
+        );
+        expect(output).not.toHaveProperty("result");
+        expect(JSON.stringify(output)).not.toContain("SECRET");
+        expect(output).toHaveProperty(
+          "error.code",
+          error instanceof ClassificationError
+            ? "AUTH_FAILED"
+            : "INTERNAL_ERROR"
+        );
+      }
+    }).pipe(Effect.provide(evidenceLayer()))
+  );
+});
+
+test("mixed interruption causes never become classification envelopes", async () => {
+  const options = Effect.runSync(loadOptions(examples[0]));
+  for (const cleanup of [
+    Cause.die(new Error("Cleanup defect")),
+    Cause.fail(new ClassificationError("EVIDENCE_ERROR", "Cleanup failed.")),
   ]) {
-    const adapter: DecisionAdapter = {
-      decide() {
-        return Promise.reject(error);
-      },
-      preflight: createPreflight(["noul", "choice", "score"]),
-      provider: "typesafe",
-      supportedTypes: ["noul", "choice", "score"],
-    };
-    // Each error is classified and checked before the shared loop advances.
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Keep result assertions isolated per failure.
-    const output = await createClassifier(options, adapter).classify(
-      input,
-      new AbortController().signal
+    const adapter = recordingAdapter([]);
+    adapter.decide = () =>
+      Effect.failCause(Cause.combine(Cause.interrupt(), cleanup));
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Check each independent cancellation cause.
+    const exit = await Effect.runPromiseExit(
+      classify(options, input, toolContext()).pipe(
+        Effect.provide(Layer.merge(decisionLayer(adapter), evidenceLayer()))
+      )
     );
-    expect(output).not.toHaveProperty("result");
-    expect(JSON.stringify(output)).not.toContain("SECRET");
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+      expect(Cause.hasDies(exit.cause)).toBe(true);
+    }
   }
 });
-test("session interruption remains a rejection, even if adapter completes", async () => {
-  const controller = new AbortController();
-  const options = parseOptions(examples[0]);
-  let calls = 0;
-  const adapter: DecisionAdapter = {
-    decide() {
-      calls += 1;
-      controller.abort();
-      return Promise.resolve(normalizedResponse());
-    },
-    preflight: createPreflight(["noul", "choice", "score"]),
-    provider: "typesafe",
-    supportedTypes: ["noul", "choice", "score"],
-  };
-  const service = createClassifier(options, adapter);
-  await expect(service.classify(input, controller.signal)).rejects.toThrow();
-  await expect(service.classify(input, controller.signal)).rejects.toThrow();
-  expect(calls).toBe(1);
+
+test("joining an interrupted worker preserves its finalizer defect without returning an envelope", async () => {
+  const options = Effect.runSync(loadOptions(examples[0]));
+  const cleanupDefect = new Error("Worker cleanup failed");
+  await Effect.runPromise(
+    Effect.gen(function* interruptedWorker() {
+      const started = yield* Deferred.make<boolean>();
+      const adapter = recordingAdapter([]);
+      adapter.decide = () =>
+        Effect.gen(function* joinWorker() {
+          const worker = yield* Effect.acquireUseRelease(
+            Effect.void,
+            () =>
+              Deferred.succeed(started, true).pipe(
+                Effect.andThen(Effect.never)
+              ),
+            () => Effect.die(cleanupDefect)
+          ).pipe(Effect.forkChild);
+          yield* Deferred.await(started);
+          yield* Fiber.interrupt(worker);
+          return yield* Fiber.join(worker);
+        });
+      const exit = yield* classify(options, input, toolContext()).pipe(
+        Effect.provide(Layer.merge(decisionLayer(adapter), evidenceLayer())),
+        Effect.exit
+      );
+      expect(yield* Deferred.isDone(started)).toBe(true);
+      expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit)) {
+        expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+        expect(Cause.findDefect(exit.cause)).toEqual(
+          Result.succeed(cleanupDefect)
+        );
+      }
+    })
+  );
+});
+
+test("classification duration uses monotonic time across wall-clock corrections", async () => {
+  const options = Effect.runSync(loadOptions(examples[0]));
+  await Effect.runPromise(
+    Effect.gen(function* wallClockCorrections() {
+      const clock = yield* Clock.Clock;
+      let wallTime = 10_000;
+      const correctedClock: Clock.Clock = {
+        currentTimeMillis: Effect.sync(() => wallTime),
+        currentTimeMillisUnsafe: () => wallTime,
+        currentTimeNanos: Effect.sync(() => BigInt(wallTime) * 1_000_000n),
+        currentTimeNanosUnsafe: () => BigInt(wallTime) * 1_000_000n,
+        monotonicTimeNanos: clock.monotonicTimeNanos,
+        monotonicTimeNanosUnsafe: () => clock.monotonicTimeNanosUnsafe(),
+        sleep: (duration) => clock.sleep(duration),
+      };
+      for (const correction of [-60_000, 60_000]) {
+        const started = yield* Deferred.make<boolean>();
+        const adapter = recordingAdapter([]);
+        adapter.decide = () =>
+          Deferred.succeed(started, true).pipe(
+            Effect.andThen(Effect.sleep("25 millis")),
+            Effect.as(normalizedResponse())
+          );
+        const fiber = yield* classify(options, input, toolContext()).pipe(
+          Effect.provide(Layer.merge(decisionLayer(adapter), evidenceLayer())),
+          Effect.provideService(Clock.Clock, correctedClock),
+          Effect.forkChild
+        );
+        yield* Deferred.await(started);
+        wallTime += correction;
+        yield* TestClock.adjust("25 millis");
+        const output = yield* Fiber.join(fiber);
+        expect(output).toHaveProperty("result.durationMs", 25);
+      }
+    }).pipe(Effect.provide(TestClock.layer()))
+  );
 });

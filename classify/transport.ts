@@ -1,5 +1,10 @@
+import { Clock, Duration, Effect, Ref, Result, Schedule, Stream } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/unstable/http";
+import type { HttpClientResponse } from "effect/unstable/http";
+
+import { readBoundedBytes } from "./bounded-stream.js";
+import { ClassificationError } from "./errors.js";
 import { MAX_BYTES } from "./limits.js";
-import { ClassificationError } from "./types.js";
 import type { JsonValue } from "./types.js";
 
 export interface TransportOptions {
@@ -10,40 +15,39 @@ export interface TransportOptions {
   requestIDHeader?: string;
   timeoutMs: number;
 }
-interface RequestMetadata {
-  requestID?: string;
-}
-interface TransportResult {
+export interface TransportResult {
   attempts: number;
   requestID?: string;
   value: JsonValue;
 }
-interface TransportErrorDetails extends RequestMetadata {
-  attempts: number;
-  retryAfterMs?: number;
+interface RequestMetadata {
+  requestID?: string;
 }
 const REQUEST_ID = /^[A-Za-z0-9._:-]{1,256}$/u;
 const RETRY_SECONDS = /^\d+(?:\.\d+)?$/u;
 const HTTP_DATE =
   /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/u;
-const retryAfterMs = (response: Response): number | undefined => {
-  const retryAfter = response.headers.get("retry-after");
+const retryAfterMs = (
+  response: HttpClientResponse.HttpClientResponse,
+  now: number
+): number | undefined => {
+  const value = response.headers["retry-after"];
   if (
-    retryAfter === null ||
-    !(RETRY_SECONDS.test(retryAfter) || HTTP_DATE.test(retryAfter))
+    value === undefined ||
+    !(RETRY_SECONDS.test(value) || HTTP_DATE.test(value))
   ) {
     return undefined;
   }
-  const requested = RETRY_SECONDS.test(retryAfter)
-    ? Number(retryAfter) * 1000
-    : Date.parse(retryAfter) - Date.now();
+  const requested = RETRY_SECONDS.test(value)
+    ? Number(value) * 1000
+    : Date.parse(value) - now;
   return Number.isFinite(requested) ? Math.max(0, requested) : undefined;
 };
 const requestID = (
-  response: Response,
+  response: HttpClientResponse.HttpClientResponse,
   header: string
-): { requestID?: string } => {
-  const id = response.headers.get(header);
+): RequestMetadata => {
+  const id = response.headers[header.toLowerCase()];
   return id && REQUEST_ID.test(id) ? { requestID: id } : {};
 };
 const httpError = (status: number): ClassificationError => {
@@ -78,208 +82,177 @@ const httpError = (status: number): ClassificationError => {
     { status }
   );
 };
-const wait = (ms: number, signal: AbortSignal): Promise<void> =>
-  // This promise is the timer/abort race returned to the retry loop.
-  // oxlint-disable-next-line promise/avoid-new -- Neither source is an existing promise until its callback fires.
-  new Promise((resolve, reject) => {
-    signal.throwIfAborted();
-    // The timer is assigned after the abort callback is created and is not reassigned afterward.
-    // oxlint-disable-next-line eslint/prefer-const -- The callback closes over the timer initialized immediately below.
-    let timer: ReturnType<typeof setTimeout>;
-    const abort = () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    };
-    timer = setTimeout(() => {
-      signal.removeEventListener("abort", abort);
-      resolve();
-    }, ms);
-    signal.addEventListener("abort", abort, { once: true });
-  });
-// Race stream reads as well as fetch, including injected implementations that
-// do not themselves honor AbortSignal.
-const abortable = <T>(promise: Promise<T>, signal: AbortSignal): Promise<T> =>
-  // Racing an injected fetch/reader requires a promise that observes abort independently.
-  // oxlint-disable-next-line promise/avoid-new -- A new abort branch is needed for injected operations that ignore AbortSignal.
-  new Promise<T>((resolve, reject) => {
-    signal.throwIfAborted();
-    const abort = () => {
-      signal.removeEventListener("abort", abort);
-      reject(signal.reason);
-    };
-    signal.addEventListener("abort", abort, { once: true });
-    // Both handlers are needed so the listener is cleaned up on either settlement path.
-    // oxlint-disable promise/prefer-await-to-then -- This promise must settle with the wrapped operation and remove its abort listener.
-    promise
-      .then(resolve, reject)
-      .finally(() => signal.removeEventListener("abort", abort));
-    // oxlint-enable promise/prefer-await-to-then
-  });
-const readJson = async (
-  response: Response,
-  signal: AbortSignal
-): Promise<JsonValue> => {
-  if (!response.body) {
-    throw new ClassificationError(
-      "INVALID_RESPONSE",
-      "Provider returned an empty response."
-    );
-  }
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    for (;;) {
-      // Stream chunks must be consumed sequentially to enforce the byte cap before the next read.
-      // oxlint-disable-next-line eslint/no-await-in-loop -- The next chunk cannot be read until the current chunk is bounded.
-      const chunk = await abortable(reader.read(), signal);
-      if (chunk.done) {
-        break;
-      }
-      size += chunk.value.byteLength;
-      if (size > MAX_BYTES) {
-        throw new ClassificationError(
-          "INVALID_RESPONSE",
-          "Provider response exceeds 1 MiB."
-        );
-      }
-      chunks.push(chunk.value);
-    }
-    try {
-      const jsonText = new TextDecoder("utf-8", { fatal: true }).decode(
-        Buffer.concat(chunks)
-      );
-      const decoded: unknown = JSON.parse(jsonText);
-      // SAFETY: JSON.parse produces only JSON primitive/container shapes; provider validation subsequently rejects nonfinite numbers and enforces depth limits.
-      return decoded as JsonValue;
-    } catch {
-      throw new ClassificationError(
+const networkError = () =>
+  new ClassificationError(
+    "NETWORK_ERROR",
+    "Could not connect to the configured provider.",
+    true
+  );
+const readJson = Effect.fn("readJson")(function* readResponseJson(
+  response: HttpClientResponse.HttpClientResponse
+) {
+  const stream = response.stream.pipe(
+    // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Stream.mapError transforms typed Effect errors, not Promise callbacks.
+    Stream.mapError((error) =>
+      error.reason._tag === "EmptyBodyError"
+        ? new ClassificationError(
+            "INVALID_RESPONSE",
+            "Provider returned an empty response."
+          )
+        : networkError()
+    )
+  );
+  const bytes = yield* readBoundedBytes(
+    stream,
+    MAX_BYTES,
+    () =>
+      new ClassificationError(
+        "INVALID_RESPONSE",
+        "Provider response exceeds 1 MiB."
+      )
+  );
+  return yield* Effect.try({
+    catch: () =>
+      new ClassificationError(
         "INVALID_RESPONSE",
         "Provider returned invalid JSON."
+      ),
+    try: () => {
+      const decoded: unknown = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes)
       );
-    }
-  } finally {
-    // The body is already consumed or rejected; cleanup failure cannot replace the validated response result.
-    // oxlint-disable promise/prefer-await-to-then eslint/no-empty-function -- Awaiting cancellation can hang, and its cleanup rejection is intentionally consumed.
-    reader.cancel().catch(() => {});
-    // oxlint-enable promise/prefer-await-to-then eslint/no-empty-function
-    reader.releaseLock();
-  }
-};
-export type Fetcher = (
-  input: string | URL | Request,
-  init?: RequestInit
-) => Promise<Response>;
-export const systemOneFetch = async (
-  options: TransportOptions,
-  sessionSignal: AbortSignal,
-  fetcher: Fetcher = fetch
-): Promise<TransportResult> => {
-  sessionSignal.throwIfAborted();
-  if (Buffer.byteLength(options.body) > MAX_BYTES) {
-    throw new ClassificationError(
+      // SAFETY: JSON.parse returns JSON shapes; provider validation checks numbers and depth.
+      return decoded as JsonValue;
+    },
+  });
+});
+
+const RETRY_STATUSES = new Set<number | undefined>([429, 529]);
+interface AttemptState extends RequestMetadata {
+  attempts: number;
+  retryAfterMs?: number;
+}
+
+// Retry-After may extend the exponential wait, but never past the deadline.
+const retryPolicy = (maxRetries: number, deadline: bigint) =>
+  Schedule.exponential("500 millis").pipe(
+    Schedule.setInputType<ClassificationError>(),
+    Schedule.modifyDelay(({ duration, input }) =>
+      Effect.succeed(
+        Duration.max(duration, Duration.millis(input.failure.retryAfterMs ?? 0))
+      )
+    ),
+    Schedule.upTo({ times: maxRetries }),
+    Schedule.while(({ duration, input }) =>
+      Clock.monotonicTimeNanos.pipe(
+        Effect.map(
+          (now) =>
+            RETRY_STATUSES.has(input.failure.status) &&
+            Duration.toMillis(duration) < Number(deadline - now) / 1_000_000
+        )
+      )
+    )
+  );
+
+const prepareRequest = Effect.fn("prepareRequest")(function* prepareRequest(
+  endpoint: string,
+  { body, key }: Pick<TransportOptions, "body" | "key">
+) {
+  if (Buffer.byteLength(body) > MAX_BYTES) {
+    return yield* new ClassificationError(
       "INVALID_INPUT",
       "Serialized request exceeds 1 MiB.",
       false,
       { attempts: 0 }
     );
   }
-  const controller = new AbortController();
-  const interrupt = () => controller.abort(sessionSignal.reason);
-  sessionSignal.addEventListener("abort", interrupt, { once: true });
-  const deadline = performance.now() + options.timeoutMs;
-  const timer = setTimeout(() => controller.abort(), options.timeoutMs);
-  const { signal } = controller;
-  let attempts = 0;
-  let responseID: RequestMetadata = {};
-  let retryAfter: number | undefined;
-  try {
-    for (let attempt = 0; ; attempt += 1) {
-      signal.throwIfAborted();
-      const headers = new Headers({ "Content-Type": "application/json" });
-      if (options.key !== undefined) {
-        headers.set("Authorization", `Bearer ${options.key}`);
+  const headers = yield* Effect.try({
+    catch: () => networkError().withDetails({ attempts: 0 }),
+    try: () => {
+      const requestHeaders = new Headers({
+        "Content-Type": "application/json",
+      });
+      if (key !== undefined) {
+        requestHeaders.set("Authorization", `Bearer ${key}`);
       }
-      attempts += 1;
-      responseID = {};
-      retryAfter = undefined;
-      // Retrying is sequential: each response determines status, retry delay, and request ID.
-      // oxlint-disable-next-line eslint/no-await-in-loop -- A retry must wait for the preceding HTTP response and backoff.
-      const response = await abortable(
-        fetcher(options.endpoint, {
-          body: options.body,
-          headers,
-          method: "POST",
-          redirect: "error",
-          signal,
-        }),
-        signal
-      );
-      responseID = requestID(
-        response,
-        options.requestIDHeader ?? "x-typesafe-request-id"
-      );
-      retryAfter = retryAfterMs(response);
-      signal.throwIfAborted();
-      if (response.ok) {
-        // Consume the successful response before considering another request.
-        // oxlint-disable-next-line eslint/no-await-in-loop -- The response body belongs to this sequential retry attempt.
-        const value = await readJson(response, signal);
-        signal.throwIfAborted();
-        return {
-          attempts,
-          value,
-          ...responseID,
-        };
-      }
-      // The response is discarded; cancellation rejection must not replace the sanitized HTTP error.
-      // oxlint-disable promise/prefer-await-to-then eslint/no-empty-function -- Awaiting cancellation could delay or mask the provider error.
-      response.body?.cancel().catch(() => {});
-      // oxlint-enable promise/prefer-await-to-then eslint/no-empty-function
-      const error = httpError(response.status);
-      if (
-        ![429, 529].includes(response.status) ||
-        attempt >= options.maxRetries
-      ) {
-        throw error;
-      }
-      const delay = Math.max(500 * 2 ** attempt, retryAfter ?? 0);
-      if (delay >= deadline - performance.now()) {
-        throw error;
-      }
-      // Backoff is part of the ordered retry state machine.
-      // oxlint-disable-next-line eslint/no-await-in-loop -- The next HTTP attempt must wait for this backoff.
-      await wait(delay, signal);
-    }
-  } catch (error) {
-    sessionSignal.throwIfAborted();
-    const details: TransportErrorDetails = {
-      attempts,
-      ...responseID,
-    };
-    if (retryAfter !== undefined) {
-      details.retryAfterMs = retryAfter;
-    }
-    if (signal.aborted) {
-      throw new ClassificationError(
-        "TIMEOUT",
-        "Classification deadline expired.",
-        true,
-        details
-      );
-    }
-    if (error instanceof ClassificationError) {
-      Object.assign(error.failure, details);
-      throw error;
-    }
-    throw new ClassificationError(
-      "NETWORK_ERROR",
-      "Could not connect to the configured provider.",
-      true,
-      details
+      return requestHeaders;
+    },
+  });
+  return HttpClientRequest.post(endpoint, {
+    headers,
+  }).pipe(HttpClientRequest.bodyText(body, "application/json"));
+});
+
+export const makeDecisionRequest = (
+  httpClient: HttpClient.HttpClient,
+  options: Omit<TransportOptions, "body" | "key">
+) => {
+  const client = HttpClient.withScope(httpClient);
+  const sendAttempt = Effect.fn("sendAttempt")(function* sendAttempt(
+    request: HttpClientRequest.HttpClientRequest,
+    state: Ref.Ref<AttemptState>
+  ) {
+    yield* Ref.update(state, ({ attempts }) => ({
+      attempts: attempts + 1,
+    }));
+    const response = yield* client
+      .execute(request)
+      .pipe(Effect.mapError(networkError));
+    const retryAfter = retryAfterMs(response, yield* Clock.currentTimeMillis);
+    const metadata: Omit<AttemptState, "attempts"> = requestID(
+      response,
+      options.requestIDHeader ?? "x-typesafe-request-id"
     );
-  } finally {
-    clearTimeout(timer);
-    sessionSignal.removeEventListener("abort", interrupt);
-  }
+    if (retryAfter !== undefined) {
+      metadata.retryAfterMs = retryAfter;
+    }
+    yield* Ref.update(state, ({ attempts }) => ({
+      attempts,
+      ...metadata,
+    }));
+    if (response.status >= 200 && response.status < 300) {
+      return yield* readJson(response);
+    }
+    return yield* httpError(response.status).withDetails(metadata);
+  }, Effect.scoped);
+
+  return Effect.fn("executeDecisionRequest")(function* executeDecisionRequest(
+    input: Pick<TransportOptions, "body" | "key">
+  ): Effect.fn.Return<TransportResult, ClassificationError> {
+    const request = yield* prepareRequest(options.endpoint, input);
+    const deadline =
+      (yield* Clock.monotonicTimeNanos) +
+      BigInt(options.timeoutMs) * 1_000_000n;
+    const state = yield* Ref.make<AttemptState>({ attempts: 0 });
+    const outcome = yield* sendAttempt(request, state).pipe(
+      Effect.retry(retryPolicy(options.maxRetries, deadline)),
+      Effect.timeoutOrElse({
+        duration: Math.max(
+          0,
+          Number(deadline - (yield* Clock.monotonicTimeNanos)) / 1_000_000
+        ),
+        orElse: () =>
+          Effect.fail(
+            new ClassificationError(
+              "TIMEOUT",
+              "Classification deadline expired.",
+              true
+            )
+          ),
+      }),
+      Effect.result
+    );
+    const details = yield* Ref.get(state);
+    if (Result.isFailure(outcome)) {
+      return yield* outcome.failure.withDetails(details);
+    }
+    const result: TransportResult = {
+      attempts: details.attempts,
+      value: outcome.success,
+    };
+    if (details.requestID !== undefined) {
+      result.requestID = details.requestID;
+    }
+    return result;
+  });
 };

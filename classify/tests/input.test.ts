@@ -1,30 +1,51 @@
 import { expect, test } from "bun:test";
 
 import type { JsonValue } from "../types.js";
-import { isEvidence, parseInput, parseQuestions } from "../validation/input.js";
+import { isEvidence } from "../validation/input.js";
+import { parseInputSync, parseQuestions } from "./effect-fixtures.js";
 import { input, questions } from "./fixtures.js";
 
+const classifiers = {
+  caller: { description: "Caller state", questions },
+  preset: { description: "Preset state", questions, state: "Stored" },
+};
 test("both modes and mixed native questions pass unchanged", () => {
-  expect(parseInput(input)).toEqual(input);
+  expect(parseInputSync(input)).toEqual(input);
   expect(
-    parseInput({ classifier: "incident-triage", state: [null, false, 2] })
-  ).toEqual({ classifier: "incident-triage", state: [null, false, 2] });
+    parseInputSync(
+      { classifier: "caller", state: [null, false, 2] },
+      classifiers
+    )
+  ).toEqual({ classifier: "caller", state: [null, false, 2] });
 });
-test("named input permits omitted preset state but rejects invalid supplied state", () => {
-  expect(parseInput({ classifier: "preset" })).toEqual({
+test("named input follows each configured classifier's state mode", () => {
+  expect(parseInputSync({ classifier: "preset" }, classifiers)).toEqual({
     classifier: "preset",
   });
-  expect(() => parseInput({ questions })).toThrow();
-  expect(() => parseInput({ classifier: "preset", state: null })).toThrow();
+  expect(() => parseInputSync({ questions })).toThrow();
+  for (const value of [
+    { classifier: "preset", state: "Override" },
+    { classifier: "unknown", state: "x" },
+  ]) {
+    expect(() => parseInputSync(value, classifiers)).toThrow(
+      "No configured classifier accepts this request."
+    );
+  }
+  expect(() => parseInputSync({ classifier: "caller" }, classifiers)).toThrow(
+    "Missing required field."
+  );
+  expect(() =>
+    parseInputSync({ classifier: "caller", state: null }, classifiers)
+  ).toThrow();
 });
 test("null-prototype evidence retains evidence validation", () => {
   const state = { files: ["a.ts"], type: "evidence" };
   Object.setPrototypeOf(state, null);
   expect(isEvidence(state)).toBe(true);
-  expect(parseInput({ questions, state })).toHaveProperty("state", state);
+  expect(parseInputSync({ questions, state })).toHaveProperty("state", state);
   const invalidState = { type: "evidence" };
   Object.setPrototypeOf(invalidState, null);
-  expect(() => parseInput({ questions, state: invalidState })).toThrow(
+  expect(() => parseInputSync({ questions, state: invalidState })).toThrow(
     "Evidence requires text, files, or diffs."
   );
 });
@@ -41,7 +62,7 @@ test("invalid selectors, content, fields and native criteria fail", () => {
     { ...input, questions: { "1bad": questions.urgent } },
   ];
   for (const value of invalidInputs) {
-    expect(() => parseInput(value)).toThrow();
+    expect(() => parseInputSync(value)).toThrow();
   }
   const invalidQuestionDefinitions: JsonValue[] = [
     { instructions: " ", type: "noul" },
@@ -119,7 +140,7 @@ test("question, choice and score boundaries include special own labels", () => {
     },
     state: "x",
   };
-  parseInput(special);
+  parseInputSync(special);
 });
 test("choice criteria lists normalize safely without changing caller input", () => {
   const criteria = [
@@ -132,7 +153,7 @@ test("choice criteria lists normalize safely without changing caller input", () 
     },
     state: "Production is down",
   };
-  const parsed = parseInput(raw);
+  const parsed = parseInputSync(raw);
   expect(parsed).toEqual({
     ...raw,
     questions: {

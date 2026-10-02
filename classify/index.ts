@@ -1,45 +1,22 @@
-import { Plugin } from "@opencode/plugin";
+import { Plugin } from "@opencode/plugin/effect";
+import { Effect, Layer } from "effect";
 
-import { parseOptions } from "./config.js";
-import { createEvidenceResolver } from "./evidence.js";
-import { createAdapter } from "./providers/adapter.js";
-import { createClassifier } from "./service.js";
-import { buildToolDescription } from "./tool-description.js";
-import { buildToolInputSchema } from "./tool-schema.js";
-import { isBoundedJsonValue } from "./validation/json.js";
+import { loadOptions } from "./config.js";
+import { classifyLayer } from "./layers.js";
+import { createClassifyTool } from "./tool.js";
 
 export default Plugin.define({
-  id: "classify",
-  async setup(ctx) {
-    const rawOptions = isBoundedJsonValue(ctx.options) ? ctx.options : null;
-    const options = parseOptions(rawOptions);
-    const service = createClassifier(options, createAdapter(options));
-    await ctx.tool.transform((editor) => {
-      editor.add({
-        description: buildToolDescription(options.classifiers ?? {}),
-        execute: async (input, context) => ({
-          content: JSON.stringify(
-            await service.classify(
-              isBoundedJsonValue(input) ? input : null,
-              context.signal,
-              async (state, signal) => {
-                const session = await ctx.session.get(
-                  { sessionID: context.sessionID },
-                  { signal }
-                );
-                const tools = await ctx.tool.list();
-                return createEvidenceResolver(
-                  session.location.directory,
-                  tools,
-                  context
-                )(state, signal);
-              }
-            )
-          ),
-        }),
-        input: buildToolInputSchema(options.classifiers ?? {}),
-        name: "classify",
+  effect: (context) =>
+    Effect.gen(function* setupClassify() {
+      const options = yield* loadOptions(context.options).pipe(Effect.orDie);
+      const services = yield* Layer.build(classifyLayer(options, context));
+      const tool = yield* createClassifyTool(options).pipe(
+        Effect.provideContext(services)
+      );
+
+      yield* context.tool.transform((editor) => {
+        editor.add(tool);
       });
-    });
-  },
+    }),
+  id: "classify",
 });

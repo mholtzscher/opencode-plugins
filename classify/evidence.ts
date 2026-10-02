@@ -1,242 +1,266 @@
-import { execFile } from "node:child_process";
 import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
 
-import type { Info, ToolContext } from "@opencode/plugin/promise/tool";
+import type { Tool } from "@opencode/schema/tool";
+import { Context, Effect, Layer } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
+import { readRegularFile } from "./bounded-file.js";
+import type { ReadFailure } from "./bounded-file.js";
+import { readBoundedBytes } from "./bounded-stream.js";
+import { ClassificationError } from "./errors.js";
 import { MAX_BYTES } from "./limits.js";
-import { ClassificationError } from "./types.js";
+import { OpenCodeAccess } from "./opencode-access.js";
 import type {
   Content,
   EvidenceDiff,
   EvidenceState,
   JsonValue,
 } from "./types.js";
-import { boundedJson } from "./validation/json.js";
+import { requireBoundedJson } from "./validation/json.js";
 
-const exec = promisify(execFile);
 const BINARY_DIFF = /^GIT binary patch$|^Binary files .* differ$/mu;
-type NativeToolInput =
-  | { limit: 1; path: string }
-  | { command: string; timeout: 30_000; workdir: string };
-type Invoke = (name: "read" | "shell", input: NativeToolInput) => Promise<void>;
-const failure = (message: string): never => {
-  throw new ClassificationError("EVIDENCE_ERROR", message);
-};
+const failure = (message: string) =>
+  new ClassificationError("EVIDENCE_ERROR", message);
+const unreadable = () =>
+  failure(
+    "Evidence could not be read. Check access permissions, UTF-8 encoding, file sizes, and Git revisions."
+  );
 const quote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
-const readText = async (
-  handle: FileHandle,
-  budget: number,
-  signal: AbortSignal
-) => {
-  const stat = await handle.stat();
-  if (!stat.isFile() || stat.size > budget) {
-    failure(
-      "Evidence files must be regular text files within the 1 MiB request limit."
-    );
-  }
-  const buffer = Buffer.alloc(stat.size + 1);
-  let length = 0;
-  while (length < buffer.length) {
-    signal.throwIfAborted();
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Sequential reads advance one descriptor and enforce the shared byte bound before continuing.
-    const { bytesRead } = await handle.read(
-      buffer,
-      length,
-      buffer.length - length,
-      null
-    );
-    if (bytesRead === 0) {
-      break;
-    }
-    length += bytesRead;
-  }
-  if (length !== stat.size) {
-    failure(
-      "Evidence file changed or exceeded the request limit while being read."
-    );
-  }
-  const bytes = buffer.subarray(0, length);
-  if (bytes.includes(0)) {
-    failure("Evidence files must contain UTF-8 text, not binary data.");
-  }
-  return {
-    content: new TextDecoder("utf-8", {
-      fatal: true,
-      ignoreBOM: true,
-    }).decode(bytes),
-    size: length,
-  };
-};
-const readEvidenceFile = async (
-  directory: string,
-  filePath: string,
-  budget: number,
-  signal: AbortSignal,
-  invoke: Invoke
-) => {
-  signal.throwIfAborted();
-  const canonical = await realpath(path.resolve(directory, filePath));
-  const flags =
-    constants.O_RDONLY + constants.O_NOFOLLOW + constants.O_NONBLOCK;
-  const handle = await open(canonical, flags);
-  try {
-    const identity = await handle.stat();
-    const verifyIdentity = async () => {
-      const resolved = await realpath(canonical);
-      const current = await lstat(canonical);
-      if (
-        resolved !== canonical ||
-        !current.isFile() ||
-        current.dev !== identity.dev ||
-        current.ino !== identity.ino
-      ) {
-        failure("Evidence file changed during permission checking.");
-      }
-    };
-    await verifyIdentity();
-    await invoke("read", { limit: 1, path: canonical });
-    await verifyIdentity();
-    return await readText(handle, budget, signal);
-  } finally {
-    await handle.close();
-  }
-};
-const readEvidenceDiff = async (
-  directory: string,
-  diff: EvidenceDiff,
-  budget: number,
-  signal: AbortSignal,
-  invoke: Invoke
-) => {
-  signal.throwIfAborted();
-  const paths = (diff.paths ?? ["."]).map((diffPath) => {
-    const scoped = path.relative(directory, path.resolve(directory, diffPath));
-    if (
-      path.isAbsolute(scoped) ||
-      scoped === ".." ||
-      scoped.startsWith(`..${path.sep}`)
-    ) {
-      failure("Diff paths must stay within the session directory.");
-    }
-    return scoped || ".";
+const io = <A>(operation: () => Promise<A>) =>
+  Effect.tryPromise({ catch: unreadable, try: operation });
+const decode = (bytes: Buffer) =>
+  Effect.try({
+    catch: unreadable,
+    try: () =>
+      new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes),
   });
-  const args = [
-    "--no-pager",
-    "--literal-pathspecs",
-    "-c",
-    "core.fsmonitor=false",
-    "diff",
-    "--no-ext-diff",
-    "--no-textconv",
-    "--no-renames",
-    "--no-color",
-    diff.base,
-    "--",
-    ...paths,
-  ];
-  await invoke("shell", {
-    command: ["git", ...args].map(quote).join(" "),
-    timeout: 30_000,
-    workdir: directory,
-  });
-  const { stdout } = await exec("git", args, {
-    cwd: directory,
-    encoding: "buffer",
-    maxBuffer: budget + 1,
-    signal,
-    timeout: 30_000,
-  });
-  if (stdout.length > budget) {
-    failure("Diff evidence exceeds the 1 MiB request limit.");
-  }
-  if (BINARY_DIFF.test(stdout.toString("utf-8"))) {
-    failure("Binary diffs are not supported as evidence.");
-  }
-  return {
-    content: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
-      stdout
-    ),
-    size: stdout.length,
-  };
+
+const fileFailures: Record<ReadFailure, string> = {
+  changed:
+    "Evidence file changed or exceeded the request limit while being read.",
+  invalid:
+    "Evidence files must be regular text files within the 1 MiB request limit.",
+  unreadable:
+    "Evidence could not be read. Check access permissions, UTF-8 encoding, file sizes, and Git revisions.",
 };
 
-// The plugin API has no permission-request primitive. Invoke the native tools
-// before reading evidence so their path/shell policies remain authoritative.
-// File reads retain one handle and verify path identity around permission checking.
-// Read with strict bounds: native display output may be truncated.
-export const createEvidenceResolver = (
-  directory: string,
-  tools: readonly Info[],
-  context: ToolContext
-) => {
-  const invoke: Invoke = async (name, input) => {
-    context.signal.throwIfAborted();
-    const tool = tools.find((item) => item.name === name);
-    if (!tool) {
-      return failure(
-        `The native ${name} tool is required to resolve this evidence.`
-      );
-    }
-    await tool.execute(input, context);
-    context.signal.throwIfAborted();
-  };
-  return async (
-    state: EvidenceState,
-    signal: AbortSignal
-  ): Promise<Content> => {
-    const result: Record<string, JsonValue> = {};
-    if (state.text !== undefined) {
-      result.text = state.text;
-    }
-    let remaining = MAX_BYTES;
-    try {
-      if (state.files) {
-        const files: JsonValue[] = [];
-        for (const evidencePath of state.files) {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- Evidence resolution consumes a shared byte budget and permission prompt order.
-          const { content, size } = await readEvidenceFile(
-            directory,
-            evidencePath,
-            remaining,
-            signal,
-            invoke
-          );
-          remaining -= size;
-          files.push({ content, path: evidencePath });
+const readText = Effect.fn("readText")(function* readText(
+  handle: FileHandle,
+  budget: number
+) {
+  const bytes = yield* readRegularFile(handle, budget, (reason) =>
+    failure(fileFailures[reason])
+  );
+  if (bytes.includes(0)) {
+    return yield* failure(
+      "Evidence files must contain UTF-8 text, not binary data."
+    );
+  }
+  return { content: yield* decode(bytes), size: bytes.length };
+});
+
+export class EvidenceAccess extends Context.Service<
+  EvidenceAccess,
+  {
+    resolve: (
+      state: EvidenceState,
+      context: Tool.Context
+    ) => Effect.Effect<Content, ClassificationError>;
+  }
+>()("classify/EvidenceAccess") {}
+
+export const EvidenceAccessLive = Layer.effect(
+  EvidenceAccess,
+  Effect.gen(function* EvidenceAccessLive() {
+    const access = yield* OpenCodeAccess;
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+
+    const gitOutput = Effect.fn("gitOutput")(
+      function* gitOutput(directory: string, args: string[], budget: number) {
+        const process = yield* spawner.spawn(
+          ChildProcess.make("git", args, {
+            cwd: directory,
+            killSignal: "SIGKILL",
+            stdin: "ignore",
+          })
+        );
+        const [stdout, , exitCode] = yield* Effect.all(
+          [
+            readBoundedBytes(process.stdout, budget + 1, unreadable),
+            readBoundedBytes(process.stderr, budget + 1, unreadable),
+            process.exitCode,
+          ],
+          { concurrency: "unbounded" }
+        );
+        if (exitCode !== ChildProcessSpawner.ExitCode(0)) {
+          return yield* unreadable();
         }
-        result.files = files;
-      }
-      if (state.diffs) {
-        const diffs: JsonValue[] = [];
-        for (const diff of state.diffs) {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- Each diff consumes the remaining shared request budget before the next diff.
-          const { content, size } = await readEvidenceDiff(
-            directory,
-            diff,
-            remaining,
-            signal,
-            invoke
+        return stdout;
+      },
+      Effect.timeout("30 seconds"),
+      Effect.scoped,
+      Effect.mapError(unreadable)
+    );
+
+    const readEvidenceFile = Effect.fn("readEvidenceFile")(
+      function* readEvidenceFile(
+        directory: string,
+        filePath: string,
+        budget: number,
+        context: Tool.Context
+      ) {
+        const canonical = yield* io(() =>
+          realpath(path.resolve(directory, filePath))
+        );
+        const flags =
+          constants.O_RDONLY + constants.O_NOFOLLOW + constants.O_NONBLOCK;
+        const handle = yield* Effect.acquireRelease(
+          io(() => open(canonical, flags)),
+          (file) => io(() => file.close()).pipe(Effect.orDie)
+        );
+        const identity = yield* io(() => handle.stat()).pipe(
+          Effect.uninterruptible
+        );
+        if (!identity.isFile()) {
+          return yield* failure(
+            "Evidence files must be regular text files within the 1 MiB request limit."
           );
-          remaining -= size;
-          diffs.push({ ...diff, content });
         }
-        result.diffs = diffs;
+        const verifyIdentity = Effect.fn("verifyIdentity")(
+          function* verifyIdentity() {
+            const resolved = yield* io(() => realpath(canonical));
+            const current = yield* io(() => lstat(canonical));
+            if (
+              resolved !== canonical ||
+              !current.isFile() ||
+              current.dev !== identity.dev ||
+              current.ino !== identity.ino
+            ) {
+              return yield* failure(
+                "Evidence file changed during permission checking."
+              );
+            }
+          }
+        );
+        yield* verifyIdentity();
+        yield* access.readFile(canonical, context);
+        yield* verifyIdentity();
+        return yield* readText(handle, budget);
+      },
+      Effect.scoped
+    );
+
+    const readEvidenceDiff = Effect.fn("readEvidenceDiff")(
+      function* readEvidenceDiff(
+        directory: string,
+        diff: EvidenceDiff,
+        budget: number,
+        context: Tool.Context
+      ) {
+        if (
+          !diff.base.trim() ||
+          diff.base.startsWith("-") ||
+          diff.base.includes("\0")
+        ) {
+          return yield* failure("Diff evidence requires a valid Git revision.");
+        }
+        const paths: string[] = [];
+        for (const diffPath of diff.paths ?? ["."]) {
+          const scoped = path.relative(
+            directory,
+            path.resolve(directory, diffPath)
+          );
+          if (
+            path.isAbsolute(scoped) ||
+            scoped === ".." ||
+            scoped.startsWith(`..${path.sep}`)
+          ) {
+            return yield* failure(
+              "Diff paths must stay within the session directory."
+            );
+          }
+          paths.push(scoped || ".");
+        }
+        const args = [
+          "--no-pager",
+          "--literal-pathspecs",
+          "-c",
+          "core.fsmonitor=false",
+          "diff",
+          "--no-ext-diff",
+          "--no-textconv",
+          "--no-renames",
+          "--no-color",
+          diff.base,
+          "--",
+          ...paths,
+        ];
+        yield* access.runShell(
+          {
+            command: ["git", ...args].map(quote).join(" "),
+            workdir: directory,
+          },
+          context
+        );
+        const stdout = yield* gitOutput(directory, args, budget);
+        if (stdout.length > budget) {
+          return yield* failure(
+            "Diff evidence exceeds the 1 MiB request limit."
+          );
+        }
+        const content = yield* decode(stdout);
+        if (BINARY_DIFF.test(content)) {
+          return yield* failure("Binary diffs are not supported as evidence.");
+        }
+        return { content, size: stdout.length };
       }
-      boundedJson(result);
-      signal.throwIfAborted();
-      return result;
-    } catch (error) {
-      signal.throwIfAborted();
-      if (error instanceof ClassificationError) {
-        throw error;
+    );
+
+    // Native tools enforce permissions; their display output is not evidence.
+    const resolveEvidence = Effect.fn("resolveEvidence")(
+      function* resolveEvidence(state: EvidenceState, context: Tool.Context) {
+        const directory = yield* access.directory(context);
+        const result: Record<string, JsonValue> = {};
+        if (state.text !== undefined) {
+          result.text = state.text;
+        }
+        let remaining = MAX_BYTES;
+        if (state.files) {
+          const files: JsonValue[] = [];
+          for (const evidencePath of state.files) {
+            const { content, size } = yield* readEvidenceFile(
+              directory,
+              evidencePath,
+              remaining,
+              context
+            );
+            remaining -= size;
+            files.push({ content, path: evidencePath });
+          }
+          result.files = files;
+        }
+        if (state.diffs) {
+          const diffs: JsonValue[] = [];
+          for (const diff of state.diffs) {
+            const { content, size } = yield* readEvidenceDiff(
+              directory,
+              diff,
+              remaining,
+              context
+            );
+            remaining -= size;
+            diffs.push({ ...diff, content });
+          }
+          result.diffs = diffs;
+        }
+        yield* requireBoundedJson(result);
+        return result;
       }
-      return failure(
-        "Evidence could not be read. Check access permissions, UTF-8 encoding, file sizes, and Git revisions."
-      );
-    }
-  };
-};
+    );
+
+    return EvidenceAccess.of({ resolve: resolveEvidence });
+  })
+);

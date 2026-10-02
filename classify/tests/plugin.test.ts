@@ -1,28 +1,34 @@
-import { expect, test } from "bun:test";
+import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  Info,
-  ToolContext,
-  ToolEditor,
-} from "@opencode/plugin/promise/tool";
+import type { ToolEditor } from "@opencode/plugin/effect/tool";
+import { Tool } from "@opencode/schema/tool";
 import { file, serve } from "bun";
+import { Cause, Deferred, Effect, Exit, Fiber, Schema, Scope } from "effect";
 
 import plugin from "../index.js";
+import { buildInputSchema } from "../schemas.js";
 import type { JsonValue } from "../types.js";
-import { parseInput } from "../validation/input.js";
 import { isBoundedJsonValue } from "../validation/json.js";
+import { parseInputSync, toolContext } from "./effect-fixtures.js";
 import { input, questions, response } from "./fixtures.js";
 
-type PluginContext = Parameters<typeof plugin.setup>[0];
+type PluginContext = Parameters<typeof plugin.effect>[0];
+type Info = Tool.Info;
+const scopes: Scope.Closeable[] = [];
+afterEach(async () => {
+  await Effect.runPromise(
+    Effect.forEach(scopes.splice(0), (scope) => Scope.close(scope, Exit.void))
+  );
+});
 
 const register = async (
   options: JsonValue,
-  runtime?: { directory: string; tools: Info[] }
+  runtime?: { directory: string; tools: Info[]; disposed?: () => void }
 ): Promise<Info[]> => {
   const tools: Info[] = [];
-  // SAFETY: The test editor only implements add, which is the sole method used by plugin.setup.
+  // SAFETY: The test editor only implements add, which is the sole method used by plugin.effect.
   const editor = {
     add(tool: Info) {
       tools.push(tool);
@@ -32,36 +38,38 @@ const register = async (
     options,
     session: {
       get: () =>
-        Promise.resolve({ location: { directory: runtime?.directory } }),
+        Effect.succeed({ location: { directory: runtime?.directory } }),
     },
     tool: {
-      list: () => Promise.resolve(runtime?.tools ?? []),
+      list: () =>
+        Effect.succeed(
+          (runtime?.tools ?? []).map((tool) => ({ ...tool, id: tool.name }))
+        ),
       // OpenCode's transform contract is callback-based and this plugin registers synchronously inside it.
       // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Preserve the host transform callback semantics in the fixture.
-      transform: (callback: (editor: ToolEditor) => void) => {
-        // oxlint-disable-next-line promise/prefer-await-to-callbacks -- The API requires invoking this registration callback.
-        callback(editor);
-        return Promise.resolve({ dispose: () => Promise.resolve() });
-      },
+      transform: (callback: (editor: ToolEditor) => void) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            // oxlint-disable-next-line promise/prefer-await-to-callbacks -- The API requires invoking this registration callback.
+            callback(editor);
+            return {
+              dispose: Effect.sync(() => {
+                runtime?.disposed?.();
+                tools.splice(0);
+              }),
+            };
+          }),
+          (registration) => registration.dispose
+        ),
     },
   };
   // SAFETY: The fixture implements the options, session.get, and tool.list/transform members exercised by setup and the registered executor; unused host APIs are outside this test's contract.
   // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The partial host fixture requires a TypeScript bridge at this test-only boundary.
   const context = contextFixture as unknown as PluginContext;
-  await plugin.setup(context);
+  const scope = await Effect.runPromise(Scope.make());
+  scopes.push(scope);
+  await Effect.runPromise(plugin.effect(context).pipe(Scope.provide(scope)));
   return tools;
-};
-const toolContext = (signal: AbortSignal): ToolContext =>
-  // SAFETY: The plugin executor reads only the cancellation signal from this test context.
-  ({ signal }) as ToolContext;
-// This is the untrusted serialized content boundary returned by the plugin executor.
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Validate host tool output before parsing it as JSON.
-const parseToolContent = (content: unknown): JsonValue => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Establish the serialized JSON representation before JSON.parse.
-  if (typeof content !== "string") {
-    throw new TypeError("Tool output content must be serialized JSON.");
-  }
-  return JSON.parse(content);
 };
 test("real entry registers one unnamespaced tool with concrete discoverable schema", async () => {
   const tools = await register({
@@ -74,23 +82,23 @@ test("real entry registers one unnamespaced tool with concrete discoverable sche
   expect(tool.name).toBe("classify");
   expect(tool.options?.namespace).toBeUndefined();
   expect(tool.description).toContain("triage: Assess incidents");
-  expect(tool.input).toHaveProperty("oneOf.1.properties.classifier.enum", [
-    "triage",
-  ]);
-  // SAFETY: The executor only reads signal from this fake tool context.
-  const result = await tool.execute(
-    input,
-    toolContext(new AbortController().signal)
+  if (!Schema.isSchema(tool.input)) {
+    throw new TypeError("Registered tool input must be a native codec");
+  }
+  const document = Schema.toJsonSchemaDocument(tool.input);
+  expect(document).toEqual(
+    Schema.toJsonSchemaDocument(
+      buildInputSchema({
+        triage: { description: "Assess incidents", questions },
+      })
+    )
   );
-  expect(parseToolContent(result.content)).toHaveProperty(
-    "error.code",
-    "PROVIDER_UNAVAILABLE"
-  );
-  const controller = new AbortController();
-  controller.abort();
-  await expect(
-    tool.execute(input, toolContext(controller.signal))
-  ).rejects.toThrow();
+  expect(JSON.stringify(document)).toContain('"triage"');
+  expect(JSON.stringify(document)).toContain('"classifier"');
+  expect(tool.output).toBeDefined();
+  const result = await Effect.runPromise(tool.execute(input, toolContext()));
+  expect(result.output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+  expect(result.content).toBeUndefined();
 });
 test("tool teaches self-contained requests, result interpretation, and Code Mode handling", async () => {
   const [tool] = await register({ backend: { provider: "openai-decisions" } });
@@ -105,11 +113,11 @@ test("tool teaches self-contained requests, result interpretation, and Code Mode
     "possibly fractional",
     "zero-based scale",
     "not probability of correctness",
-    "parse it and check ok",
+    "check ok",
     "result.answers[id]",
     "retryable",
     "no partial answers",
-    "JSON.parse(raw)",
+    "output",
   ]) {
     expect(tool.description).toContain(guidance);
   }
@@ -124,17 +132,14 @@ test("tool teaches self-contained requests, result interpretation, and Code Mode
   if (!isBoundedJsonValue(raw)) {
     throw new TypeError("Tool description example is not valid JSON input.");
   }
-  const parsed = parseInput(raw);
+  const parsed = parseInputSync(raw);
   expect(Object.values(parsed.questions ?? {}).map((q) => q.type)).toEqual([
     "noul",
     "choice",
     "score",
   ]);
-  const output = await tool.execute(
-    parsed,
-    toolContext(new AbortController().signal)
-  );
-  expect(parseToolContent(output.content)).toMatchObject({
+  const output = await Effect.runPromise(tool.execute(parsed, toolContext()));
+  expect(output.output).toMatchObject({
     error: { code: "PROVIDER_UNAVAILABLE", retryable: false },
     ok: false,
   });
@@ -163,19 +168,21 @@ test("executor resolves evidence in the session location before provider HTTP", 
             description: "Native read",
             execute: (args) => {
               reads.push(args);
-              return Promise.resolve({ content: "Ignored display preview" });
+              return Effect.succeed({ content: "Ignored display preview" });
             },
-            input: { type: "object" },
+            input: Schema.Unknown,
             name: "read",
           },
         ],
       }
     );
-    const output = await tools[0].execute(
-      { questions, state: { files: ["a.ts"], type: "evidence" } },
-      toolContext(new AbortController().signal)
+    const output = await Effect.runPromise(
+      tools[0].execute(
+        { questions, state: { files: ["a.ts"], type: "evidence" } },
+        toolContext()
+      )
     );
-    expect(parseToolContent(output.content)).toHaveProperty("ok", true);
+    expect(output.output).toHaveProperty("ok", true);
     expect(reads).toEqual([{ limit: 1, path: path.join(directory, "a.ts") }]);
     expect(requests[0]).toHaveProperty("state.files", [
       { content: "actual contents", path: "a.ts" },
@@ -199,7 +206,7 @@ test("setup has no fetch side effects and invalid options stop registration", as
     const tools = await register({
       backend: { apiKeyEnv: "CLASSIFY_TEST_MISSING", provider: "typesafe" },
     });
-    expect(tools[0].input).not.toHaveProperty("oneOf");
+    expect(Schema.isSchema(tools[0].input)).toBe(true);
     expect(calls).toBe(0);
     await expect(register({})).rejects.toThrow("Invalid classify options");
   } finally {
@@ -244,11 +251,13 @@ test("preset evidence is read freshly in the session location with native permis
                 path: path.join(directory, "a.ts"),
               });
               if (denied) {
-                return Promise.reject(new Error("Private permission detail"));
+                return Effect.fail(
+                  new Tool.Error({ message: "Private permission detail" })
+                );
               }
-              return Promise.resolve({ content: "Ignored display preview" });
+              return Effect.succeed({ content: "Ignored display preview" });
             },
-            input: { type: "object" },
+            input: Schema.Unknown,
             name: "read",
           },
         ],
@@ -259,39 +268,49 @@ test("preset evidence is read freshly in the session location with native permis
     expect(tool.description).toContain(
       "review: Review current file (uses configured state; omit state)"
     );
-    expect(tool.input).not.toHaveProperty("oneOf.1.properties.state");
-    const context = toolContext(new AbortController().signal);
+    if (!Schema.isSchema(tool.input)) {
+      throw new TypeError("Registered tool input must be a native codec");
+    }
+    const decodeInput = Schema.decodeUnknownSync(tool.input);
+    expect(decodeInput({ classifier: "review" })).toEqual({
+      classifier: "review",
+    });
+    expect(() =>
+      decodeInput({
+        classifier: "review",
+        state: "Override",
+      })
+    ).toThrow();
+    const context = toolContext();
     await writeFile(path.join(directory, "a.ts"), "original contents");
-    const first = await tool.execute({ classifier: "review" }, context);
-    expect(parseToolContent(first.content)).toHaveProperty(
-      "result.classifier",
-      "review"
+    const first = await Effect.runPromise(
+      tool.execute({ classifier: "review" }, context)
     );
+    expect(first.output).toHaveProperty("result.classifier", "review");
     await writeFile(path.join(directory, "a.ts"), "updated contents");
-    const second = await tool.execute({ classifier: "review" }, context);
-    expect(parseToolContent(second.content)).toHaveProperty("ok", true);
+    const second = await Effect.runPromise(
+      tool.execute({ classifier: "review" }, context)
+    );
+    expect(second.output).toHaveProperty("ok", true);
     expect(requests[0]).toHaveProperty("state.files", [
       { content: "original contents", path: "a.ts" },
     ]);
     expect(requests[1]).toHaveProperty("state.files", [
       { content: "updated contents", path: "a.ts" },
     ]);
-    const override = await tool.execute(
-      { classifier: "review", state: "Override" },
-      context
+    const override = await Effect.runPromise(
+      tool.execute({ classifier: "review", state: "Override" }, context)
     );
-    expect(parseToolContent(override.content)).toHaveProperty(
-      "error.code",
-      "INVALID_INPUT"
-    );
+    expect(override.output).toHaveProperty("error.code", "INVALID_INPUT");
     expect(reads).toBe(2);
     denied = true;
-    const failure = await tool.execute({ classifier: "review" }, context);
-    expect(parseToolContent(failure.content)).toHaveProperty(
-      "error.code",
-      "EVIDENCE_ERROR"
+    const failure = await Effect.runPromise(
+      tool.execute({ classifier: "review" }, context)
     );
-    expect(failure.content).not.toContain("Private permission detail");
+    expect(failure.output).toHaveProperty("error.code", "EVIDENCE_ERROR");
+    expect(JSON.stringify(failure.output)).not.toContain(
+      "Private permission detail"
+    );
     expect(reads).toBe(3);
     expect(requests).toHaveLength(2);
   } finally {
@@ -300,29 +319,76 @@ test("preset evidence is read freshly in the session location with native permis
   }
 });
 test("executor forwards interruption to an in-flight request", async () => {
-  const fixture = serve({
-    // A never-settling request verifies that the plugin forwards abort to in-flight fetch.
-    // oxlint-disable-next-line promise/avoid-new -- The test needs a promise that remains pending until its AbortSignal wins.
-    fetch: () => new Promise<Response>(() => {}),
-    hostname: "127.0.0.1",
-    port: 0,
-  });
+  const originalFetch = globalThis.fetch;
+  const started = await Effect.runPromise(Deferred.make<boolean>());
+  let aborted = false;
+  globalThis.fetch = Object.assign(
+    (_url: string | URL | Request, init?: RequestInit) => {
+      Effect.runSync(Deferred.succeed(started, true));
+      // oxlint-disable-next-line promise/avoid-new -- Mock the Promise-based fetch leaf, not the native executor.
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          "abort",
+          () => {
+            aborted = true;
+            reject(new Error("Interrupted fetch"));
+          },
+          { once: true }
+        );
+      });
+    },
+    { preconnect: originalFetch.preconnect }
+  );
   try {
     const tools = await register({
-      backend: { baseURL: fixture.url.origin, provider: "laya" },
+      backend: { baseURL: "http://127.0.0.1:12345", provider: "laya" },
     });
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20);
-    try {
-      await expect(
-        tools[0].execute(input, toolContext(controller.signal))
-      ).rejects.toThrow();
-    } finally {
-      clearTimeout(timer);
+    const exit = await Effect.runPromise(
+      Effect.gen(function* exit() {
+        const fiber = yield* Effect.forkChild(
+          tools[0].execute(input, toolContext())
+        );
+        yield* Deferred.await(started);
+        yield* Fiber.interrupt(fiber);
+        return yield* Fiber.await(fiber);
+      })
+    );
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      expect(Cause.hasInterrupts(exit.cause)).toBe(true);
     }
+    expect(aborted).toBe(true);
   } finally {
-    fixture.stop(true);
+    globalThis.fetch = originalFetch;
   }
+});
+test("registration stays live through execution and disposes when the plugin scope closes", async () => {
+  let disposals = 0;
+  const tools = await register(
+    { backend: { provider: "openai-decisions" } },
+    {
+      directory: "/tmp/opencode",
+      disposed: () => {
+        disposals += 1;
+      },
+      tools: [],
+    }
+  );
+  expect(disposals).toBe(0);
+  const output = await Effect.runPromise(
+    tools[0].execute(input, toolContext())
+  );
+  expect(output.output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+  expect(disposals).toBe(0);
+  const scope = scopes.pop();
+  if (!scope) {
+    throw new Error("Missing plugin scope");
+  }
+  await Effect.runPromise(Scope.close(scope, Exit.void));
+  expect(disposals).toBe(1);
+  expect(tools).toHaveLength(0);
+  await Effect.runPromise(Scope.close(scope, Exit.void));
+  expect(disposals).toBe(1);
 });
 test("TUI entry has no classification, credential or inference code", async () => {
   const source = await file(new URL("../tui.ts", import.meta.url)).text();
@@ -386,19 +452,21 @@ test("entry normalizes transport-safe criteria and preserves structured provider
       backend: { baseURL: fixture.url.origin, provider: "laya" },
       classifiers: { review: { description: "Review", questions: q } },
     });
-    const context = toolContext(new AbortController().signal);
-    const outputs = await Promise.all([
-      tool.execute({ questions: q, state: "Outage" }, context),
-      tool.execute({ classifier: "review", state: "Outage" }, context),
-    ]);
+    const context = toolContext();
+    const outputs = await Effect.runPromise(
+      Effect.all(
+        [
+          tool.execute({ questions: q, state: "Outage" }, context),
+          tool.execute({ classifier: "review", state: "Outage" }, context),
+        ],
+        { concurrency: "unbounded" }
+      )
+    );
     for (const output of outputs) {
-      expect(parseToolContent(output.content)).toHaveProperty(
-        "result.answers",
-        {
-          ...native.answers,
-          impact: { ...native.answers.impact, scale: { max: 2, min: 0 } },
-        }
-      );
+      expect(output.output).toHaveProperty("result.answers", {
+        ...native.answers,
+        impact: { ...native.answers.impact, scale: { max: 2, min: 0 } },
+      });
     }
     for (const request of requests) {
       expect(request).toHaveProperty(

@@ -1,14 +1,20 @@
 import { expect, test } from "bun:test";
 
-import { parseOptions } from "../config.js";
+import { Effect, JsonSchema, Schema, SchemaRepresentation } from "effect";
+
+import { loadOptions } from "../config.js";
+import { EvidenceAccess } from "../evidence.js";
+import { backendLayer } from "../layers.js";
 import { MAX_BYTES } from "../limits.js";
 import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
-import { validateResponse } from "../protocols/response.js";
-import { createAdapter } from "../providers/adapter.js";
-import { providers } from "../providers/registry.js";
-import { createClassifier } from "../service.js";
-import { buildToolInputSchema } from "../tool-schema.js";
 import type { ClassifyOutput, JsonValue } from "../types.js";
+import {
+  classify,
+  adHocInputJsonSchema,
+  decoders,
+  toolContext,
+  validateResponse,
+} from "./effect-fixtures.js";
 import { input, normalizedResponse, response } from "./fixtures.js";
 
 const success = () => ({
@@ -56,26 +62,91 @@ test("output parser accepts the empty pointer for root input errors", () => {
 });
 
 test("output schema advertises required measurements and confidence semantics", () => {
-  const [successSchema, failureSchema] = classifyOutputSchema.oneOf;
-  expect(successSchema).toHaveProperty("properties.result.required", [
-    "answers",
-    "attempts",
-    "durationMs",
-    "model",
-    "provider",
-    "usage",
-  ]);
-  expect(successSchema).toHaveProperty(
-    "properties.result.properties.answers.additionalProperties.oneOf.2.required",
-    ["type", "score", "scale", "legend", "confidence", "probabilities"]
+  expect(classifyOutputSchema).toHaveProperty(
+    "anyOf.0.properties.result.required",
+    ["answers", "attempts", "durationMs", "model", "provider", "usage"]
+  );
+  expect(classifyOutputSchema).toHaveProperty(
+    "$defs.ClassifyAnswer.anyOf.2.required",
+    ["confidence", "legend", "probabilities", "score", "type", "scale"]
   );
   expect(JSON.stringify(classifyOutputSchema)).toContain(
     "not probability of correctness"
   );
-  expect(failureSchema).toHaveProperty(
-    "properties.error.properties.retryAfterMs.minimum",
+  expect(classifyOutputSchema).toHaveProperty(
+    "anyOf.1.properties.error.properties.retryAfterMs.minimum",
     0
   );
+});
+
+test("exported JSON Schema resolves its definitions and preserves structural output constraints", () => {
+  const document = JsonSchema.fromSchemaDraft2020_12(classifyOutputSchema);
+  const schema = Schema.make<Schema.Codec<unknown>>(
+    SchemaRepresentation.fromJsonSchemaDocument(document, { patterns: "apply" })
+      .ast
+  );
+  const decode = Schema.decodeUnknownSync(schema, {
+    onExcessProperty: "error",
+  });
+  const valid = success();
+  Reflect.set(valid.result.answers.severity, "legend", {
+    "0": "None",
+    "1": { impact: ["Some", { users: 2 }] },
+    "2": ["Unavailable"],
+  });
+  const failure = {
+    error: {
+      attempts: 0,
+      code: "INVALID_INPUT",
+      durationMs: 0,
+      message: "Invalid input.",
+      provider: "typesafe",
+      retryable: false,
+    },
+    ok: false,
+  } satisfies ClassifyOutput;
+  for (const value of [valid, failure]) {
+    expect(decode(value)).toEqual(value);
+    expect(parseClassifyOutput(value)).toEqual(value);
+  }
+  const invalidResults = [
+    { ...valid.result, classifier: null },
+    { ...valid.result, requestID: null },
+    { ...valid.result, attempts: 0 },
+    { ...valid.result, answers: { "bad name": valid.result.answers.urgent } },
+    {
+      ...valid.result,
+      answers: {
+        severity: {
+          ...valid.result.answers.severity,
+          legend: { "0": "None", "10": "Unavailable" },
+        },
+      },
+    },
+    {
+      ...valid.result,
+      answers: {
+        severity: {
+          ...valid.result.answers.severity,
+          probabilities: { "0": 0.1, "10": 0.9 },
+        },
+      },
+    },
+  ];
+  const invalid = [
+    ...invalidResults.map((result) => ({ ok: true, result })),
+    ...["path", "requestID", "retryAfterMs", "status"].map((key) => ({
+      ...failure,
+      error: { ...failure.error, [key]: null },
+    })),
+    { ...valid, error: failure.error },
+  ];
+  for (const value of invalid) {
+    expect(() => decode(value)).toThrow();
+    expect(() => parseClassifyOutput(value)).toThrow(
+      "Invalid classification output."
+    );
+  }
 });
 
 test("output parser rejects malformed measurements, envelopes, and metadata safely", () => {
@@ -183,7 +254,8 @@ test("output parser allows envelope overhead at native byte and depth boundaries
     const output = {
       ok: true as const,
       result: {
-        ...validateResponse(native, input, providers.typesafe.decode),
+        ...validateResponse(native, input, decoders.typesafe),
+        attempts: 1,
         durationMs: 0,
         provider: "typesafe" as const,
       },
@@ -288,10 +360,15 @@ test("public output rejects extras that native response validation strips", () =
   const native = response();
   Object.assign(native.answers.category, { explanation: "private" });
   Object.assign(native.usage, { extra: 1 });
-  const result = validateResponse(native, input, providers.typesafe.decode);
+  const result = validateResponse(native, input, decoders.typesafe);
   const output = {
     ok: true as const,
-    result: { ...result, durationMs: 0, provider: "typesafe" as const },
+    result: {
+      ...result,
+      attempts: 1,
+      durationMs: 0,
+      provider: "typesafe" as const,
+    },
   };
   expect(parseClassifyOutput(output)).toBe(output);
   for (const target of [
@@ -315,7 +392,8 @@ test("public output retains the native response byte limit", () => {
   const output = {
     ok: true as const,
     result: {
-      ...validateResponse(native, input, providers.typesafe.decode),
+      ...validateResponse(native, input, decoders.typesafe),
+      attempts: 1,
       durationMs: 0,
       provider: "typesafe" as const,
     },
@@ -325,26 +403,22 @@ test("public output retains the native response byte limit", () => {
   if (score.type !== "score") {
     throw new Error("Expected score");
   }
-  score.legend["2"] += "x";
+  Object.defineProperty(score.legend, "2", { value: `${score.legend["2"]}x` });
   expect(() => parseClassifyOutput(output)).toThrow(
     "Invalid classification output."
   );
 });
 
 test("advertised input and output limits match at each contract boundary", () => {
-  const schema = buildToolInputSchema({});
-  if (!("properties" in schema)) {
-    throw new Error("Expected ad hoc schema");
-  }
-  const inputQuestions = schema.properties.questions;
-  const outputAnswers = "oneOf.0.properties.result.properties.answers";
+  const inputQuestions = adHocInputJsonSchema().properties.questions;
+  const outputAnswers = "anyOf.0.properties.result.properties.answers";
   expect(inputQuestions).toHaveProperty("maxProperties", 64);
   expect(classifyOutputSchema).toHaveProperty(
     `${outputAnswers}.maxProperties`,
     64
   );
-  const inputTypes = inputQuestions.additionalProperties.oneOf;
-  const outputTypes = `${outputAnswers}.additionalProperties.oneOf`;
+  const inputTypes = inputQuestions.additionalProperties.anyOf;
+  const outputTypes = "$defs.ClassifyAnswer.anyOf";
   expect(inputTypes[1]).toHaveProperty(
     "properties.criteria.anyOf.0.maxProperties",
     255
@@ -412,8 +486,10 @@ test("failure parser validates optional diagnostics and rejects partial answers"
 });
 
 test("input errors give precise safe paths, no HTTP dispatches, and elapsed duration", async () => {
-  const options = parseOptions({ backend: { provider: "openai-decisions" } });
-  const service = createClassifier(options, createAdapter(options));
+  const options = Effect.runSync(
+    loadOptions({ backend: { provider: "openai-decisions" } })
+  );
+  const backend = backendLayer(options);
   const cases = [
     {
       message: "nonblank string",
@@ -487,9 +563,13 @@ test("input errors give precise safe paths, no HTTP dispatches, and elapsed dura
   ];
   await Promise.all(
     cases.map(async ({ value, path, message }) => {
-      const output = await service.classify(
-        value,
-        new AbortController().signal
+      const output = await Effect.runPromise(
+        classify(options, value, toolContext()).pipe(
+          Effect.provide(backend),
+          Effect.provideService(EvidenceAccess, {
+            resolve: () => Effect.die("Unexpected evidence read"),
+          })
+        )
       );
       expect(output).toHaveProperty("error.path", path);
       expect(output).toHaveProperty("error.attempts", 0);

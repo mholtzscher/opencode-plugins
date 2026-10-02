@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
 import { buildToolDescription } from "../tool-description.js";
-import { parseInput } from "../validation/input.js";
+import { parseInputSync } from "./effect-fixtures.js";
 import { questions } from "./fixtures.js";
 
 test("ad hoc description retains tool semantics without advertising classifiers", () => {
@@ -10,6 +10,8 @@ test("ad hoc description retains tool semantics without advertising classifiers"
   expect(description).toContain("not a percentage");
   expect(description).toContain("no partial answers");
   expect(description).toContain("Native read/shell permissions");
+  expect(description).toContain("Returns structured output");
+  expect(description).not.toContain("JSON.parse");
   expect(description).not.toContain("Configured classifiers:");
 });
 test("named description advertises caller and preset state without changing definitions", () => {
@@ -41,7 +43,7 @@ test("description includes a valid mixed-type tool example", () => {
   if (example === undefined) {
     throw new Error("Missing discoverable example");
   }
-  const parsed = parseInput(JSON.parse(example.slice(prefix.length)));
+  const parsed = parseInputSync(JSON.parse(example.slice(prefix.length)));
   expect(
     Object.values(parsed.questions ?? {}).map((question) => question.type)
   ).toEqual(["noul", "choice", "score"]);
