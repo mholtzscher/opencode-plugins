@@ -30,6 +30,11 @@ test("provider layers share injectable IO but own their endpoints and decoding",
       model: "english",
     },
     {
+      backend: { baseURL: "http://localhost:8123", provider: "ollama" },
+      endpoint: "http://localhost:8123/v1/systemone",
+      model: "nimble",
+    },
+    {
       backend: { accountID: "a".repeat(32), provider: "cloudflare" },
       endpoint: `https://api.cloudflare.com/client/v4/accounts/${"a".repeat(32)}/ai/run/@cf/cloudflare/clef`,
       model: "clef",
@@ -89,7 +94,7 @@ test("provider layers share injectable IO but own their endpoints and decoding",
       JSON.parse(new TextDecoder().decode(request.body.body))
     ).toHaveProperty("model", fixture.model);
   }
-  expect(credentialReads).toBe(3);
+  expect(credentialReads).toBe(4);
 });
 
 test("unavailable provider layer needs no IO implementation", async () => {

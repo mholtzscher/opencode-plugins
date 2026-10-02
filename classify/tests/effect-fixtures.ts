@@ -9,6 +9,7 @@ import { DecisionBackend } from "../providers/backend.js";
 import type { DecisionAdapter } from "../providers/backend.js";
 import { cloudflare } from "../providers/cloudflare.js";
 import { laya } from "../providers/laya.js";
+import { ollama } from "../providers/ollama.js";
 import { typesafe } from "../providers/typesafe.js";
 import { buildInputSchema } from "../schemas.js";
 import { Classification, classificationLayer } from "../service.js";
@@ -40,6 +41,7 @@ export const decisionLayer = (adapter: DecisionAdapter) =>
 export const decoders = {
   cloudflare: cloudflare.decode,
   laya: laya.decode,
+  ollama: ollama.decode,
   typesafe: typesafe.decode,
 };
 

@@ -1,6 +1,6 @@
 # Classify
 
-One server-side `classify` tool for bounded judgments. TypeSafe AI, Cloudflare Clef, and an externally managed Laya HTTP server use the System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
+One server-side `classify` tool for bounded judgments. TypeSafe AI, Cloudflare Clef, and externally managed Laya and Ollama servers use the System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
 
 The TUI entry is a no-op. Credentials and classification run on the OpenCode server, including when the TUI connects remotely. Setup makes no network calls and downloads no models.
 
@@ -228,15 +228,35 @@ The model defaults to `clef`. Set `model: "clef-flash"` for the faster model. On
 
 The plugin supports text and structured JSON, not Clef's separate image input extension. Cloudflare documents a 65,536-token context window and truncation of long text. The byte limit does not guarantee that an input fits the token window. Keep inputs short. An explicit `truncated: true` result fails with `INPUT_TRUNCATED`, but absence of that marker does not prove full input coverage. See the [Clef documentation](https://developers.cloudflare.com/workers-ai/models/clef/).
 
+### Local Ollama with Nimble
+
+Install [Ollama 0.35 or later](https://ollama.com/download), run `ollama pull nimble`, and start the Ollama server separately. Configure the plugin with:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      "package": "./classify",
+      "options": { "backend": { "provider": "ollama" } },
+    },
+  ],
+}
+```
+
+This uses `http://127.0.0.1:11434/v1/systemone`, sends no authorization header, and requests `nimble`. Set `backend.model` to another installed decision-model tag (for example, `nimble:9b`). For an Ollama server at another origin, set `backend.baseURL` to that origin; use HTTPS for non-loopback hosts. If the server requires a bearer token, configure `apiKeyEnv` or `apiKeyFile` as with Laya. The address is resolved from the **OpenCode server**, not the TUI machine. The plugin does not start Ollama or pull models. Increase `timeoutMs` if cold model loads take longer than the default 30 seconds.
+
+Ollama's Nimble endpoint accepts up to 26 choice options and a 64 KiB request body, tighter than the plugin's general limits. Use string descriptions for score criteria: Ollama 0.35.0 rejects structured score descriptions with HTTP 400. The plugin preserves question content rather than converting it to strings. Keep states short; an oversized or unsupported request may return `REQUEST_REJECTED`. Responses use the same typed System One measurements, and `provider` is `"ollama"`. Test confidence thresholds on your own data.
+
 ### Option limits
 
-`backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
+`backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. Ollama defaults to `http://127.0.0.1:11434`, `nimble`, and no authentication. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
 
 `timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters, a valid question map, and optional `state` using the same content/evidence shapes as tool input. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
 
 ## Provider architecture
 
-[`providers/backend.ts`](./providers/backend.ts) defines the `DecisionBackend` Effect service, and [`providers/registry.ts`](./providers/registry.ts) selects the provider layer for the configured backend. Configuration defaults (model, key variable, Laya origin) are applied by the options schema in [`schemas.ts`](./schemas.ts); each provider module owns its endpoint and response decoding. TypeSafe, Laya, and Cloudflare share System One backend construction in [`protocols/system-one.ts`](./protocols/system-one.ts). The unavailable OpenAI layer fails preflight without IO. [`layers.ts`](./layers.ts) composes the selected provider with credentials, transport, and evidence services. The plugin builds these layers once in its lifetime scope; each tool invocation passes its own OpenCode execution context.
+[`providers/backend.ts`](./providers/backend.ts) defines the `DecisionBackend` Effect service, and [`providers/registry.ts`](./providers/registry.ts) selects the provider layer for the configured backend. Configuration defaults (model, key variable, local origins) are applied by the options schema in [`backend-config.ts`](./backend-config.ts); each provider module owns its endpoint and response decoding. TypeSafe, Laya, Ollama, and Cloudflare share System One backend construction in [`protocols/system-one.ts`](./protocols/system-one.ts). The unavailable OpenAI layer fails preflight without IO. [`layers.ts`](./layers.ts) composes the selected provider with credentials, transport, and evidence services. The plugin builds these layers once in its lifetime scope; each tool invocation passes its own OpenCode execution context.
 
 To add a provider, implement `ProviderDefinition` with a `DecisionBackend` layer in a provider module, register it in `registry.ts`, add its ID to `providers/ids.ts`, and extend the backend configuration schema. For System One-compatible APIs, implement `SystemOneDefinition` with an endpoint, response decoder, and optional request-ID header and reuse the shared layer construction. Other protocols can supply their own layer without changing the classifier program. Add configuration rejection, HTTP contract, malformed response, and output parser tests. Layer construction and preflight must remain free of credential, evidence, and network reads.
 
@@ -598,13 +618,16 @@ See [SMOKE_TESTING.md](./SMOKE_TESTING.md) for disposable-fixture setup, the com
 
 ### Manual OpenCode and live smoke procedure
 
+Live Ollama 0.35.0 validation with `nimble:latest` (Q8_0, digest `9b953de7a5336756ece1cb1e8632e374b3dbdabe3d02d405cf8291da2d43a131`) exercised the plugin's classification service, provider layer, HTTP transport, and public output parser on synthetic data. A mixed string-input request returned all three native answer types, usage, and derived score bounds in about 4.7 seconds. A preset named classifier with structured state and choice-entry-list criteria succeeded in about 0.4 seconds. Structured score descriptions were rejected with HTTP 400 and surfaced as `REQUEST_REJECTED`. These checks did not exercise an OpenCode client or evidence permissions. One outage example selected `other` despite high severity; connectivity is not an accuracy guarantee.
+
 Before the Effect migration, live TypeSafe calls through OpenCode Code Mode verified text/file/diff evidence, named classifiers, native answer types, structured score legends, and transport-safe choice criteria lists against synthetic inputs (`jev-1.13.0`). A local Laya adapter/service smoke check verified all three native answer types on a short synthetic incident report. These are connectivity/contract checks, not general model-accuracy claims. The migrated runtime has automated layer and loopback HTTP coverage; its real-host and hosted-provider smoke checks still need to be rerun. No separate Laya TUI/web-client smoke check has been performed. The following is the full manual procedure for additional verification:
 
 1. Create a temporary project outside this repository, for example under `/tmp/opencode/classify-smoke`. Give its `opencode.jsonc` only this plugin's absolute directory path and one of the configurations above. Start a V2 TUI or web client in that project. Verify the effective plugin list because global configuration can still load other plugins.
 2. Configure TypeSafe and set its key on the actual server. Ask the agent to invoke `classify` with the mixed example exactly as written. Check `ok: true`, all three native answer types, unchanged fractional score, complete distributions and legends, reported model, token usage, and duration. Record the OpenCode version and model. Interrupt a pending call and verify it does not complete as a successful tool result.
 3. Reload with a named classifier and submit the named example. Check `result.classifier` and the configured answer IDs. Verify the tool description and schema list only your configured names. Add a classifier with configured evidence state, invoke it with only `{ "classifier": "name" }`, and verify that files/diffs resolve from the session directory. Change a referenced file and invoke again to confirm fresh resolution. Confirm caller-state overrides and omitted state for classifiers without configured state fail with `INVALID_INPUT`, and denied evidence access makes no provider request.
 4. Start only your separately managed test Laya instance. Record the Laya version. Inspect `http://127.0.0.1:8000/health` manually. Record loaded checkpoints, revisions, and actual devices. Load the Laya configuration and repeat the mixed and named requests.
-5. Stop only the test Laya process you started, repeat a request, and check `NETWORK_ERROR` without submitted content or keys. Do not stop unrelated servers.
-6. Configure the reserved OpenAI backend and verify `PROVIDER_UNAVAILABLE`, with no request to OpenAI or substitute provider.
+5. With Ollama 0.35 or later running and `nimble` pulled on the OpenCode server, load the Ollama configuration and repeat the mixed and named requests. Record the Ollama version and model tag.
+6. Stop only the test Laya or Ollama process you started, repeat a request, and check `NETWORK_ERROR` without submitted content or keys. Do not stop unrelated servers.
+7. Configure the reserved OpenAI backend and verify `PROVIDER_UNAVAILABLE`, with no request to OpenAI or substitute provider.
 
 Threshold tuning and comparative accuracy require representative labeled data and are outside v1.

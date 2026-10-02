@@ -34,7 +34,7 @@ const encryptedOrLoopback = Schema.makeFilter<string>(
     /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d*)?\/?$/u.test(value),
   { message: "Expected an HTTPS origin or a literal loopback HTTP origin." }
 );
-const LayaOriginSchema = NonblankSchema.check(
+const SystemOneOriginSchema = NonblankSchema.check(
   originOnly,
   credentialFreeUrl,
   encryptedOrLoopback
@@ -59,13 +59,24 @@ const TypesafeBackendSchema = Schema.Struct({
 
 const LayaBackendSchema = Schema.Struct({
   ...KeySourceFields,
-  baseURL: LayaOriginSchema.pipe(
+  baseURL: SystemOneOriginSchema.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed("http://127.0.0.1:8000"))
   ),
   model: NonblankSchema.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed("english"))
   ),
   provider: Schema.Literal("laya"),
+}).annotate(strict);
+
+const OllamaBackendSchema = Schema.Struct({
+  ...KeySourceFields,
+  baseURL: SystemOneOriginSchema.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("http://127.0.0.1:11434"))
+  ),
+  model: NonblankSchema.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("nimble"))
+  ),
+  provider: Schema.Literal("ollama"),
 }).annotate(strict);
 
 const OpenaiDecisionsBackendSchema = Schema.Struct({
@@ -78,6 +89,7 @@ export const BackendSchema = Schema.Union([
   CloudflareBackendSchema,
   TypesafeBackendSchema,
   LayaBackendSchema,
+  OllamaBackendSchema,
   OpenaiDecisionsBackendSchema,
 ]).check(
   Schema.makeFilter(
@@ -99,7 +111,7 @@ const defaultKeyEnv = {
 };
 
 export const normalizeBackend = (backend: BackendOptions): BackendOptions => {
-  if (backend.provider === "laya") {
+  if (backend.provider === "laya" || backend.provider === "ollama") {
     return { ...backend, baseURL: new URL(backend.baseURL).origin };
   }
   if (backend.apiKeyFile !== undefined || backend.apiKeyEnv !== undefined) {

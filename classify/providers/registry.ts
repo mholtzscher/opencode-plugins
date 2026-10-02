@@ -7,6 +7,7 @@ import { systemOneLayer } from "../protocols/system-one.js";
 import type { DecisionBackend } from "./backend.js";
 import { cloudflare } from "./cloudflare.js";
 import { laya } from "./laya.js";
+import { ollama } from "./ollama.js";
 import { openaiDecisionsLayer } from "./openai-decisions.js";
 import { typesafe } from "./typesafe.js";
 
@@ -20,6 +21,9 @@ export const providerLayer = (
     }
     case "laya": {
       return systemOneLayer(options, backend, laya);
+    }
+    case "ollama": {
+      return systemOneLayer(options, backend, ollama);
     }
     case "typesafe": {
       return systemOneLayer(options, backend, typesafe);

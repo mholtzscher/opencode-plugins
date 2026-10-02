@@ -192,7 +192,7 @@ test("configuration rejects unknown fields and invalid limits without echoing va
     ).toBe(timeoutMs);
   }
 });
-test("Laya origins reject paths, credentials, queries, fragments and remote plaintext", () => {
+test("local System One origins reject paths, credentials, queries, fragments and remote plaintext", () => {
   for (const baseURL of [
     "http://example.com",
     "https://example.com/v1",
@@ -204,19 +204,23 @@ test("Laya origins reject paths, credentials, queries, fragments and remote plai
     "http://2130706433",
     "https://example.com//",
   ]) {
-    expect(() =>
-      Effect.runSync(loadOptions({ backend: { baseURL, provider: "laya" } }))
-    ).toThrow();
+    for (const provider of ["laya", "ollama"] as const) {
+      expect(() =>
+        Effect.runSync(loadOptions({ backend: { baseURL, provider } }))
+      ).toThrow();
+    }
   }
   for (const baseURL of [
     "http://localhost:8000/",
     "http://[::1]:8000",
     "https://example.com/",
   ]) {
-    expect(
-      Effect.runSync(loadOptions({ backend: { baseURL, provider: "laya" } }))
-        .backend.provider
-    ).toBe("laya");
+    for (const provider of ["laya", "ollama"] as const) {
+      expect(
+        Effect.runSync(loadOptions({ backend: { baseURL, provider } })).backend
+          .provider
+      ).toBe(provider);
+    }
   }
 });
 test("classifier names, descriptions and question maps obey bounds", () => {
@@ -251,7 +255,7 @@ test("classifier names, descriptions and question maps obey bounds", () => {
   ).toHaveLength(32);
 });
 test("key-file paths are explicit and mutually exclusive with environment sources", () => {
-  for (const provider of ["typesafe", "laya", "openai-decisions"]) {
+  for (const provider of ["typesafe", "laya", "ollama", "openai-decisions"]) {
     for (const apiKeyFile of [
       "/private/key",
       "~/.config/opencode/typesafe.key",

@@ -133,4 +133,5 @@ export const examples = [
       provider: "cloudflare",
     },
   },
+  { backend: { provider: "ollama" } },
 ];

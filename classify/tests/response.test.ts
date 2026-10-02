@@ -169,7 +169,7 @@ test("score legends preserve native string, object, and array descriptions", () 
     model: "jev-test",
     usage: { input_tokens: 1, output_tokens: 1 },
   };
-  for (const provider of ["typesafe", "laya"] as const) {
+  for (const provider of ["typesafe", "laya", "ollama"] as const) {
     expect(validateResponse(native, request, decoders[provider])).toEqual({
       ...native,
       answers: {

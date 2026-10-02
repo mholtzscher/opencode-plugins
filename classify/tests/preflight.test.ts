@@ -39,6 +39,7 @@ test("provider preflight performs no credential lookups or HTTP calls", async ()
       for (const provider of [
         "typesafe",
         "laya",
+        "ollama",
         "openai-decisions",
       ] as const) {
         const options = yield* loadOptions({
@@ -68,7 +69,7 @@ test("provider preflight performs no credential lookups or HTTP calls", async ()
       return result;
     })
   );
-  expect(observed).toEqual(["typesafe", "laya", "openai-decisions"]);
+  expect(observed).toEqual(["typesafe", "laya", "ollama", "openai-decisions"]);
   expect(reads).toBe(0);
   expect(calls).toBe(0);
 });
@@ -102,6 +103,7 @@ test("every provider preflight preserves fiber interruption", async () => {
       for (const provider of [
         "typesafe",
         "laya",
+        "ollama",
         "openai-decisions",
       ] as const) {
         const options = yield* loadOptions({ backend: { provider } });

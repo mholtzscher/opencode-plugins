@@ -1,6 +1,7 @@
 export const providerIDs = [
   "typesafe",
   "laya",
+  "ollama",
   "cloudflare",
   "openai-decisions",
 ] as const;
