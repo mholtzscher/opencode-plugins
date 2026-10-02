@@ -14,7 +14,7 @@ Merge one of the following plugin entries into your existing `plugins` array. Do
 github:mholtzscher/opencode-plugins#main::path:classify
 ```
 
-The repository's root configuration uses the hosted `typesafe` provider with an operator-specific server-local key file. `mise run opencode` launches OpenCode with that configuration and does not start Laya. For another operator, configure TypeSafe credentials as described below. To use local Laya instead, replace the classify backend with the loopback Laya configuration below and start Laya separately. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
+The repository's root configuration uses the hosted `cloudflare` provider with an operator-specific account ID and server-local key file. `mise run opencode` launches OpenCode with that configuration and does not start Laya. For another operator, configure Cloudflare credentials as described below, or select TypeSafe and its credentials. To use local Laya instead, replace the classify backend with the loopback Laya configuration below and start Laya separately. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
 
 ### Local Laya with mise
 
@@ -36,7 +36,7 @@ mise daemons logs laya
 mise daemons stop laya
 ```
 
-The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; configure the classify endpoint and model using the Laya examples below. Starting the daemon does not change the root TypeSafe backend. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
+The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; configure the classify endpoint and model using the Laya examples below. Starting the daemon does not change the configured backend. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
 
 Laya serves `/v1/systemone`, and results report `provider: "laya"`. Laya's confidence semantics differ from Jev's, choice questions have a 100-option HTTP cap and smaller practical token budgets, and long states can be silently truncated. The plugin does not expose Laya's token-budget controls or extra confidence and routing metadata. Use short inputs and validate accuracy and thresholds on your own examples.
 
@@ -233,6 +233,10 @@ The plugin supports text and structured JSON, not Clef's separate image input ex
 `backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
 
 `timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters, a valid question map, and optional `state` using the same content/evidence shapes as tool input. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
+
+## SDLC classifier catalog
+
+The root config registers 16 classifiers for issue/spec/task triage, change and test review, specialist routing, compatibility, migrations, observability, dependencies, generated code, releases, incidents, postmortems, and scope discipline. See [SDLC_CLASSIFIERS.md](./SDLC_CLASSIFIERS.md) for evidence requirements, invocations, and advisory routing thresholds. The [portable config](./examples/sdlc.opencode.json) contains the same definitions with environment-based TypeSafe credentials. Installing the catalog advertises named classifiers; it does not automatically invoke them or enforce gates.
 
 ## Provider architecture
 
