@@ -516,14 +516,15 @@ export interface ClassifierDefinition {
 }
 
 export interface ClassifyOptions {
-  backend: BackendOptions;
+  backends: Record<string, BackendOptions>;
+  defaultBackend: string;
   timeoutMs?: number;
   maxRetries?: number;
   classifiers?: Record<string, ClassifierDefinition>;
 }
 ```
 
-- `backend` is required. Do not infer a backend from available keys or select a cloud backend by default.
+- `backends` and `defaultBackend` are required. Configure 1–32 named profiles and select one of their names as the default. Do not infer a backend from available keys or select a cloud backend by default. The single-`backend` configuration is not supported.
 - TypeSafe defaults to model `jev-latest`, environment variable `TYPESAFE_API_KEY`, and the fixed official endpoint.
 - Laya defaults to checkpoint `english` and origin `http://127.0.0.1:8000`. Other checkpoint names include `multilingual` and `typed-decisions`. It sends no authorization header unless a credential source is configured. If `apiKeyEnv` is configured, the variable must be present and nonempty. `model` selects a checkpoint per request, not a serving alias.
 - OpenAI reserves environment variable `OPENAI_API_KEY`. Its model default is deliberately not defined before the implementation gate. The gated implementation does not resolve credentials or send a request.
@@ -546,14 +547,15 @@ Each example is an alternative `opencode.jsonc` configuration. Merge its plugin 
     {
       "package": "./classify",
       "options": {
-        "backend": { "provider": "typesafe" },
+        "backends": { "default": { "provider": "typesafe" } },
+        "defaultBackend": "default",
       },
     },
   ],
 }
 ```
 
-Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest`, a 30-second invocation deadline, and one permitted retry for explicit rate-limit/overload responses. With no configured classifiers, only ad hoc mode appears in the tool schema. To select an available pinned model, set `backend.model` to the exact model ID documented by TypeSafe; do not assume the illustrative response version is available to the account.
+Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest`, a 30-second invocation deadline, and one permitted retry for explicit rate-limit/overload responses. With no configured classifiers, only ad hoc mode appears in the tool schema. To select an available pinned model, set `backends.default.model` to the exact model ID documented by TypeSafe; do not assume the illustrative response version is available to the account.
 
 #### Unauthenticated loopback Laya with a named classifier
 
@@ -564,10 +566,13 @@ Set `TYPESAFE_API_KEY` in the OpenCode server environment. This uses `jev-latest
     {
       "package": "./classify",
       "options": {
-        "backend": {
-          "provider": "laya",
-          "baseURL": "http://127.0.0.1:8000",
+        "backends": {
+          "default": {
+            "provider": "laya",
+            "baseURL": "http://127.0.0.1:8000",
+          },
         },
+        "defaultBackend": "default",
         "classifiers": {
           "incident-triage": {
             "description": "Check whether a report describes an active production incident.",
@@ -596,12 +601,15 @@ Run Laya separately on port 8000. This configuration sends no authorization head
     {
       "package": "./classify",
       "options": {
-        "backend": {
-          "provider": "laya",
-          "baseURL": "http://127.0.0.1:8000",
-          "model": "english",
-          "apiKeyEnv": "LAYA_API_KEY",
+        "backends": {
+          "default": {
+            "provider": "laya",
+            "baseURL": "http://127.0.0.1:8000",
+            "model": "english",
+            "apiKeyEnv": "LAYA_API_KEY",
+          },
         },
+        "defaultBackend": "default",
         "timeoutMs": 120000,
         "maxRetries": 0,
         "classifiers": {
@@ -658,11 +666,14 @@ With this config, the agent can invoke `classify` with `{ "state": "Fix stale ca
     {
       "package": "./classify",
       "options": {
-        "backend": {
-          "provider": "laya",
-          "baseURL": "https://laya.example.com",
-          "apiKeyEnv": "COMPANY_LAYA_API_KEY",
+        "backends": {
+          "default": {
+            "provider": "laya",
+            "baseURL": "https://laya.example.com",
+            "apiKeyEnv": "COMPANY_LAYA_API_KEY",
+          },
         },
+        "defaultBackend": "default",
         "timeoutMs": 60000,
         "maxRetries": 0,
       },
@@ -682,7 +693,8 @@ Replace the example origin with the operator's endpoint and set `COMPANY_LAYA_AP
     {
       "package": "./classify",
       "options": {
-        "backend": { "provider": "openai-decisions" },
+        "backends": { "default": { "provider": "openai-decisions" } },
+        "defaultBackend": "default",
       },
     },
   ],

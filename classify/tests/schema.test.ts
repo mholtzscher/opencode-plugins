@@ -124,7 +124,7 @@ test("real host schemas produce concrete JSON Schema with recursive JSON definit
 test("configured input schemas enforce named-state modes in decoding and generated JSON Schema", () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: { provider: "openai-decisions" },
+      backends: { default: { provider: "openai-decisions" } },
       classifiers: {
         caller: { description: "Caller state", questions: input.questions },
         preset: {
@@ -133,6 +133,7 @@ test("configured input schemas enforce named-state modes in decoding and generat
           state: "Fixed",
         },
       },
+      defaultBackend: "default",
     })
   );
   const codec = buildInputSchema(options.classifiers ?? {});
@@ -169,13 +170,17 @@ test("structural codecs reject excess fields and invalid keys rather than droppi
   ).toThrow();
   expect(() =>
     Schema.decodeUnknownSync(OptionsSchema)({
-      backend: { provider: "typesafe" },
+      backends: { default: { provider: "typesafe" } },
       classifiers: { "1bad": { description: "x", questions: input.questions } },
+      defaultBackend: "default",
     })
   ).toThrow();
   expect(() =>
     Schema.decodeUnknownSync(OptionsSchema)({
-      backend: { baseURL: "http://example.com", provider: "laya" },
+      backends: {
+        default: { baseURL: "http://example.com", provider: "laya" },
+      },
+      defaultBackend: "default",
     })
   ).toThrow();
   const withExtra = output();

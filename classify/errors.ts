@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 
+import { NAME_PATTERN } from "./limits.js";
 import { providerIDs } from "./providers/ids.js";
 
 export const ERROR_CODES = [
@@ -52,6 +53,9 @@ const InternalFailureSchema = Schema.Struct({
 export const FailureSchema = Schema.Struct({
   ...FailureFields,
   attempts: AttemptCountSchema,
+  backend: Schema.optionalKey(
+    Schema.String.check(Schema.isPattern(NAME_PATTERN))
+  ),
   durationMs: NonnegativeSchema,
   provider: ProviderSchema,
 });

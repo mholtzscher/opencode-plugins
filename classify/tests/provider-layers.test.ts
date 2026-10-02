@@ -57,7 +57,7 @@ test("provider layers share injectable IO but own their endpoints and decoding",
             return HttpClientResponse.fromWeb(
               request,
               Response.json(
-                options.backend.provider === "cloudflare"
+                options.backends.default.provider === "cloudflare"
                   ? { result: response(), success: true }
                   : response()
               )
@@ -74,13 +74,20 @@ test("provider layers share injectable IO but own their endpoints and decoding",
     return yield* backend.decide(input);
   });
   for (const fixture of cases) {
-    const options = Effect.runSync(loadOptions({ backend: fixture.backend }));
+    const options = Effect.runSync(
+      loadOptions({
+        backends: { default: fixture.backend },
+        defaultBackend: "default",
+      })
+    );
     // Each selected layer is exercised against the same independent IO contracts.
     // oxlint-disable-next-line eslint/no-await-in-loop -- The dispatch order identifies the owning provider.
     const result = await Effect.runPromise(
       exercise().pipe(
         Effect.provide(
-          providerLayer(options).pipe(Layer.provide(makeIO(options)))
+          providerLayer(options, options.backends.default).pipe(
+            Layer.provide(makeIO(options))
+          )
         )
       )
     );
@@ -99,10 +106,13 @@ test("provider layers share injectable IO but own their endpoints and decoding",
 
 test("unavailable provider layer needs no IO implementation", async () => {
   const options = Effect.runSync(
-    loadOptions({ backend: { provider: "openai-decisions" } })
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
   );
   // Supply IO that defects on access rather than relying on missing credentials.
-  const layer = providerLayer(options).pipe(
+  const layer = providerLayer(options, options.backends.default).pipe(
     Layer.provide(
       Layer.merge(
         Layer.succeed(Credentials, {
@@ -134,7 +144,8 @@ test("provider deadline excludes evidence permission waits and credential IO", a
   const credentialStarted = Effect.runSync(Deferred.make<boolean>());
   const options = Effect.runSync(
     loadOptions({
-      backend: { provider: "laya" },
+      backends: { default: { provider: "laya" } },
+      defaultBackend: "default",
       timeoutMs: 1000,
     })
   );
@@ -147,7 +158,7 @@ test("provider deadline excludes evidence permission waits and credential IO", a
     },
     { preconnect: originalFetch.preconnect }
   );
-  const backend = providerLayer(options).pipe(
+  const backend = providerLayer(options, options.backends.default).pipe(
     Layer.provide(
       Layer.merge(
         HttpClientLive,

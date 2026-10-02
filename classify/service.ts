@@ -21,7 +21,10 @@ interface ResolvedRequest {
   state: Content | EvidenceState;
 }
 
-type ClassificationResponse = Omit<ClassifyResult, "durationMs" | "provider">;
+type ClassificationResponse = Omit<
+  ClassifyResult,
+  "backend" | "durationMs" | "provider"
+>;
 
 const sanitizeDefect = Effect.fn("sanitizeClassificationDefect")(
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Effect defects can be any thrown value; callers receive only the sanitized error.

@@ -25,7 +25,9 @@ import { input, response } from "./fixtures.js";
 
 const directories: string[] = [];
 const backend = (value: Record<string, string>) =>
-  Effect.runSync(loadOptions({ backend: value })).backend;
+  Effect.runSync(
+    loadOptions({ backends: { default: value }, defaultBackend: "default" })
+  ).backends.default;
 const reveal = (key: Redacted.Redacted<string> | undefined): string => {
   expect(key).toBeDefined();
   if (key === undefined) {
@@ -56,17 +58,18 @@ test("key files support absolute and home-relative paths and rotation", async ()
   await writeFile(keyPath, "  sentinel-first\n", { mode: 0o600 });
   const options = Effect.runSync(
     loadOptions({
-      backend: { apiKeyFile: keyPath, provider: "typesafe" },
+      backends: { default: { apiKeyFile: keyPath, provider: "typesafe" } },
+      defaultBackend: "default",
     })
   );
-  expect(options.backend.apiKeyEnv).toBeUndefined();
-  expect(reveal(await Effect.runPromise(resolveKey(options.backend)))).toBe(
-    "sentinel-first"
-  );
+  expect(options.backends.default.apiKeyEnv).toBeUndefined();
+  expect(
+    reveal(await Effect.runPromise(resolveKey(options.backends.default)))
+  ).toBe("sentinel-first");
   await writeFile(keyPath, "sentinel-second\r\n");
-  expect(reveal(await Effect.runPromise(resolveKey(options.backend)))).toBe(
-    "sentinel-second"
-  );
+  expect(
+    reveal(await Effect.runPromise(resolveKey(options.backends.default)))
+  ).toBe("sentinel-second");
   expect(
     reveal(
       await Effect.runPromise(
@@ -109,13 +112,14 @@ test("invalid files return sanitized failures without HTTP or fallback", async (
       }
       const options = Effect.runSync(
         loadOptions({
-          backend: { apiKeyFile: keyPath, provider: "typesafe" },
+          backends: { default: { apiKeyFile: keyPath, provider: "typesafe" } },
+          defaultBackend: "default",
         })
       );
       // Each case validates the error produced for its currently written file.
       // oxlint-disable-next-line eslint/no-await-in-loop -- The cases share one key file and cannot run concurrently.
       const result = await Effect.runPromise(
-        Effect.flip(resolveKey(options.backend))
+        Effect.flip(resolveKey(options.backends.default))
       );
       expect(result).toHaveProperty("failure.code", "MISSING_CREDENTIALS");
       expect(JSON.stringify(result)).not.toContain(keyPath);
@@ -124,7 +128,9 @@ test("invalid files return sanitized failures without HTTP or fallback", async (
       const output = await Effect.runPromise(
         classify(options, input, toolContext()).pipe(
           Effect.provide(
-            providerLayer(options).pipe(Layer.provideMerge(services))
+            providerLayer(options, options.backends.default).pipe(
+              Layer.provideMerge(services)
+            )
           )
         )
       );
@@ -147,10 +153,13 @@ test("file credentials are used for HTTP and rotated between invocations", async
   const keyPath = await fixture();
   const options = Effect.runSync(
     loadOptions({
-      backend: { apiKeyFile: keyPath, provider: "typesafe" },
+      backends: { default: { apiKeyFile: keyPath, provider: "typesafe" } },
+      defaultBackend: "default",
     })
   );
-  const adapter = providerLayer(options).pipe(Layer.provideMerge(services));
+  const adapter = providerLayer(options, options.backends.default).pipe(
+    Layer.provideMerge(services)
+  );
   const original = globalThis.fetch;
   const headers: (string | null)[] = [];
   const captureFetch: typeof fetch = Object.assign(
@@ -202,13 +211,18 @@ test("fiber interruption skips credentials and OpenAI never opens configured fil
   );
   const options = Effect.runSync(
     loadOptions({
-      backend: { apiKeyFile: keyPath, provider: "openai-decisions" },
+      backends: {
+        default: { apiKeyFile: keyPath, provider: "openai-decisions" },
+      },
+      defaultBackend: "default",
     })
   );
   const output = await Effect.runPromise(
     Effect.provide(
       classify(options, input, toolContext()),
-      providerLayer(options).pipe(Layer.provideMerge(services))
+      providerLayer(options, options.backends.default).pipe(
+        Layer.provideMerge(services)
+      )
     )
   );
   expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");

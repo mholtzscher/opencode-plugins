@@ -22,8 +22,11 @@ const accountID = "0123456789abcdef0123456789abcdef";
 test("Cloudflare validates accounts, models and credential configuration", () => {
   expect(
     Effect.runSync(
-      loadOptions({ backend: { accountID, provider: "cloudflare" } })
-    ).backend
+      loadOptions({
+        backends: { default: { accountID, provider: "cloudflare" } },
+        defaultBackend: "default",
+      })
+    ).backends.default
   ).toEqual({
     accountID,
     apiKeyEnv: "CLOUDFLARE_AUTH_TOKEN",
@@ -42,20 +45,28 @@ test("Cloudflare validates accounts, models and credential configuration", () =>
       provider: "cloudflare",
     },
   ]) {
-    expect(() => Effect.runSync(loadOptions({ backend }))).toThrow(
-      "Invalid classify options"
-    );
+    expect(() =>
+      Effect.runSync(
+        loadOptions({
+          backends: { default: backend },
+          defaultBackend: "default",
+        })
+      )
+    ).toThrow("Invalid classify options");
   }
   expect(
     Effect.runSync(
       loadOptions({
-        backend: {
-          accountID,
-          apiKeyFile: "/private/token",
-          provider: "cloudflare",
+        backends: {
+          default: {
+            accountID,
+            apiKeyFile: "/private/token",
+            provider: "cloudflare",
+          },
         },
+        defaultBackend: "default",
       })
-    ).backend.apiKeyEnv
+    ).backends.default.apiKeyEnv
   ).toBeUndefined();
 });
 
@@ -91,15 +102,18 @@ for (const model of ["clef", "clef-flash"]) {
     try {
       const options = Effect.runSync(
         loadOptions({
-          backend: {
-            accountID,
-            apiKeyEnv: "CLASSIFY_CF_TEST_TOKEN",
-            model,
-            provider: "cloudflare",
+          backends: {
+            default: {
+              accountID,
+              apiKeyEnv: "CLASSIFY_CF_TEST_TOKEN",
+              model,
+              provider: "cloudflare",
+            },
           },
+          defaultBackend: "default",
         })
       );
-      const layer = backendLayer(options);
+      const layer = backendLayer(options, options.backends.default);
       expect(calls).toBe(0);
       output = await Effect.runPromise(
         classify(options, input, toolContext()).pipe(
@@ -126,16 +140,24 @@ for (const model of ["clef", "clef-flash"]) {
 test("Cloudflare missing credentials fail before dispatch", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: {
-        accountID,
-        apiKeyEnv: "CLASSIFY_CF_MISSING_TOKEN",
-        provider: "cloudflare",
+      backends: {
+        default: {
+          accountID,
+          apiKeyEnv: "CLASSIFY_CF_MISSING_TOKEN",
+          provider: "cloudflare",
+        },
       },
+      defaultBackend: "default",
     })
   );
   const output = await Effect.runPromise(
     classify(options, input, toolContext()).pipe(
-      Effect.provide(Layer.merge(backendLayer(options), evidenceLayer()))
+      Effect.provide(
+        Layer.merge(
+          backendLayer(options, options.backends.default),
+          evidenceLayer()
+        )
+      )
     )
   );
   expect(output).toMatchObject({
@@ -174,10 +196,11 @@ test("registry definitions select every adapter and output provider", async () =
         const backend =
           provider === "cloudflare" ? { accountID, provider } : { provider };
         const options = yield* loadOptions({
-          backend,
+          backends: { default: backend },
+          defaultBackend: "default",
         });
         const selected = yield* DecisionBackend.pipe(
-          Effect.provide(backendLayer(options))
+          Effect.provide(backendLayer(options, options.backends.default))
         );
         expect(String(selected.provider)).toBe(provider);
         expect(

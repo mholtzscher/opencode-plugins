@@ -143,7 +143,8 @@ test("Laya sends the complete System One body, auth and fixed path", async () =>
       }
       const config = Effect.runSync(
         loadOptions({
-          backend,
+          backends: { default: backend },
+          defaultBackend: "default",
         })
       );
       // Keep this request paired with the currently active API-key configuration.
@@ -151,7 +152,9 @@ test("Laya sends the complete System One body, auth and fixed path", async () =>
       const result = await Effect.runPromise(
         Effect.provide(
           decide(input),
-          providerLayer(config).pipe(Layer.provideMerge(services))
+          providerLayer(config, config.backends.default).pipe(
+            Layer.provideMerge(services)
+          )
         )
       );
       expect(result).toEqual({ ...normalizedResponse(), requestID: "req-123" });
@@ -171,10 +174,15 @@ test("TypeSafe fixes endpoint and uses only its configured key at invocation", a
   const original = globalThis.fetch;
   const config = Effect.runSync(
     loadOptions({
-      backend: { apiKeyEnv: "CLASSIFY_TEST_TYPESAFE", provider: "typesafe" },
+      backends: {
+        default: { apiKeyEnv: "CLASSIFY_TEST_TYPESAFE", provider: "typesafe" },
+      },
+      defaultBackend: "default",
     })
   );
-  const adapter = providerLayer(config).pipe(Layer.provideMerge(services));
+  const adapter = providerLayer(config, config.backends.default).pipe(
+    Layer.provideMerge(services)
+  );
   const calls: Request[] = [];
   // SAFETY: This mock implements fetch's request/response contract and preserves Bun's preconnect member.
   globalThis.fetch = Object.assign(
@@ -553,14 +561,17 @@ test("invalid native 200 responses are not retried or leaked", async () => {
   });
   const config = Effect.runSync(
     loadOptions({
-      backend: { baseURL: origin, provider: "laya" },
+      backends: { default: { baseURL: origin, provider: "laya" } },
+      defaultBackend: "default",
       maxRetries: 2,
     })
   );
   const output = await Effect.runPromise(
     Effect.provide(
       classify(config, input, toolContext()),
-      providerLayer(config).pipe(Layer.provideMerge(services))
+      providerLayer(config, config.backends.default).pipe(
+        Layer.provideMerge(services)
+      )
     )
   );
   expect(output).toHaveProperty("error.code", "INVALID_RESPONSE");
@@ -635,7 +646,8 @@ test("failures preserve attempts, request IDs, retry hints and duration without 
     });
     const config = Effect.runSync(
       loadOptions({
-        backend: { baseURL: origin, provider: "laya" },
+        backends: { default: { baseURL: origin, provider: "laya" } },
+        defaultBackend: "default",
         maxRetries: 0,
       })
     );
@@ -644,7 +656,9 @@ test("failures preserve attempts, request IDs, retry hints and duration without 
     const output = await Effect.runPromise(
       Effect.provide(
         classify(config, input, toolContext()),
-        providerLayer(config).pipe(Layer.provideMerge(services))
+        providerLayer(config, config.backends.default).pipe(
+          Layer.provideMerge(services)
+        )
       )
     );
     expect(output).toHaveProperty("ok", false);
@@ -843,7 +857,8 @@ test("credentials resolve before the transport deadline starts", async () => {
   const origin = server(() => Response.json(response()));
   const config = Effect.runSync(
     loadOptions({
-      backend: { baseURL: origin, provider: "laya" },
+      backends: { default: { baseURL: origin, provider: "laya" } },
+      defaultBackend: "default",
       timeoutMs: 1000,
     })
   );
@@ -851,7 +866,7 @@ test("credentials resolve before the transport deadline starts", async () => {
     resolve: () =>
       Effect.sleep(1100).pipe(Effect.as(Redacted.make("sentinel"))),
   });
-  const backend = providerLayer(config).pipe(
+  const backend = providerLayer(config, config.backends.default).pipe(
     Layer.provide(Layer.merge(slowCredentials, HttpClientLive))
   );
   const result = await Effect.runPromise(

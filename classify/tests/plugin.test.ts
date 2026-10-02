@@ -2,12 +2,29 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import type {
+  CommandDefinition,
+  CommandEditor,
+} from "@opencode/plugin/effect/command";
+import type { RpcHandlers } from "@opencode/plugin/effect/rpc";
 import type { ToolEditor } from "@opencode/plugin/effect/tool";
+import { Session } from "@opencode/schema/session";
 import { Tool } from "@opencode/schema/tool";
 import { file, serve } from "bun";
-import { Cause, Deferred, Effect, Exit, Fiber, Schema, Scope } from "effect";
+import {
+  Cause,
+  Deferred,
+  Effect,
+  Exit,
+  Fiber,
+  Logger,
+  References,
+  Schema,
+  Scope,
+} from "effect";
 
 import plugin from "../index.js";
+import type { ClassifyBackends, SelectionSchema } from "../rpc.js";
 import { buildInputSchema } from "../schemas.js";
 import type { JsonValue } from "../types.js";
 import { isBoundedJsonValue } from "../validation/json.js";
@@ -25,9 +42,22 @@ afterEach(async () => {
 
 const register = async (
   options: JsonValue,
-  runtime?: { directory: string; tools: Info[]; disposed?: () => void }
+  runtime?: {
+    directory: string;
+    tools: Info[];
+    disposed?: () => void;
+    commands?: CommandDefinition[];
+    handlers?: (handlers: RpcHandlers<typeof ClassifyBackends>) => void;
+    messages?: string[];
+    events?: unknown[];
+    emit?: (
+      selection: typeof SelectionSchema.Type
+    ) => Effect.Effect<void, unknown>;
+    stored?: Map<string, Schema.Json>;
+  }
 ): Promise<Info[]> => {
   const tools: Info[] = [];
+  const stored = runtime?.stored ?? new Map<string, Schema.Json>();
   // SAFETY: The test editor only implements add, which is the sole method used by plugin.effect.
   const editor = {
     add(tool: Info) {
@@ -35,10 +65,56 @@ const register = async (
     },
   } as ToolEditor;
   const contextFixture = {
+    command: {
+      // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Host command registration uses an editor callback.
+      transform: (callback: (editor: CommandEditor) => void) =>
+        Effect.sync(() => {
+          // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Invoke the host registration contract.
+          callback({
+            add: (command) => {
+              runtime?.commands?.push(command);
+            },
+          });
+        }),
+    },
+    location: { directory: runtime?.directory },
     options,
+    rpc: {
+      register: (
+        _definition: typeof ClassifyBackends,
+        handlers: RpcHandlers<typeof ClassifyBackends>
+      ) =>
+        Effect.sync(() => {
+          runtime?.handlers?.(handlers);
+          return {
+            events: {
+              emit: (_name: string, value: typeof SelectionSchema.Type) =>
+                runtime?.emit?.(value) ??
+                Effect.sync(() => {
+                  runtime?.events?.push(value);
+                }),
+            },
+          };
+        }),
+    },
     session: {
       get: () =>
         Effect.succeed({ location: { directory: runtime?.directory } }),
+      synthetic: ({ text }: { text: string }) =>
+        Effect.sync(() => {
+          runtime?.messages?.push(text);
+        }),
+    },
+    storage: {
+      get: (key: string) => Effect.sync(() => stored.get(key)),
+      remove: (key: string) =>
+        Effect.sync(() => {
+          stored.delete(key);
+        }),
+      set: (key: string, value: Schema.Json) =>
+        Effect.sync(() => {
+          stored.set(key, value);
+        }),
     },
     tool: {
       list: () =>
@@ -73,8 +149,9 @@ const register = async (
 };
 test("real entry registers one unnamespaced tool with concrete discoverable schema", async () => {
   const tools = await register({
-    backend: { provider: "openai-decisions" },
+    backends: { default: { provider: "openai-decisions" } },
     classifiers: { triage: { description: "Assess incidents", questions } },
+    defaultBackend: "default",
   });
   expect(tools).toHaveLength(1);
   const [tool] = tools;
@@ -100,8 +177,243 @@ test("real entry registers one unnamespaced tool with concrete discoverable sche
   expect(result.output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
   expect(result.content).toBeUndefined();
 });
+
+test("server slash commands and RPC share durable session selection and route named profiles", async () => {
+  const requests: unknown[] = [];
+  const commands: CommandDefinition[] = [];
+  const messages: string[] = [];
+  const events: unknown[] = [];
+  const stored = new Map<string, Schema.Json>();
+  let handlers: RpcHandlers<typeof ClassifyBackends> | undefined;
+  const fixture = serve({
+    fetch: async (request) => {
+      requests.push(await request.json());
+      return Response.json(response());
+    },
+    hostname: "127.0.0.1",
+    port: 0,
+  });
+  const sessionID = Session.ID.make("ses_a");
+  const context = { ...toolContext(), sessionID };
+  const rpcContext = {
+    error: () => {
+      throw new Error("Unexpected RPC error");
+    },
+  };
+  try {
+    const options = {
+      backends: {
+        first: {
+          baseURL: fixture.url.origin,
+          model: "first-model",
+          provider: "laya",
+        },
+        reserved: { provider: "openai-decisions" },
+        second: {
+          baseURL: fixture.url.origin,
+          model: "second-model",
+          provider: "laya",
+        },
+      },
+      defaultBackend: "first",
+    };
+    const [tool] = await register(options, {
+      commands,
+      directory: "/tmp/opencode",
+      events,
+      handlers: (registered) => {
+        handlers = registered;
+      },
+      messages,
+      stored,
+      tools: [],
+    });
+    expect(commands.map((command) => command.name)).toEqual([
+      "classify-backend",
+    ]);
+    const command = (text: string) =>
+      commands[0].execute({ delivery: "steer", prompt: { text }, sessionID });
+    await Effect.runPromise(command(""));
+    expect(messages.at(-1)).toContain("Classify backend: first");
+    expect(messages.at(-1)).toContain("second: laya / second-model");
+    expect(requests).toHaveLength(0);
+    await Effect.runPromise(command("second"));
+    expect(messages.at(-1)).toContain("Classify backend: second");
+    if (handlers === undefined) {
+      throw new Error("Missing RPC registration");
+    }
+    expect(
+      await Effect.runPromise(handlers.getSelection({ sessionID }, rpcContext))
+    ).toHaveProperty("backend", "second");
+    const second = await Effect.runPromise(tool.execute(input, context));
+    expect(second.output).toHaveProperty("result.backend", "second");
+    expect(requests[0]).toHaveProperty("model", "second-model");
+    const other = await Effect.runPromise(
+      tool.execute(input, { ...context, sessionID: Session.ID.make("ses_b") })
+    );
+    expect(other.output).toHaveProperty("result.backend", "first");
+    await Effect.runPromise(
+      handlers.setSelection({ backend: "first", sessionID }, rpcContext)
+    );
+    expect(stored.get("selection/ses_a")).toBe("first");
+    expect(events).toHaveLength(2);
+    await Effect.runPromise(command("reserved"));
+    expect(messages.at(-1)).toContain("not implemented");
+    await Effect.runPromise(command("missing"));
+    expect(messages.at(-1)).toContain("Unknown classify backend");
+    expect(stored.get("selection/ses_a")).toBe("first");
+    await Effect.runPromise(command("reset"));
+    expect(stored.has("selection/ses_a")).toBe(false);
+    expect(messages.at(-1)).toContain("configured default");
+    const [reloaded] = await register(options, {
+      directory: "/tmp/opencode",
+      stored,
+      tools: [],
+    });
+    const reloadedResult = await Effect.runPromise(
+      reloaded.execute(input, context)
+    );
+    expect(reloadedResult.output).toHaveProperty("result.backend", "first");
+  } finally {
+    fixture.stop(true);
+  }
+});
+test("notification failures are logged without undoing RPC or slash selections, while interruption propagates", async () => {
+  const commands: CommandDefinition[] = [];
+  const messages: string[] = [];
+  const stored = new Map<string, Schema.Json>();
+  let handlers: RpcHandlers<typeof ClassifyBackends> | undefined;
+  const failure = new Error("Event publication failed");
+  let emission: Effect.Effect<void, unknown> = Effect.fail(failure);
+  const logs: { message: unknown; operation: unknown }[] = [];
+  const logger = Logger.layer([
+    Logger.make(({ message, fiber }) => {
+      logs.push({
+        message,
+        operation: fiber.getRef(References.CurrentLogAnnotations).operation,
+      });
+    }),
+  ]);
+  await register(
+    {
+      backends: {
+        hosted: { provider: "typesafe" },
+        local: { provider: "ollama" },
+      },
+      defaultBackend: "hosted",
+    },
+    {
+      commands,
+      directory: "/tmp/opencode",
+      emit: () => emission,
+      handlers: (registered) => {
+        handlers = registered;
+      },
+      messages,
+      stored,
+      tools: [],
+    }
+  );
+  if (handlers === undefined) {
+    throw new Error("Missing RPC registration");
+  }
+  const sessionID = Session.ID.make("ses_notifications");
+  const rpcContext = {
+    error: () => {
+      throw new Error("Unexpected RPC error");
+    },
+  };
+  const selected = await Effect.runPromise(
+    handlers
+      .setSelection({ backend: "local", sessionID }, rpcContext)
+      .pipe(Effect.provide(logger))
+  );
+  expect(selected).toHaveProperty("backend", "local");
+  expect(stored.get("selection/ses_notifications")).toBe("local");
+  await Effect.runPromise(
+    commands[0]
+      .execute({ delivery: "steer", prompt: { text: "reset" }, sessionID })
+      .pipe(Effect.provide(logger))
+  );
+  expect(stored.has("selection/ses_notifications")).toBe(false);
+  expect(messages.at(-1)).toContain("Classify backend: hosted");
+  expect(logs).toEqual([
+    {
+      message: ["Classify backend selection notification failed.", failure],
+      operation: "rpc.events.emit.changed",
+    },
+    {
+      message: ["Classify backend selection notification failed.", failure],
+      operation: "rpc.events.emit.changed",
+    },
+  ]);
+  emission = Effect.interrupt;
+  const exit = await Effect.runPromiseExit(
+    handlers
+      .setSelection({ backend: "local", sessionID }, rpcContext)
+      .pipe(Effect.provide(logger))
+  );
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) {
+    expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+  }
+  expect(logs).toHaveLength(2);
+});
+
+test("selection RPC exposes reset metadata only for removed profiles", async () => {
+  const stored = new Map<string, Schema.Json>([
+    ["selection/ses_recovery", "removed"],
+  ]);
+  let handlers: RpcHandlers<typeof ClassifyBackends> | undefined;
+  await register(
+    {
+      backends: { default: { provider: "typesafe" } },
+      defaultBackend: "default",
+    },
+    {
+      directory: "/tmp/opencode",
+      handlers: (registered) => {
+        handlers = registered;
+      },
+      stored,
+      tools: [],
+    }
+  );
+  if (handlers === undefined) {
+    throw new Error("Missing RPC registration");
+  }
+  const errors: { type: string; message: string; data: unknown }[] = [];
+  const rpcContext = {
+    error: (type: string, message: string, ...data: unknown[]) => {
+      errors.push({ data: data[0], message, type });
+      throw new Error("Expected RPC failure");
+    },
+  };
+  const sessionID = Session.ID.make("ses_recovery");
+  await expect(
+    Effect.runPromise(handlers.getSelection({ sessionID }, rpcContext))
+  ).rejects.toThrow("Expected RPC failure");
+  expect(errors[0]).toMatchObject({
+    data: { defaultBackend: "default" },
+    type: "unknown_backend",
+  });
+  stored.set("selection/ses_recovery", { backend: "default" });
+  await expect(
+    Effect.runPromise(handlers.getSelection({ sessionID }, rpcContext))
+  ).rejects.toThrow("Expected RPC failure");
+  expect(errors[1]).toMatchObject({ data: {}, type: "unavailable" });
+  const selected = await Effect.runPromise(
+    handlers.setSelection({ sessionID }, rpcContext)
+  );
+  expect(selected).toMatchObject({ backend: "default", overridden: false });
+  expect(stored.has("selection/ses_recovery")).toBe(false);
+});
+
 test("tool teaches self-contained requests, result interpretation, and Code Mode handling", async () => {
-  const [tool] = await register({ backend: { provider: "openai-decisions" } });
+  const [tool] = await register({
+    backends: { default: { provider: "openai-decisions" } },
+    defaultBackend: "default",
+  });
   for (const guidance of [
     "not conversation history",
     "Plain paths and embedded URLs are inert",
@@ -160,7 +472,12 @@ test("executor resolves evidence in the session location before provider HTTP", 
   try {
     await writeFile(path.join(directory, "a.ts"), "actual contents");
     const tools = await register(
-      { backend: { baseURL: fixture.url.origin, provider: "laya" } },
+      {
+        backends: {
+          default: { baseURL: fixture.url.origin, provider: "laya" },
+        },
+        defaultBackend: "default",
+      },
       {
         directory,
         tools: [
@@ -204,7 +521,10 @@ test("setup has no fetch side effects and invalid options stop registration", as
   );
   try {
     const tools = await register({
-      backend: { apiKeyEnv: "CLASSIFY_TEST_MISSING", provider: "typesafe" },
+      backends: {
+        default: { apiKeyEnv: "CLASSIFY_TEST_MISSING", provider: "typesafe" },
+      },
+      defaultBackend: "default",
     });
     expect(Schema.isSchema(tools[0].input)).toBe(true);
     expect(calls).toBe(0);
@@ -230,7 +550,9 @@ test("preset evidence is read freshly in the session location with native permis
   try {
     const [tool] = await register(
       {
-        backend: { baseURL: fixture.url.origin, provider: "laya" },
+        backends: {
+          default: { baseURL: fixture.url.origin, provider: "laya" },
+        },
         classifiers: {
           review: {
             description: "Review current file",
@@ -238,6 +560,7 @@ test("preset evidence is read freshly in the session location with native permis
             state: { files: ["a.ts"], type: "evidence" },
           },
         },
+        defaultBackend: "default",
       },
       {
         directory,
@@ -341,7 +664,10 @@ test("executor forwards interruption to an in-flight request", async () => {
   );
   try {
     const tools = await register({
-      backend: { baseURL: "http://127.0.0.1:12345", provider: "laya" },
+      backends: {
+        default: { baseURL: "http://127.0.0.1:12345", provider: "laya" },
+      },
+      defaultBackend: "default",
     });
     const exit = await Effect.runPromise(
       Effect.gen(function* exit() {
@@ -365,7 +691,10 @@ test("executor forwards interruption to an in-flight request", async () => {
 test("registration stays live through execution and disposes when the plugin scope closes", async () => {
   let disposals = 0;
   const tools = await register(
-    { backend: { provider: "openai-decisions" } },
+    {
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    },
     {
       directory: "/tmp/opencode",
       disposed: () => {
@@ -449,8 +778,9 @@ test("entry normalizes transport-safe criteria and preserves structured provider
   };
   try {
     const [tool] = await register({
-      backend: { baseURL: fixture.url.origin, provider: "laya" },
+      backends: { default: { baseURL: fixture.url.origin, provider: "laya" } },
       classifiers: { review: { description: "Review", questions: q } },
+      defaultBackend: "default",
     });
     const context = toolContext();
     const outputs = await Effect.runPromise(

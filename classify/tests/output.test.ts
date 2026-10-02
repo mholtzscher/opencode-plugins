@@ -487,9 +487,12 @@ test("failure parser validates optional diagnostics and rejects partial answers"
 
 test("input errors give precise safe paths, no HTTP dispatches, and elapsed duration", async () => {
   const options = Effect.runSync(
-    loadOptions({ backend: { provider: "openai-decisions" } })
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
   );
-  const backend = backendLayer(options);
+  const backend = backendLayer(options, options.backends.default);
   const cases = [
     {
       message: "nonblank string",

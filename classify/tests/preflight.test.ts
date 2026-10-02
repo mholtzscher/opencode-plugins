@@ -43,7 +43,10 @@ test("provider preflight performs no credential lookups or HTTP calls", async ()
         "openai-decisions",
       ] as const) {
         const options = yield* loadOptions({
-          backend: { apiKeyEnv: "CLASSIFY_PREFLIGHT_SENTINEL", provider },
+          backends: {
+            default: { apiKeyEnv: "CLASSIFY_PREFLIGHT_SENTINEL", provider },
+          },
+          defaultBackend: "default",
         });
         yield* Effect.gen(function* providerPreflight() {
           const adapter = yield* DecisionBackend;
@@ -62,7 +65,9 @@ test("provider preflight performs no credential lookups or HTTP calls", async ()
           }
         }).pipe(
           Effect.provide(
-            providerLayer(options).pipe(Layer.provide(dependencies))
+            providerLayer(options, options.backends.default).pipe(
+              Layer.provide(dependencies)
+            )
           )
         );
       }
@@ -106,7 +111,10 @@ test("every provider preflight preserves fiber interruption", async () => {
         "ollama",
         "openai-decisions",
       ] as const) {
-        const options = yield* loadOptions({ backend: { provider } });
+        const options = yield* loadOptions({
+          backends: { default: { provider } },
+          defaultBackend: "default",
+        });
         const exit = yield* Effect.gen(function* exit() {
           const adapter = yield* DecisionBackend;
           const fiber = yield* Effect.forkChild(
@@ -115,7 +123,9 @@ test("every provider preflight preserves fiber interruption", async () => {
           return yield* Fiber.await(fiber);
         }).pipe(
           Effect.provide(
-            providerLayer(options).pipe(Layer.provide(dependencies))
+            providerLayer(options, options.backends.default).pipe(
+              Layer.provide(dependencies)
+            )
           )
         );
         expect(Exit.isFailure(exit)).toBe(true);
@@ -129,13 +139,16 @@ test("every provider preflight preserves fiber interruption", async () => {
 
 test("unavailable strategy also rejects direct decide calls", async () => {
   const options = Effect.runSync(
-    loadOptions({ backend: { provider: "openai-decisions" } })
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
   );
   const exit = await Effect.runPromiseExit(
     Effect.gen(function* exit() {
       const adapter = yield* DecisionBackend;
       return yield* adapter.decide(input);
-    }).pipe(Effect.provide(backendLayer(options)))
+    }).pipe(Effect.provide(backendLayer(options, options.backends.default)))
   );
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit)) {
@@ -149,7 +162,10 @@ test("unavailable strategy also rejects direct decide calls", async () => {
 test("factory layer uses injected credentials and HTTP client instead of live dependencies", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: { apiKeyEnv: "CLASSIFY_INJECTED_KEY", provider: "typesafe" },
+      backends: {
+        default: { apiKeyEnv: "CLASSIFY_INJECTED_KEY", provider: "typesafe" },
+      },
+      defaultBackend: "default",
     })
   );
   let credentials = 0;
@@ -160,7 +176,7 @@ test("factory layer uses injected credentials and HTTP client instead of live de
       Credentials.of({
         resolve: (backend) =>
           Effect.sync(() => {
-            expect(backend).toBe(options.backend);
+            expect(backend).toBe(options.backends.default);
             credentials += 1;
             return Redacted.make("injected-secret");
           }),
@@ -190,7 +206,11 @@ test("factory layer uses injected credentials and HTTP client instead of live de
       expect(requests).toHaveLength(0);
       return yield* adapter.decide(input);
     }).pipe(
-      Effect.provide(providerLayer(options).pipe(Layer.provide(dependencies)))
+      Effect.provide(
+        providerLayer(options, options.backends.default).pipe(
+          Layer.provide(dependencies)
+        )
+      )
     )
   );
   expect(credentials).toBe(1);

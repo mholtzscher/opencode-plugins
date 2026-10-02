@@ -47,14 +47,24 @@ const recordingAdapter = (
 
 test("missing question content returns invalid input rather than an internal error", async () => {
   const options = Effect.runSync(
-    loadOptions({ backend: { provider: "openai-decisions" } })
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
   );
   const output = await Effect.runPromise(
     classify(
       options,
       { questions: { q: { type: "noul" } }, state: "x" },
       toolContext()
-    ).pipe(Effect.provide(Layer.merge(backendLayer(options), evidenceLayer())))
+    ).pipe(
+      Effect.provide(
+        Layer.merge(
+          backendLayer(options, options.backends.default),
+          evidenceLayer()
+        )
+      )
+    )
   );
   expect(output).toHaveProperty("ok", false);
   expect(output).toHaveProperty("error.code", "INVALID_INPUT");
@@ -63,8 +73,9 @@ test("missing question content returns invalid input rather than an internal err
 test("named and ad hoc requests retain maps, reported model and native measurements", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: { provider: "laya" },
+      backends: { default: { provider: "laya" } },
       classifiers: { triage: { description: "Triage", questions } },
+      defaultBackend: "default",
     })
   );
   const calls: DecisionRequest[] = [];
@@ -114,7 +125,10 @@ test("configured example names resolve without external HTTP", async () => {
       for (const example of examples) {
         const options = yield* loadOptions(example);
         const calls: DecisionRequest[] = [];
-        const adapter = recordingAdapter(calls, options.backend.provider);
+        const adapter = recordingAdapter(
+          calls,
+          options.backends.default.provider
+        );
         adapter.decide = (request) =>
           Effect.sync(() => {
             calls.push(request);
@@ -148,7 +162,7 @@ test("presets use stored state and questions and reject overrides before dispatc
   const states = ["Fixed report", { message: "Report" }, [null, false, 2]];
   const options = Effect.runSync(
     loadOptions({
-      backend: { provider: "laya" },
+      backends: { default: { provider: "laya" } },
       classifiers: {
         caller: { description: "Caller state", questions },
         ...Object.fromEntries(
@@ -158,6 +172,7 @@ test("presets use stored state and questions and reject overrides before dispatc
           ])
         ),
       },
+      defaultBackend: "default",
     })
   );
   const calls: DecisionRequest[] = [];
@@ -206,7 +221,7 @@ test("presets use stored state and questions and reject overrides before dispatc
 test("preset evidence preserves the unavailable-provider gate", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: { provider: "openai-decisions" },
+      backends: { default: { provider: "openai-decisions" } },
       classifiers: {
         review: {
           description: "Review",
@@ -214,6 +229,7 @@ test("preset evidence preserves the unavailable-provider gate", async () => {
           state: { files: ["never-read.ts"], type: "evidence" },
         },
       },
+      defaultBackend: "default",
     })
   );
   let reads = 0;
@@ -221,7 +237,7 @@ test("preset evidence preserves the unavailable-provider gate", async () => {
     classify(options, { classifier: "review" }, toolContext()).pipe(
       Effect.provide(
         Layer.merge(
-          backendLayer(options),
+          backendLayer(options, options.backends.default),
           evidenceLayer(() =>
             Effect.sync(() => {
               reads += 1;
@@ -266,13 +282,24 @@ test("capabilities and missing keys fail before dispatch", async () => {
   expect(reads).toBe(0);
   const missing = Effect.runSync(
     loadOptions({
-      backend: { apiKeyEnv: "CLASSIFY_TEST_MISSING_KEY", provider: "typesafe" },
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_TEST_MISSING_KEY",
+          provider: "typesafe",
+        },
+      },
+      defaultBackend: "default",
     })
   );
   expect(
     await Effect.runPromise(
       classify(missing, input, toolContext()).pipe(
-        Effect.provide(Layer.merge(backendLayer(missing), evidenceLayer()))
+        Effect.provide(
+          Layer.merge(
+            backendLayer(missing, missing.backends.default),
+            evidenceLayer()
+          )
+        )
       )
     )
   ).toHaveProperty("error.code", "MISSING_CREDENTIALS");
@@ -281,8 +308,9 @@ test("capabilities and missing keys fail before dispatch", async () => {
 test("strategy preflight runs before evidence and dispatch with the same questions and context", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: { provider: "laya" },
+      backends: { default: { provider: "laya" } },
       classifiers: { review: { description: "Review", questions } },
+      defaultBackend: "default",
     })
   );
   const events: string[] = [];
@@ -332,7 +360,10 @@ test("strategy preflight runs before evidence and dispatch with the same questio
 
 test("service honors any strategy's availability gate without checking provider identity", async () => {
   const options = Effect.runSync(
-    loadOptions({ backend: { provider: "laya" } })
+    loadOptions({
+      backends: { default: { provider: "laya" } },
+      defaultBackend: "default",
+    })
   );
   const calls: DecisionRequest[] = [];
   let reads = 0;
@@ -396,7 +427,10 @@ test("service honors any strategy's availability gate without checking provider 
 for (const phase of ["preflight", "decide"] as const) {
   test(`fiber interruption during ${phase} remains interruption and runs cleanup`, async () => {
     const options = Effect.runSync(
-      loadOptions({ backend: { provider: "laya" } })
+      loadOptions({
+        backends: { default: { provider: "laya" } },
+        defaultBackend: "default",
+      })
     );
     const calls: DecisionRequest[] = [];
     let reads = 0;
@@ -461,7 +495,14 @@ test("OpenAI gate wins over capability checks without credentials or network", a
   const output = await Effect.runPromise(
     Effect.gen(function* output() {
       return yield* classify(options, input, toolContext());
-    }).pipe(Effect.provide(Layer.merge(backendLayer(options), evidenceLayer())))
+    }).pipe(
+      Effect.provide(
+        Layer.merge(
+          backendLayer(options, options.backends.default),
+          evidenceLayer()
+        )
+      )
+    )
   );
   expect(output).toMatchObject({
     error: {
@@ -480,10 +521,13 @@ test("OpenAI gate wins over capability checks without credentials or network", a
 test("OpenAI factory and invocation perform zero environment reads and HTTP calls", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backend: {
-        apiKeyEnv: "CLASSIFY_GATE_SENTINEL",
-        provider: "openai-decisions",
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_GATE_SENTINEL",
+          provider: "openai-decisions",
+        },
       },
+      defaultBackend: "default",
     })
   );
   const originalEnv = process.env;
@@ -506,7 +550,12 @@ test("OpenAI factory and invocation perform zero environment reads and HTTP call
   try {
     const output = await Effect.runPromise(
       classify(options, input, toolContext()).pipe(
-        Effect.provide(Layer.merge(backendLayer(options), evidenceLayer()))
+        Effect.provide(
+          Layer.merge(
+            backendLayer(options, options.backends.default),
+            evidenceLayer()
+          )
+        )
       )
     );
     expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");

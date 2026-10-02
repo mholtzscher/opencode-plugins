@@ -439,6 +439,7 @@ const ResultSchema = Schema.Struct({
     nameKeys
   ),
   attempts: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  backend: Schema.optionalKey(NameSchema),
   classifier: Schema.optionalKey(NameSchema),
   durationMs: NonnegativeSchema,
   model: NonblankSchema,

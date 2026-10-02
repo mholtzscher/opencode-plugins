@@ -106,6 +106,20 @@ On platforms without symlink support, mark symlink cases NOT RUN. Git must be in
 
 ## 3. Calling the tool and judging results
 
+### Live backend selection across clients
+
+Configure two named profiles in the disposable project using the README's `backends` example. Use controlled local endpoints when checking routing; do not send real evidence to hosted profiles merely to test switching.
+
+- In the TUI, open the command palette and choose **Classify: Select backend**. Verify profiles and model labels, current selection, cancel without changes, and the `(default)` marker on the configured backend's row. Selecting that row should clear the session override, without a separate reset option. OpenAI Decisions should be disabled.
+- Verify the bottom session status row shows `classify: <profile>`, follows session/tab switches, updates after picker/slash changes and changes from another client, and refreshes on reconnect. Unreadable selection must show `unavailable`, not an old or default backend. The home screen should not show a session-specific selection.
+- In TUI, desktop, and web, run `/classify-backend`, `/classify-backend <name>`, and `/classify-backend reset`. Verify server-generated confirmation without an LLM turn or inference request.
+- Open the same session in another client: verify it observes the selected profile and subsequent classification reports `result.backend` (or `error.backend`). A separate session should still use the configured default.
+- Reconnect/reload and reopen the session: an explicit override should persist. Switching while a controlled request is in flight must not reroute that request or retries; the next call uses the new selection.
+- Unknown names and the unimplemented OpenAI profile must not change selection. Remove an overridden profile and reload: calls should fail without HTTP until explicitly reset or switched, never silently fall back. Verify the TUI picker still opens without a current row and can select another profile or reset by choosing the configured default. Canceling must preserve the removed-profile override. A storage or transport failure must stop the picker rather than be treated as a removed profile.
+- With a remote TUI, verify profiles and key files are resolved on the server. Picker/RPC output must not contain credentials, key-file paths, or environment-variable names.
+
+Record desktop/web and remote-client cases as NOT RUN unless verified in those actual clients.
+
 These examples are **tool arguments**, not provider HTTP bodies. Ask the agent to invoke `classify` exactly as specified, or call `tools.classify` in Code Mode. Do not have the agent read and copy file contents into `state` for evidence cases.
 
 Check the `ok` discriminator before reading answers. The migrated tool returns structured output; do not call `JSON.parse` on it. Rerun these smoke checks in the real OpenCode host to verify Code Mode handling and native permissions.

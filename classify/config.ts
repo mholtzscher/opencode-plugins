@@ -24,19 +24,31 @@ const ClassifiersSchema = Schema.Record(
   .check(Schema.isMaxProperties(32), nameKeys)
   .annotate(strict);
 
+const BackendsSchema = Schema.Record(Schema.String, BackendSchema)
+  .check(Schema.isMinProperties(1), Schema.isMaxProperties(32), nameKeys)
+  .check(Schema.makeFilter((backends) => !Object.hasOwn(backends, "reset")))
+  .annotate(strict);
+
 export const OptionsSchema = boundedCodec(
   Schema.Struct({
-    backend: BackendSchema,
+    backends: BackendsSchema,
     classifiers: ClassifiersSchema.pipe(
       Schema.withDecodingDefaultKey(Effect.succeed({}))
     ),
+    defaultBackend: NonblankSchema,
     maxRetries: Schema.Int.check(
       Schema.isBetween({ maximum: 2, minimum: 0 })
     ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
     timeoutMs: Schema.Int.check(
       Schema.isBetween({ maximum: 300_000, minimum: 1000 })
     ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(30_000))),
-  }).annotate(strict)
+  })
+    .check(
+      Schema.makeFilter((options) =>
+        Object.hasOwn(options.backends, options.defaultBackend)
+      )
+    )
+    .annotate(strict)
 );
 
 export type ClassifyOptions = typeof OptionsSchema.Type;
@@ -69,9 +81,14 @@ export const loadOptions = Effect.fn("loadOptions")(
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Plugin options are external input decoded by the options schema.
   function* loadOptions(value: unknown) {
     const decoded = yield* Schema.decodeUnknownEffect(OptionsSchema)(value);
-    const normalized = yield* Effect.try(() => ({
+    const normalized = yield* Effect.try((): ClassifyOptions => ({
       ...decoded,
-      backend: normalizeBackend(decoded.backend),
+      backends: Object.fromEntries(
+        Object.entries(decoded.backends).map(([name, backend]) => [
+          name,
+          normalizeBackend(backend),
+        ])
+      ),
     }));
     yield* validateSnapshotBounds(normalized);
     return yield* Effect.try(() => deepFreeze(structuredClone(normalized)));

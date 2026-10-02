@@ -52,9 +52,14 @@ export const normalizedResponse = () => {
   };
 };
 export const examples = [
-  { backend: { provider: "typesafe" } },
   {
-    backend: { baseURL: "http://127.0.0.1:8000", provider: "laya" },
+    backends: { default: { provider: "typesafe" } },
+    defaultBackend: "default",
+  },
+  {
+    backends: {
+      default: { baseURL: "http://127.0.0.1:8000", provider: "laya" },
+    },
     classifiers: {
       "incident-triage": {
         description:
@@ -68,13 +73,16 @@ export const examples = [
         },
       },
     },
+    defaultBackend: "default",
   },
   {
-    backend: {
-      apiKeyEnv: "LAYA_API_KEY",
-      baseURL: "http://127.0.0.1:8000",
-      model: "english",
-      provider: "laya",
+    backends: {
+      default: {
+        apiKeyEnv: "LAYA_API_KEY",
+        baseURL: "http://127.0.0.1:8000",
+        model: "english",
+        provider: "laya",
+      },
     },
     classifiers: {
       "change-kind": {
@@ -113,25 +121,35 @@ export const examples = [
         },
       },
     },
+    defaultBackend: "default",
     maxRetries: 0,
     timeoutMs: 120_000,
   },
   {
-    backend: {
-      apiKeyEnv: "COMPANY_LAYA_API_KEY",
-      baseURL: "https://laya.example.com",
-      provider: "laya",
+    backends: {
+      default: {
+        apiKeyEnv: "COMPANY_LAYA_API_KEY",
+        baseURL: "https://laya.example.com",
+        provider: "laya",
+      },
     },
+    defaultBackend: "default",
     maxRetries: 0,
     timeoutMs: 60_000,
   },
-  { backend: { provider: "openai-decisions" } },
   {
-    backend: {
-      accountID: "0123456789abcdef0123456789abcdef",
-      model: "clef",
-      provider: "cloudflare",
-    },
+    backends: { default: { provider: "openai-decisions" } },
+    defaultBackend: "default",
   },
-  { backend: { provider: "ollama" } },
+  {
+    backends: {
+      default: {
+        accountID: "0123456789abcdef0123456789abcdef",
+        model: "clef",
+        provider: "cloudflare",
+      },
+    },
+    defaultBackend: "default",
+  },
+  { backends: { default: { provider: "ollama" } }, defaultBackend: "default" },
 ];

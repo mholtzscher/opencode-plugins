@@ -25,34 +25,48 @@ test("README configuration blocks match validated example fixtures", async () =>
 });
 
 test("defaults are explicit, independent and immutable", () => {
-  const original = { backend: { provider: "typesafe" } };
+  const original = {
+    backends: { default: { provider: "typesafe" } },
+    defaultBackend: "default",
+  };
   const options = Effect.runSync(loadOptions(original));
   expect(options).toEqual({
-    backend: {
-      apiKeyEnv: "TYPESAFE_API_KEY",
-      model: "jev-latest",
-      provider: "typesafe",
+    backends: {
+      default: {
+        apiKeyEnv: "TYPESAFE_API_KEY",
+        model: "jev-latest",
+        provider: "typesafe",
+      },
     },
     classifiers: {},
+    defaultBackend: "default",
     maxRetries: 1,
     timeoutMs: 30_000,
   });
-  expect(original).toEqual({ backend: { provider: "typesafe" } });
-  expect(Object.isFrozen(options.backend)).toBe(true);
+  expect(original).toEqual({
+    backends: { default: { provider: "typesafe" } },
+    defaultBackend: "default",
+  });
+  expect(Object.isFrozen(options.backends.default)).toBe(true);
   expect(
-    Effect.runSync(loadOptions({ backend: { provider: "laya" } })).backend
+    Effect.runSync(
+      loadOptions({
+        backends: { default: { provider: "laya" } },
+        defaultBackend: "default",
+      })
+    ).backends.default
   ).toEqual({
     baseURL: "http://127.0.0.1:8000",
     model: "english",
     provider: "laya",
   });
   expect(
-    Effect.runSync(loadOptions(examples[4])).backend.model
+    Effect.runSync(loadOptions(examples[4])).backends.default.model
   ).toBeUndefined();
 });
 test("named classifiers normalize criteria lists into immutable native maps", () => {
   const original = {
-    backend: { provider: "laya" },
+    backends: { default: { provider: "laya" } },
     classifiers: {
       review: {
         description: "Review an outage",
@@ -68,6 +82,7 @@ test("named classifiers normalize criteria lists into immutable native maps", ()
         },
       },
     },
+    defaultBackend: "default",
   };
   const options = Effect.runSync(loadOptions(original));
   const criteria = options.classifiers?.review.questions.kind.criteria;
@@ -87,9 +102,9 @@ test("named classifiers normalize criteria lists into immutable native maps", ()
 });
 test("all documented scenarios validate", () => {
   for (const example of examples) {
-    expect(String(Effect.runSync(loadOptions(example)).backend.provider)).toBe(
-      example.backend.provider
-    );
+    expect(
+      String(Effect.runSync(loadOptions(example)).backends.default.provider)
+    ).toBe(example.backends.default.provider);
   }
 });
 test("classifier state is validated, cloned and deeply frozen without evidence reads", () => {
@@ -103,7 +118,7 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
   for (const state of states) {
     const options = Effect.runSync(
       loadOptions({
-        backend: { provider: "laya" },
+        backends: { default: { provider: "laya" } },
         classifiers: {
           review: {
             description: "Review",
@@ -111,6 +126,7 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
             state,
           },
         },
+        defaultBackend: "default",
       })
     );
     const configured = options.classifiers?.review.state;
@@ -149,7 +165,7 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
     expect(() =>
       Effect.runSync(
         loadOptions({
-          backend: { provider: "laya" },
+          backends: { default: { provider: "laya" } },
           classifiers: {
             review: {
               description: "Review",
@@ -157,6 +173,7 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
               state,
             },
           },
+          defaultBackend: "default",
         })
       )
     ).toThrow("Invalid classify options");
@@ -166,16 +183,28 @@ test("configuration rejects unknown fields and invalid limits without echoing va
   for (const value of [
     undefined,
     {},
-    { backend: {} },
-    { backend: { provider: "auto" } },
-    { backend: { provider: "kev" } },
-    { backend: { apiKey: "SECRET", provider: "typesafe" } },
-    { backend: { baseURL: "https://other", provider: "typesafe" } },
-    { backend: { apiKeyEnv: " ", provider: "laya" } },
+    { backends: { default: {} }, defaultBackend: "default" },
+    { backends: { default: { provider: "auto" } }, defaultBackend: "default" },
+    { backends: { default: { provider: "kev" } }, defaultBackend: "default" },
+    {
+      backends: { default: { apiKey: "SECRET", provider: "typesafe" } },
+      defaultBackend: "default",
+    },
+    {
+      backends: { default: { baseURL: "https://other", provider: "typesafe" } },
+      defaultBackend: "default",
+    },
+    {
+      backends: { default: { apiKeyEnv: " ", provider: "laya" } },
+      defaultBackend: "default",
+    },
     { ...examples[0], timeoutMs: 999 },
     { ...examples[0], timeoutMs: null },
     { ...examples[0], maxRetries: null },
-    { backend: { baseURL: null, provider: "laya" } },
+    {
+      backends: { default: { baseURL: null, provider: "laya" } },
+      defaultBackend: "default",
+    },
     { ...examples[0], timeoutMs: 300_001 },
     { ...examples[0], maxRetries: 3 },
     { ...examples[0], maxRetries: 0.5 },
@@ -206,7 +235,12 @@ test("local System One origins reject paths, credentials, queries, fragments and
   ]) {
     for (const provider of ["laya", "ollama"] as const) {
       expect(() =>
-        Effect.runSync(loadOptions({ backend: { baseURL, provider } }))
+        Effect.runSync(
+          loadOptions({
+            backends: { default: { baseURL, provider } },
+            defaultBackend: "default",
+          })
+        )
       ).toThrow();
     }
   }
@@ -217,8 +251,12 @@ test("local System One origins reject paths, credentials, queries, fragments and
   ]) {
     for (const provider of ["laya", "ollama"] as const) {
       expect(
-        Effect.runSync(loadOptions({ backend: { baseURL, provider } })).backend
-          .provider
+        Effect.runSync(
+          loadOptions({
+            backends: { default: { baseURL, provider } },
+            defaultBackend: "default",
+          })
+        ).backends.default.provider
       ).toBe(provider);
     }
   }
@@ -261,10 +299,13 @@ test("key-file paths are explicit and mutually exclusive with environment source
       "~/.config/opencode/typesafe.key",
     ]) {
       const options = Effect.runSync(
-        loadOptions({ backend: { apiKeyFile, provider } })
+        loadOptions({
+          backends: { default: { apiKeyFile, provider } },
+          defaultBackend: "default",
+        })
       );
-      expect(options.backend.apiKeyFile).toBe(apiKeyFile);
-      expect(options.backend.apiKeyEnv).toBeUndefined();
+      expect(options.backends.default.apiKeyFile).toBe(apiKeyFile);
+      expect(options.backends.default.apiKeyEnv).toBeUndefined();
     }
     for (const apiKeyFile of [
       "",
@@ -276,13 +317,21 @@ test("key-file paths are explicit and mutually exclusive with environment source
       3,
     ]) {
       expect(() =>
-        Effect.runSync(loadOptions({ backend: { apiKeyFile, provider } }))
+        Effect.runSync(
+          loadOptions({
+            backends: { default: { apiKeyFile, provider } },
+            defaultBackend: "default",
+          })
+        )
       ).toThrow("Invalid classify options");
     }
     expect(() =>
       Effect.runSync(
         loadOptions({
-          backend: { apiKeyEnv: "KEY", apiKeyFile: "/private/key", provider },
+          backends: {
+            default: { apiKeyEnv: "KEY", apiKeyFile: "/private/key", provider },
+          },
+          defaultBackend: "default",
         })
       )
     ).toThrow("Invalid classify options");

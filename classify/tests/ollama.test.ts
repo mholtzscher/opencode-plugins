@@ -18,7 +18,12 @@ import { input, normalizedResponse, response } from "./fixtures.js";
 
 test("Ollama defaults to local Nimble without credentials", () => {
   expect(
-    Effect.runSync(loadOptions({ backend: { provider: "ollama" } })).backend
+    Effect.runSync(
+      loadOptions({
+        backends: { default: { provider: "ollama" } },
+        defaultBackend: "default",
+      })
+    ).backends.default
   ).toEqual({
     baseURL: "http://127.0.0.1:11434",
     model: "nimble",
@@ -27,13 +32,16 @@ test("Ollama defaults to local Nimble without credentials", () => {
   expect(
     Effect.runSync(
       loadOptions({
-        backend: {
-          baseURL: "https://ollama.example.com/",
-          model: "nimble:9b",
-          provider: "ollama",
+        backends: {
+          default: {
+            baseURL: "https://ollama.example.com/",
+            model: "nimble:9b",
+            provider: "ollama",
+          },
         },
+        defaultBackend: "default",
       })
-    ).backend
+    ).backends.default
   ).toEqual({
     baseURL: "https://ollama.example.com",
     model: "nimble:9b",
@@ -46,16 +54,26 @@ test("Ollama defaults to local Nimble without credentials", () => {
     "https://example.com?key=secret",
   ]) {
     expect(() =>
-      Effect.runSync(loadOptions({ backend: { baseURL, provider: "ollama" } }))
+      Effect.runSync(
+        loadOptions({
+          backends: { default: { baseURL, provider: "ollama" } },
+          defaultBackend: "default",
+        })
+      )
     ).toThrow("Invalid classify options");
   }
   for (const backend of [
     { apiKey: "secret", provider: "ollama" },
     { apiKeyEnv: "TOKEN", apiKeyFile: "/private/key", provider: "ollama" },
   ]) {
-    expect(() => Effect.runSync(loadOptions({ backend }))).toThrow(
-      "Invalid classify options"
-    );
+    expect(() =>
+      Effect.runSync(
+        loadOptions({
+          backends: { default: backend },
+          defaultBackend: "default",
+        })
+      )
+    ).toThrow("Invalid classify options");
   }
 });
 
@@ -82,13 +100,18 @@ test("Ollama sends System One requests and preserves typed native answers", asyn
         provider: "ollama",
       },
     ]) {
-      const options = Effect.runSync(loadOptions({ backend }));
+      const options = Effect.runSync(
+        loadOptions({
+          backends: { default: backend },
+          defaultBackend: "default",
+        })
+      );
       // oxlint-disable-next-line eslint/no-await-in-loop -- Preserve request order for the credential cases.
       const output = await Effect.runPromise(
         classify(options, input, toolContext()).pipe(
           Effect.provide(
             Layer.merge(
-              providerLayer(options).pipe(
+              providerLayer(options, options.backends.default).pipe(
                 Layer.provide(Layer.merge(CredentialsLive, HttpClientLive))
               ),
               evidenceLayer()

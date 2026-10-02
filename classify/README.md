@@ -2,7 +2,7 @@
 
 One server-side `classify` tool for bounded judgments. TypeSafe AI, Cloudflare Clef, and externally managed Laya and Ollama servers use the System One contract. OpenAI Decisions is **unavailable** until its documented API adapter is implemented. There is no chat or Responses fallback.
 
-The TUI entry is a no-op. Credentials and classification run on the OpenCode server, including when the TUI connects remotely. Setup makes no network calls and downloads no models.
+The TUI entry adds a backend picker. Credentials, session selection, and classification run on the OpenCode server, including when clients connect remotely. Setup makes no network calls and downloads no models.
 
 The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the registration scope and interrupts the native Effect pipeline. Each provider supplies a layer implementing `DecisionBackend`; credentials, evidence access, OpenCode integration, and HTTP transport are injectable services. Tool input and output use Effect Schema. Results are structured objects rather than JSON strings, so Code Mode callers should no longer call `JSON.parse`.
 
@@ -14,7 +14,40 @@ Merge one of the following plugin entries into your existing `plugins` array. Do
 github:mholtzscher/opencode-plugins#main::path:classify
 ```
 
-The repository's root configuration uses the hosted `typesafe` provider with an operator-specific server-local key file. `mise run opencode` launches OpenCode with that configuration and does not start Laya. For another operator, configure TypeSafe credentials as described below. To use local Laya instead, replace the classify backend with the loopback Laya configuration below and start Laya separately. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
+The repository's root configuration provides `ollama`, `cloudflare`, and `typesafe` profiles, defaulting to Ollama. Hosted profiles use operator-specific server-local key files. `mise run opencode` launches OpenCode with that configuration and does not start inference servers. For another operator, configure credentials as described below. To use local Laya instead, add the loopback Laya configuration below and start Laya separately. The former `kev` provider name is no longer accepted; update existing configurations to `laya` and use a Laya endpoint and checkpoint name.
+
+### Multiple backends and live selection
+
+Configure named profiles with `options.backends` and choose one with `options.defaultBackend`. Both fields are required, even with one profile. For example, these are plugin **options**, not a complete OpenCode config:
+
+```json
+{
+  "backends": {
+    "hosted": { "provider": "typesafe" },
+    "local": { "provider": "ollama", "model": "nimble" },
+    "alternate": { "provider": "ollama", "model": "another-installed-model" }
+  },
+  "defaultBackend": "local"
+}
+```
+
+Profiles may use the same provider with different models, endpoints, accounts, or credential sources. Configure 1–32 profiles; names follow `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. `reset` is reserved. `defaultBackend` must name a configured profile. The single-`backend` configuration is no longer accepted. `classifiers`, `timeoutMs`, and `maxRetries` remain shared options.
+
+In any session, use the server slash command in the TUI, desktop, or web client:
+
+```text
+/classify-backend             Show current selection and profiles
+/classify-backend hosted      Select hosted for this session
+/classify-backend reset       Clear the override and use the configured default
+```
+
+In the TUI command palette, choose **Classify: Select backend** for a searchable picker. The configured default is marked `(default)` on its backend row; choosing that row clears the session override. The session's bottom status row shows `classify: <profile>` and updates after picker/slash changes, changes from other connected clients, and reconnects. It follows the active session; `…` means selection is loading and `unavailable` means it could not be read. It reports selection, not provider health. Desktop/web use the server slash command; this plugin does not inject a custom desktop/web picker. Switching executes directly on the server, without an LLM turn or provider call. Confirmation is recorded in the session; the TUI picker shows a toast.
+
+Selections are per-session, persisted in server plugin storage, and shared by clients connected to that session. New sessions (including child sessions) start with the configured default. Reopening a session preserves its override. Switching applies to subsequent invocations; in-flight evidence reads, HTTP calls, and retries stay with the backend captured at invocation. Results include `result.backend` or `error.backend` when selection succeeds, alongside provider/model metadata.
+
+There is no automatic failover or liveness probing. A configured profile does not imply its server is running or credentials are present. OpenAI Decisions is displayed as not implemented and cannot be selected. If an overridden profile is removed, classification fails until you select another profile or reset; it never silently sends evidence to the default. The TUI picker still opens in this case so you can select another profile or choose the configured default to reset. Other selection-read failures stop the picker without changing selection. Profile configuration is a setup snapshot: reload the plugin after editing profiles, but switching between configured profiles requires no reload. Credentials remain server-only and are resolved at invocation, not exposed through picker/RPC metadata.
+
+The exported `./rpc` entry defines `ClassifyBackends` (`classify-backends`) with `list`, `getSelection`, and `setSelection` methods and a `changed` event. Pass the session ID and the session's location when calling RPC from a client; omit `backend` in `setSelection` to reset. If a stored profile was removed, `getSelection` returns the declared `unknown_backend` error with `data.defaultBackend` for recovery. Storage and session-access failures remain `unavailable`. Events are live-only; read selection again after reconnecting. RPC rejects session requests outside the plugin instance's location.
 
 ### Local Laya with mise
 
@@ -36,7 +69,7 @@ mise daemons logs laya
 mise daemons stop laya
 ```
 
-The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; configure the classify endpoint and model using the Laya examples below. Starting the daemon does not change the root TypeSafe backend. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
+The daemon stays running after OpenCode exits. Its declarations are in the root `mise.toml`; configure the classify endpoint and model using the Laya examples below. Starting the daemon does not change the selected backend. Stop it explicitly when finished. This setup does not enable login startup or shell-entry autostart.
 
 Laya serves `/v1/systemone`, and results report `provider: "laya"`. Laya's confidence semantics differ from Jev's, choice questions have a 100-option HTTP cap and smaller practical token budgets, and long states can be silently truncated. The plugin does not expose Laya's token-budget controls or extra confidence and routing metadata. Use short inputs and validate accuracy and thresholds on your own examples.
 
@@ -48,17 +81,20 @@ Laya serves `/v1/systemone`, and results report `provider: "laya"`. Laya's confi
   "plugins": [
     {
       "package": "./classify",
-      "options": { "backend": { "provider": "typesafe" } },
+      "options": {
+        "backends": { "default": { "provider": "typesafe" } },
+        "defaultBackend": "default",
+      },
     },
   ],
 }
 ```
 
-Set `TYPESAFE_API_KEY` in the server environment. The model defaults to `jev-latest`. To pin a model, set `backend.model` to an exact ID documented by TypeSafe and available to your account. The illustrative response below is not a promise that its model version is available.
+Set `TYPESAFE_API_KEY` in the server environment. The model defaults to `jev-latest`. To pin a model, set `backends.default.model` to an exact ID documented by TypeSafe and available to your account. The illustrative response below is not a promise that its model version is available.
 
 #### Use a key file instead
 
-Replace the `backend` object with:
+Replace the `backends.default` object with:
 
 ```json
 {
@@ -82,7 +118,10 @@ Choose either `apiKeyFile` or `apiKeyEnv`, never both. Selecting a file disables
     {
       "package": "./classify",
       "options": {
-        "backend": { "provider": "laya", "baseURL": "http://127.0.0.1:8000" },
+        "backends": {
+          "default": { "provider": "laya", "baseURL": "http://127.0.0.1:8000" },
+        },
+        "defaultBackend": "default",
         "classifiers": {
           "incident-triage": {
             "description": "Check whether a report describes an active production incident.",
@@ -111,12 +150,15 @@ This sends no authorization header and uses `english`. Start Laya separately bef
     {
       "package": "./classify",
       "options": {
-        "backend": {
-          "provider": "laya",
-          "baseURL": "http://127.0.0.1:8000",
-          "model": "english",
-          "apiKeyEnv": "LAYA_API_KEY",
+        "backends": {
+          "default": {
+            "provider": "laya",
+            "baseURL": "http://127.0.0.1:8000",
+            "model": "english",
+            "apiKeyEnv": "LAYA_API_KEY",
+          },
         },
+        "defaultBackend": "default",
         "timeoutMs": 120000,
         "maxRetries": 0,
         "classifiers": {
@@ -171,11 +213,14 @@ Set matching `LAYA_API_KEY` values for the Laya process and the OpenCode server.
     {
       "package": "./classify",
       "options": {
-        "backend": {
-          "provider": "laya",
-          "baseURL": "https://laya.example.com",
-          "apiKeyEnv": "COMPANY_LAYA_API_KEY",
+        "backends": {
+          "default": {
+            "provider": "laya",
+            "baseURL": "https://laya.example.com",
+            "apiKeyEnv": "COMPANY_LAYA_API_KEY",
+          },
         },
+        "defaultBackend": "default",
         "timeoutMs": 60000,
         "maxRetries": 0,
       },
@@ -194,7 +239,10 @@ Replace the origin and set the named variable on the OpenCode server. Expose `/v
   "plugins": [
     {
       "package": "./classify",
-      "options": { "backend": { "provider": "openai-decisions" } },
+      "options": {
+        "backends": { "default": { "provider": "openai-decisions" } },
+        "defaultBackend": "default",
+      },
     },
   ],
 }
@@ -211,11 +259,14 @@ This registers the tool but returns `PROVIDER_UNAVAILABLE` on valid invocations 
     {
       "package": "./classify",
       "options": {
-        "backend": {
-          "provider": "cloudflare",
-          "accountID": "0123456789abcdef0123456789abcdef",
-          "model": "clef",
+        "backends": {
+          "default": {
+            "provider": "cloudflare",
+            "accountID": "0123456789abcdef0123456789abcdef",
+            "model": "clef",
+          },
         },
+        "defaultBackend": "default",
       },
     },
   ],
@@ -238,19 +289,22 @@ Install [Ollama 0.35 or later](https://ollama.com/download), run `ollama pull ni
   "plugins": [
     {
       "package": "./classify",
-      "options": { "backend": { "provider": "ollama" } },
+      "options": {
+        "backends": { "default": { "provider": "ollama" } },
+        "defaultBackend": "default",
+      },
     },
   ],
 }
 ```
 
-This uses `http://127.0.0.1:11434/v1/systemone`, sends no authorization header, and requests `nimble`. Set `backend.model` to another installed decision-model tag (for example, `nimble:9b`). For an Ollama server at another origin, set `backend.baseURL` to that origin; use HTTPS for non-loopback hosts. If the server requires a bearer token, configure `apiKeyEnv` or `apiKeyFile` as with Laya. The address is resolved from the **OpenCode server**, not the TUI machine. The plugin does not start Ollama or pull models. Increase `timeoutMs` if cold model loads take longer than the default 30 seconds.
+This uses `http://127.0.0.1:11434/v1/systemone`, sends no authorization header, and requests `nimble`. Set `backends.default.model` to another installed decision-model tag (for example, `nimble:9b`). For an Ollama server at another origin, set `backends.default.baseURL` to that origin; use HTTPS for non-loopback hosts. If the server requires a bearer token, configure `apiKeyEnv` or `apiKeyFile` as with Laya. The address is resolved from the **OpenCode server**, not the TUI machine. The plugin does not start Ollama or pull models. Increase `timeoutMs` if cold model loads take longer than the default 30 seconds.
 
 Ollama's Nimble endpoint accepts up to 26 choice options and a 64 KiB request body, tighter than the plugin's general limits. Use string descriptions for score criteria: Ollama 0.35.0 rejects structured score descriptions with HTTP 400. The plugin preserves question content rather than converting it to strings. Keep states short; an oversized or unsupported request may return `REQUEST_REJECTED`. Responses use the same typed System One measurements, and `provider` is `"ollama"`. Test confidence thresholds on your own data.
 
 ### Option limits
 
-`backend` is required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. Ollama defaults to `http://127.0.0.1:11434`, `nimble`, and no authentication. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
+`backends` and `defaultBackend` are required. No provider is inferred from available keys. TypeSafe uses the fixed `https://api.typesafe.ai/v1/systemone` endpoint. Laya defaults to `http://127.0.0.1:8000`, `english`, and no authentication. Other checkpoint names include `multilingual` and `typed-decisions`. Ollama defaults to `http://127.0.0.1:11434`, `nimble`, and no authentication. If `apiKeyEnv` is configured, its server-side value must be present and nonblank at invocation time. Alternatively, configure `apiKeyFile` as described above.
 
 `timeoutMs` defaults to 30,000 and accepts integers from 1,000 to 300,000. `maxRetries` defaults to 1 and accepts 0–2 retries after the first attempt. Up to 32 named classifiers are allowed. Each has a nonblank description of at most 512 characters, a valid question map, and optional `state` using the same content/evidence shapes as tool input. Names and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Unknown option fields, including literal credentials, fail setup with a sanitized `INVALID_CONFIG` error. Options are an immutable snapshot; reload the plugin after changes. There is no plugin storage.
 
