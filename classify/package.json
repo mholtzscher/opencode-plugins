@@ -1,7 +1,36 @@
 {
-  "name": "opencode-classify-plugin",
+  "name": "@mholtzscher/opencode-classify",
   "version": "1.0.0",
-  "private": true,
+  "description": "OpenCode V2 plugin for typed classification with file, diff, and Tree-sitter code evidence",
+  "keywords": [
+    "classification",
+    "opencode",
+    "opencode-plugin",
+    "tree-sitter"
+  ],
+  "homepage": "https://github.com/mholtzscher/opencode-plugins/tree/main/classify#readme",
+  "bugs": {
+    "url": "https://github.com/mholtzscher/opencode-plugins/issues"
+  },
+  "license": "MIT",
+  "author": "Michael Holtzscher",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mholtzscher/opencode-plugins.git",
+    "directory": "classify"
+  },
+  "files": [
+    "*.ts",
+    "*.tsx",
+    "docs/",
+    "grammars/",
+    "protocols/",
+    "providers/",
+    "validation/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
   "type": "module",
   "main": "./index.ts",
   "exports": {
@@ -10,6 +39,9 @@
     "./rpc": "./rpc.ts",
     "./types": "./types.ts",
     "./tui": "./tui.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "bun test",

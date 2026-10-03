@@ -81,3 +81,7 @@ Run `bun run typecheck` in each affected plugin. Run `bun test` in every plugin 
 | [Marketplace development](./marketplace/docs/DEVELOPMENT.md) | Typecheck and interactive prototype checks. |
 
 From the repository root, run `bun install`, then `bun run check` for Ultracite's Oxlint, anti-slop, and Oxfmt checks. `bun run fix` applies fixes and formatting; generated/build output is excluded.
+
+## Releases
+
+Release Please manages independent versions, changelogs, tags, and GitHub releases for all six plugins. Classify also publishes to npm as `@mholtzscher/opencode-classify` through GitHub Actions trusted publishing. See [Releasing](./docs/RELEASING.md) for first-publish setup and the release workflow.
