@@ -19,6 +19,8 @@ Each plugin README covers setup and common use, with detailed guides under its `
 
 Add the plugins you want to the `plugins` array in `opencode.jsonc`. Use a project configuration or the global `~/.config/opencode/opencode.jsonc` (`$XDG_CONFIG_HOME/opencode/opencode.jsonc` when set). `opencode.json` is also supported. Merge entries into existing settings.
 
+Classify is available on npm as [`@mholtzscher/opencode-classify`](https://www.npmjs.com/package/@mholtzscher/opencode-classify). The other plugins install from Git.
+
 This example lists all six packages. Keep only those you want; Classify's example uses TypeSafe and needs `TYPESAFE_API_KEY` in the **OpenCode server** environment. Choose another backend using its [configuration guide](./classify/docs/CONFIGURATION.md).
 
 ```jsonc
@@ -31,7 +33,7 @@ This example lists all six packages. Keep only those you want; Classify's exampl
     "github:mholtzscher/opencode-plugins#main::path:spec-tools",
     "github:mholtzscher/opencode-plugins#main::path:marketplace",
     {
-      "package": "github:mholtzscher/opencode-plugins#main::path:classify",
+      "package": "@mholtzscher/opencode-classify",
       "options": {
         "backends": { "default": { "provider": "typesafe" } },
         "defaultBackend": "default",
@@ -46,10 +48,13 @@ OpenCode installs the packages and loads their exported TUI entries alongside th
 You can also add a package globally with the CLI:
 
 ```sh
+opencode plugin add @mholtzscher/opencode-classify
 opencode plugin add 'github:mholtzscher/opencode-plugins#main::path:cache-metrics'
 ```
 
-Load one copy of each plugin; avoid configuring both Git and local copies with the same plugin ID. See the [OpenCode V2 plugin guide](https://opencode.ai/v2/docs/plugins) for package updates and reload behavior.
+After adding Classify with the CLI, edit its config entry to include the backend options shown above. If switching from Git or a local checkout, replace the existing entry's `package` value with `@mholtzscher/opencode-classify` and keep its options.
+
+Load one copy of each plugin; avoid configuring multiple sources with the same plugin ID. See the [OpenCode V2 plugin guide](https://opencode.ai/v2/docs/plugins) for package updates and reload behavior.
 
 ## Runtime setup
 

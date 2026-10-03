@@ -8,7 +8,7 @@ Credentials, evidence reads, backend selection, and classification run on the **
 
 ### 1. Install and choose a backend
 
-Merge this entry into the `plugins` array in your `opencode.jsonc`:
+Install [`@mholtzscher/opencode-classify`](https://www.npmjs.com/package/@mholtzscher/opencode-classify) from npm by merging this entry into your project's `opencode.jsonc` or the global `~/.config/opencode/opencode.jsonc`. `opencode.json` is also supported.
 
 ```jsonc
 {
@@ -27,7 +27,15 @@ Merge this entry into the `plugins` array in your `opencode.jsonc`:
 
 Set `TYPESAFE_API_KEY` in the OpenCode server environment. For a local checkout, use the plugin's directory as `package` (for example, `./classify` from this repository's root) and run `bun install` inside `classify/`.
 
-Append a version such as `@1.0.0` to pin the npm package. To install from Git, use `"package": "github:mholtzscher/opencode-plugins#main::path:classify"`. Both sources export the server and TUI entries.
+To add the package globally with the CLI, run:
+
+```sh
+opencode plugin add @mholtzscher/opencode-classify
+```
+
+Then edit its config entry to include the backend options shown above. If switching from Git or a local checkout, replace the existing entry's `package` value and keep its options.
+
+Use `@mholtzscher/opencode-classify@1.0.1` to pin a version. To install from Git, use `"package": "github:mholtzscher/opencode-plugins#main::path:classify"`. Both sources export the server and TUI entries.
 
 To use another provider, replace `backends.default` with a profile from the [configuration guide](./docs/CONFIGURATION.md):
 
