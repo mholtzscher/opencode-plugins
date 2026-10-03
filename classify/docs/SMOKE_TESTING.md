@@ -1,5 +1,7 @@
 # Classify smoke-testing plan
 
+[Back to README](../README.md) · [Configuration](./CONFIGURATION.md) · [Development](./DEVELOPMENT.md)
+
 Use this plan after changing or reloading the plugin. It covers the public tool, evidence resolution, configuration, credentials, and provider transport.
 
 **A passing smoke test verifies connectivity and contracts, not model accuracy.** Record each case as PASS, FAIL, or NOT RUN. Do not count an expected rejection as a failure, or describe an untested backend as verified.
@@ -67,7 +69,8 @@ const config = {
   plugins: [{
     package: process.env.CLASSIFY_PLUGIN_DIR,
     options: {
-      backend: { provider: "typesafe" },
+      backends: { default: { provider: "typesafe" } },
+      defaultBackend: "default",
       classifiers: {
         "incident-test": {
           description: "Synthetic incident check",
@@ -100,7 +103,7 @@ console.log(directory);
 JS
 ```
 
-Save the printed path as `SMOKE_DIR` and open OpenCode in that directory. If using a key file or Laya instead of the default TypeSafe environment source, change **only the disposable project's** backend using a configuration from [README.md](./README.md). Reload after changing options: they are an immutable setup snapshot. Do not overwrite an existing user's configuration.
+Save the printed path as `SMOKE_DIR` and open OpenCode in that directory. If using a key file or Laya instead of the default TypeSafe environment source, change **only the disposable project's** `backends.default` profile using the [configuration guide](./CONFIGURATION.md). Reload after changing options: they are an immutable setup snapshot. Do not overwrite an existing user's configuration.
 
 On platforms without symlink support, mark symlink cases NOT RUN. Git must be installed for diff cases. Paths below are relative to the fixture session unless an absolute path is explicitly requested.
 
@@ -417,3 +420,9 @@ Keep fixtures until failures have been diagnosed. Then restore the original sess
 ### Known verification baseline
 
 On 2026-09-30, live TypeSafe Code Mode checks against `jev-1.13.0` exercised the primary text/file/diff/named/limit/rejection paths. The subsequent structured legend and safe-label-list fixes passed a combined live regression call, plus 52 automated tests and typecheck. The upstream `__proto__` **object-map** transport limitation remains; the entry-list form is the supported workaround. A subsequent local Laya adapter/service call verified `noul`, `choice`, and `score` on a short synthetic incident report. No separate Laya TUI/web smoke verification was claimed. Repeat this plan after changes rather than treating that historical run as verification of a new build.
+
+Those TypeSafe and Laya checks preceded the Effect migration. The migrated runtime has automated layer and loopback HTTP coverage; its real-host and hosted-provider smoke checks still need to be rerun. Record OpenCode versions and verify cancellation, native evidence permissions, named-state modes, and fresh evidence resolution in the actual client under test.
+
+Live Ollama 0.35.0 validation with `nimble:latest` (Q8_0, digest `9b953de7a5336756ece1cb1e8632e374b3dbdabe3d02d405cf8291da2d43a131`) exercised the classification service, provider layer, HTTP transport, and public output parser on synthetic data. A mixed string-input request returned all three native answer types, usage, and derived score bounds in about 4.7 seconds. A preset named classifier with structured state and choice-entry-list criteria succeeded in about 0.4 seconds. Structured score descriptions were rejected with HTTP 400 and surfaced as `REQUEST_REJECTED`.
+
+The Ollama checks did not exercise an OpenCode client or evidence permissions. One outage example selected `other` despite high severity; connectivity is not an accuracy guarantee. For new local-provider runs, record the Ollama version and model tag, or inspect Laya `/health` for loaded checkpoints, revisions, and actual devices. Start and stop only separately managed test servers, then verify stopped-server `NETWORK_ERROR` and the OpenAI `PROVIDER_UNAVAILABLE` gate without a substitute-provider call.

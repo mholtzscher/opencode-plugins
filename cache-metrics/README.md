@@ -1,21 +1,31 @@
 # Cache metrics
 
-OpenCode V2 sidebar plugin showing the current session's cache-read rate and token totals.
+An OpenCode V2 TUI plugin showing input cache-hit rate and token totals for the current session, with a history panel for per-response trends and per-turn totals.
 
-Click the **Cache** sidebar card or open **Cache history** from the command palette to see a chronological per-response cache-hit trend and token counts. The history panel groups measured responses under the preceding user request in their session, with per-turn totals; subagent turns remain separate from parent turns. It includes the parent and subagent sessions by default; press `s` to switch to the selected session only, `r` to refresh, `f` to toggle fullscreen, or Escape to close. Completed responses are reconstructed from saved OpenCode messages, so history survives a TUI restart without separate plugin storage. The trend displays up to the latest 40 responses, oldest to newest; `·` means no measured input.
+## Quick start
 
-Follow mode is on by default. Press `t` to toggle it: when on, the history stays at the bottom as responses arrive; when off, you can scroll through older entries without being pulled back. The panel refreshes when each model step finishes and shows a streaming indicator while a response is in progress. Cache token counts are available after the step completes, not token by token during streaming.
+Add the plugin to your `opencode.jsonc`:
 
-Each response also shows a short excerpt of the preceding user request, tool names called in this and the previous response, compaction markers, and finish/retry state. The panel does not show tool arguments, tool output, or full prompts. These labels describe saved conversation steps, not proof of why a provider did or did not cache a request.
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": ["github:mholtzscher/opencode-plugins#main::path:cache-metrics"],
+}
+```
 
-The history marks **Possible cache loss** with before-and-after cached-read counts when cached reads fall to at most 30% of the preceding response's count for the same session, provider, and model. The preceding response must have at least 1,000 cached reads, and the current total input context (`input + cache.read`) must be at least 80% as large. Responses immediately following compaction are excluded. This is a heuristic, not confirmation of a provider cache invalidation; changes in context can produce the same pattern.
+Open a TUI session. The **Cache** sidebar card shows the input cache-hit rate; expand **Show additional metrics** for cached input, new input, output, and cache writes. Click the rate or choose **Open cache history** from the command palette to inspect the timeline.
 
-Add `"./cache-metrics"` to the `plugins` array in your `opencode.jsonc` (use an absolute path if installing outside this repository), then restart or reload OpenCode. The TUI entrypoint loads automatically.
+For a local checkout, see the [development guide](./docs/DEVELOPMENT.md). Both local and installed copies load the checked-in TUI bundle.
 
-Cache hit rate is `cache.read / (input + cache.read)` over assistant messages with token usage. “In” separates cached and new input tokens; “Out” is generated output tokens. Cache writes are listed separately because they are input context saved for future reuse, not generated output. Neither output nor cache writes enter the hit-rate denominator. The card shows “No token usage yet” until the session has a measured request. Counts are for the current session only, not its child sessions.
+## Reading the metrics
 
-Run `bun install`, `bun run build:tui`, `bun run typecheck`, and `bun test` from this directory to check the plugin.
+Cache hit rate is `cache.read / (input + cache.read)`. Output tokens and cache writes are excluded from the denominator. The sidebar covers only the current session; history includes its subagents by default.
 
-The TUI export points to `dist/tui.js`, compiled with Solid's universal JSX transform. OpenTUI skips that transform for raw TSX inside `node_modules`, so exporting the source works locally but produces nonreactive UI after installation. The build keeps OpenCode, OpenTUI, and Solid imports external to share the host's runtimes. Commit the rebuilt `dist/tui.js` whenever TUI source changes: GitHub subdirectory installs use this checked-in artifact. Local development uses the same compiled export; run `bun run build:tui` after editing the TUI or before creating a package archive. Tests check that the committed artifact is current.
+History is reconstructed from saved OpenCode messages and survives TUI restarts. It includes per-response token counts, user-request excerpts, tool names, and compaction markers. **Possible cache loss** is a heuristic, not proof that a provider invalidated its cache.
 
-Keep the build command named `build:tui`, without `build`, `prepack`, or install/prepare lifecycle scripts. npm treats those names as a reason to install build dependencies when preparing a Git dependency. OpenCode 2.0.18's bundled npm subprocess fails on that path; installation must use the committed artifact directly.
+## Further reading
+
+| Guide | Contents |
+| --- | --- |
+| [Usage](./docs/USAGE.md) | Metric definitions, history controls, JSON export, cache-loss heuristic |
+| [Development](./docs/DEVELOPMENT.md) | Local setup, TUI build constraints, verification |

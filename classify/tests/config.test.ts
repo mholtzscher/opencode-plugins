@@ -8,7 +8,7 @@ import type { Content, EvidenceState } from "../types.js";
 import { examples } from "./fixtures.js";
 
 const CONFIG_BLOCK = /```jsonc\n(?<config>[\s\S]*?)\n```/gu;
-test("README configuration blocks match validated example fixtures", async () => {
+test("README and configuration guide examples validate", async () => {
   const readme = await file(new URL("../README.md", import.meta.url)).text();
   const configs = [...readme.matchAll(CONFIG_BLOCK)].map((match) => {
     const jsonc = match.groups?.config;
@@ -18,7 +18,24 @@ test("README configuration blocks match validated example fixtures", async () =>
     return JSON.parse(jsonc.replaceAll(/,\s*(?<close>[}\]])/gu, "$<close>"))
       .plugins[0].options;
   });
-  expect(configs).toEqual(examples);
+  expect(configs).toEqual([examples[0]]);
+  const guide = await file(
+    new URL("../docs/CONFIGURATION.md", import.meta.url)
+  ).text();
+  const profiles = [...guide.matchAll(/```json\n(?<profile>[\s\S]*?)\n```/gu)];
+  expect(profiles.length).toBeGreaterThan(0);
+  for (const match of profiles) {
+    const profile = match.groups?.profile;
+    if (profile === undefined) {
+      throw new TypeError(
+        "Configuration profile block did not capture its contents."
+      );
+    }
+    configs.push({
+      backends: { default: JSON.parse(profile) },
+      defaultBackend: "default",
+    });
+  }
   for (const config of configs) {
     expect(() => Effect.runSync(loadOptions(config))).not.toThrow();
   }
@@ -100,7 +117,7 @@ test("named classifiers normalize criteria lists into immutable native maps", ()
     Array.isArray(original.classifiers.review.questions.kind.criteria)
   ).toBe(true);
 });
-test("all documented scenarios validate", () => {
+test("all configuration fixtures validate", () => {
   for (const example of examples) {
     expect(
       String(Effect.runSync(loadOptions(example)).backends.default.provider)
