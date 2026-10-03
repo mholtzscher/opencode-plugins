@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, jest, test } from "bun:test";
 
 import { watchBackendStatus } from "../backend-status.js";
 import type { SelectionSchema } from "../rpc.js";
@@ -53,6 +53,7 @@ test("backend status reads server selection, refreshes after changes/reconnect, 
   await flush();
   expect(labels.at(-1)).toBe("local");
   changed();
+  expect(labels.at(-1)).toBe("local");
   requests[1].deferred.resolve(selected("typesafe"));
   await flush();
   expect(labels.at(-1)).toBe("typesafe");
@@ -98,5 +99,68 @@ test("stale status responses cannot overwrite newer selection or survive unmount
   stop();
   pending[3].resolve(selected("cloudflare"));
   await flush();
-  expect(labels.at(-1)).toBe("…");
+  expect(labels.at(-1)).toBe("unavailable");
+});
+
+test("a stalled status request times out and recovers on reconnect", async () => {
+  jest.useFakeTimers();
+  const labels: string[] = [];
+  const pending: ReturnType<typeof Promise.withResolvers<Selection>>[] = [];
+  const signals: AbortSignal[] = [];
+  let reconnect = noop;
+  const stop = watchBackendStatus({
+    onChanged: () => noop,
+    onConnected: (refresh) => {
+      reconnect = refresh;
+      return noop;
+    },
+    publish: (label) => {
+      labels.push(label);
+    },
+    read: (signal) => {
+      signals.push(signal);
+      const deferred = Promise.withResolvers<Selection>();
+      pending.push(deferred);
+      return deferred.promise;
+    },
+  });
+  try {
+    expect(labels).toEqual(["…"]);
+    jest.advanceTimersByTime(5000);
+    expect(signals[0].aborted).toBe(true);
+    expect(labels.at(-1)).toBe("unavailable");
+    reconnect();
+    pending[0].resolve(selected("stale"));
+    await flush();
+    expect(labels.at(-1)).toBe("unavailable");
+    pending[1].resolve(selected("hosted"));
+    await flush();
+    expect(labels.at(-1)).toBe("hosted");
+    jest.advanceTimersByTime(5000);
+    expect(labels.at(-1)).toBe("hosted");
+  } finally {
+    stop();
+    jest.useRealTimers();
+  }
+});
+
+test("unmount cancels the status timeout", () => {
+  jest.useFakeTimers();
+  const labels: string[] = [];
+  const stop = watchBackendStatus({
+    onChanged: () => noop,
+    onConnected: () => noop,
+    publish: (label) => {
+      labels.push(label);
+    },
+    read: () => Promise.withResolvers<Selection>().promise,
+  });
+  try {
+    stop();
+    jest.advanceTimersByTime(5000);
+    expect(labels).toEqual(["…"]);
+  } finally {
+    stop();
+    jest.useRealTimers();
+  }
 });

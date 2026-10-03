@@ -11,14 +11,20 @@ export interface BackendStatusHost {
 export const watchBackendStatus = (host: BackendStatusHost) => {
   let disposed = false;
   let request: AbortController | undefined;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  host.publish("…");
   const refresh = () => {
     if (disposed) {
       return;
     }
+    clearTimeout(timeout);
     request?.abort();
     const current = new AbortController();
     request = current;
-    host.publish("…");
+    timeout = setTimeout(() => {
+      current.abort();
+      host.publish("unavailable");
+    }, 5000);
     void (async () => {
       try {
         const selected = await host.read(current.signal);
@@ -30,6 +36,10 @@ export const watchBackendStatus = (host: BackendStatusHost) => {
         if (!(disposed || current.signal.aborted)) {
           host.publish("unavailable");
         }
+      } finally {
+        if (request === current) {
+          clearTimeout(timeout);
+        }
       }
     })();
   };
@@ -38,6 +48,7 @@ export const watchBackendStatus = (host: BackendStatusHost) => {
   refresh();
   return () => {
     disposed = true;
+    clearTimeout(timeout);
     request?.abort();
     stopChanged();
     stopConnected();
