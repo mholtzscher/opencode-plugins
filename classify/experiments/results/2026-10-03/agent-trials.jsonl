@@ -1,0 +1,6 @@
+{"captures":[{"endLine":85,"startLine":45}],"correct":true,"id":"go-decode","query":"((method_declaration name: (field_identifier) @_name) @evidence (#eq? @_name \"Decode\"))"}
+{"captures":[{"endLine":134,"startLine":116}],"correct":true,"id":"go-decode-one","query":"((function_declaration name: (identifier) @_name) @evidence (#eq? @_name \"decodeOne\"))"}
+{"captures":[{"endLine":31,"startLine":24}],"correct":true,"id":"ts-evidence","query":"((export_statement declaration: (lexical_declaration (variable_declarator name: (identifier) @_name))) @evidence (#eq? @_name \"isEvidence\"))"}
+{"captures":[{"endLine":34,"startLine":20}],"correct":true,"id":"ts-error","query":"((export_statement declaration: (class_declaration name: (type_identifier) @_name)) @evidence (#eq? @_name \"SelectionError\"))"}
+{"captures":[{"endLine":66,"startLine":66}],"correct":true,"id":"kt-plural","query":"((function_declaration (simple_identifier) @_name) @evidence (#eq? @_name \"isPlural\"))"}
+{"captures":[{"endLine":32,"startLine":17}],"correct":true,"id":"kt-nested","query":"((function_declaration (simple_identifier) @_name) @evidence (#eq? @_name \"parseRouteField\"))"}

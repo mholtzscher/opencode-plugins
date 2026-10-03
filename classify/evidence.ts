@@ -10,6 +10,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 import { readRegularFile } from "./bounded-file.js";
 import type { ReadFailure } from "./bounded-file.js";
 import { readBoundedBytes } from "./bounded-stream.js";
+import { extractCode } from "./code-evidence.js";
 import { ClassificationError } from "./errors.js";
 import { MAX_BYTES } from "./limits.js";
 import { OpenCodeAccess } from "./opencode-access.js";
@@ -241,6 +242,33 @@ export const EvidenceAccessLive = Layer.effect(
             files.push({ content, path: evidencePath });
           }
           result.files = files;
+        }
+        if (state.code) {
+          const code: JsonValue[] = [];
+          for (const selection of state.code) {
+            const { content } = yield* readEvidenceFile(
+              directory,
+              selection.path,
+              MAX_BYTES,
+              context
+            );
+            const snippet = yield* Effect.tryPromise({
+              catch: (error) =>
+                error instanceof ClassificationError ? error : unreadable(),
+              try: (signal) => extractCode(content, selection, signal),
+            });
+            remaining -= snippet.captures.reduce(
+              (size, capture) => size + Buffer.byteLength(capture.content),
+              0
+            );
+            if (remaining < 0) {
+              return yield* failure(
+                "Code evidence exceeds the 1 MiB request limit."
+              );
+            }
+            code.push(snippet);
+          }
+          result.code = code;
         }
         if (state.diffs) {
           const diffs: JsonValue[] = [];

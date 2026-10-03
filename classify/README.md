@@ -517,14 +517,17 @@ Configured state can be a nonblank string, nonempty object/array, or evidence wr
 
 Evidence references are validated at setup but not read then. Files and diffs are resolved freshly on every invocation, relative to the invoking session's directory, through the same native permissions and size limits as caller-supplied evidence. Static content is an immutable configuration snapshot; evidence contents are not cached. The unavailable OpenAI adapter still skips evidence resolution.
 
-### Files and diffs as first-class evidence
+### Files, queried code, and diffs as first-class evidence
 
 ```json
 {
   "state": {
     "type": "evidence",
     "text": "Check whether this change fixes stale cache entries.",
-    "files": ["src/cache.ts", "src/cache.test.ts"],
+    "files": ["src/cache.test.ts"],
+    "code": [
+      { "path": "src/cache.ts", "query": "(method_definition) @evidence" }
+    ],
     "diffs": [{ "base": "HEAD", "paths": ["src/cache.ts"] }]
   },
   "questions": {
@@ -536,7 +539,71 @@ Evidence references are validated at setup but not read then. Files and diffs ar
 }
 ```
 
-The agent passes references, not file contents. The plugin expands them to `{ text, files: [{ path, content }], diffs: [{ base, paths?, content }] }` before calling the configured backend. Named classifiers support the same wrapper. `text`, `files`, and `diffs` are individually optional; supply at least one. `text` accepts the usual string/object/array content. The marker `type: "evidence"` is required so existing arbitrary JSON (including objects with a `files` key) remains inert. That marker is reserved at the top level of `state`; wrap literal data containing it under `text`.
+The agent passes references, not file contents. The plugin expands them to `{ text, files: [{ path, content }], code: [{ path, query, language, captures }], diffs: [{ base, paths?, content }] }` before calling the configured backend. Named classifiers support the same wrapper. `text`, `files`, `code`, and `diffs` are individually optional; supply at least one. `text` accepts the usual string/object/array content. The marker `type: "evidence"` is required so existing arbitrary JSON (including objects with a `files` key) remains inert. That marker is reserved at the top level of `state`; wrap literal data containing it under `text`.
+
+`code` accepts raw Tree-sitter queries. The grammar is selected from the file extension; the prototype bundles Go (`.go`), TypeScript/JavaScript (`.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`), and Kotlin (`.kt`, `.kts`). The previous `{ path, symbol }` prototype is replaced by `{ path, query }`.
+
+Every `@evidence` capture becomes `{ content, nodeType, startLine, endLine, startIndex, endIndex }`. Content is the original source slice. Lines are 1-based and inclusive; indices are 0-based UTF-16 offsets with an exclusive end. Multiple matches are accepted, identical ranges are deduplicated per selection, and captures are sorted by source position. Overlapping ranges remain separate. Other capture names, such as `@_name`, are helpers and are not sent as evidence.
+
+Comments inside a captured node are preserved. To include preceding documentation, decorators outside the node, imports, or an enclosing declaration, capture them explicitly with `@evidence`. There are no naming conventions, automatic comment attachment, or language-specific declaration selectors.
+
+Use **`classify_grammar`** to inspect the installed grammar without reading source or invoking a classification backend:
+
+```json
+{ "path": "cache.go" }
+```
+
+This lists node names with `named` and `queryable` flags. Then look up the exact fields and child types:
+
+```json
+{ "path": "cache.go", "node": "method_declaration" }
+```
+
+The path only selects a grammar; it need not exist. Metadata comes from pinned `node-types.json` assets. `queryable` is checked against the installed WASM grammar, because some metadata entries are abstract/helper nodes or unsupported in a particular grammar variant. Named nodes use `(node_type)` syntax; anonymous tokens use quoted strings.
+
+Up to 64 code selections are allowed. Each query is limited to 8192 characters, 128 unique evidence captures, 4096 in-progress matches, and a five-second worker deadline including startup, compilation, parsing, and text predicates. Built-in text predicates such as `#eq?`, `#match?`, and `#any-of?` are supported. Custom predicates and directives (`#strip!`, `#set!`, `#is?`, etc.) are rejected rather than silently ignored. Invalid queries, no evidence captures, syntax errors anywhere in the file, and exceeded limits return `EVIDENCE_ERROR` without partial evidence. The file and expanded request retain their 1 MiB limits and native `read` permissions.
+
+#### Tree-sitter example
+
+This request works from the repository root against the included synthetic fixtures:
+
+```json
+{
+  "state": {
+    "type": "evidence",
+    "code": [
+      {
+        "path": "classify/tests/fixtures/code/cache.go",
+        "query": "((method_declaration name: (field_identifier) @_name) @evidence (#eq? @_name \"Get\"))"
+      },
+      {
+        "path": "classify/tests/fixtures/code/cache.ts",
+        "query": "((method_definition name: (property_identifier) @_name) @evidence (#eq? @_name \"get\"))"
+      },
+      {
+        "path": "classify/tests/fixtures/code/cache.kt",
+        "query": "((function_declaration (simple_identifier) @_name) @evidence (#eq? @_name \"get\"))"
+      }
+    ]
+  },
+  "questions": {
+    "read_only": {
+      "type": "noul",
+      "instructions": "Do all three methods retrieve a value without mutating their cache?"
+    }
+  }
+}
+```
+
+For the Go selection, the provider receives lines 10–14, including the body comment. To select preceding comment nodes as well, use a pattern such as `((comment)+ @evidence . (method_declaration) @evidence)`. Each comment and method is a separate source capture; query adjacency is syntactic, not a blank-line attachment rule.
+
+[`code-query.ts`](./code-query.ts) is one query runner for all grammars. [`code-evidence.ts`](./code-evidence.ts) executes it in a disposable Bun worker, enforcing cancellation and a hard deadline even for JavaScript regex predicates. [`code-grammar.ts`](./code-grammar.ts) handles extension mapping and metadata discovery. There are no handwritten language adapters. Source text is not cached.
+
+The prototype pins `web-tree-sitter` and prebuilt `tree-sitter-wasms` for reproducible grammar compatibility; it requires no Go/Kotlin compiler or native build at installation. The grammar pack installs about 50 MiB (including unused languages), though only requested grammars are loaded. Its grammars can lag current language syntax, especially Kotlin; modernizing or packaging only the required grammars is a follow-up before production use.
+
+The [validation report](./experiments/README.md) records real-host payload checks, a blind agent trial, source compatibility, runtime measurements, and a local-model comparison. The pinned Kotlin grammar rejects `fun interface` and some receiver/function-type syntax in current Ktor. A syntax error anywhere rejects that code selection; use whole-file evidence when the grammar cannot parse a file.
+
+Grammar metadata and upstream licenses live under [`grammars/`](./grammars/README.md). Regenerate them with `bun scripts/sync-code-grammars.ts`, then format the generated JSON. This is a maintainer task; runtime discovery makes no network requests.
 
 File paths resolve relative to the invoking session's current directory, not the plugin's setup directory or the TUI machine. Absolute file paths are also accepted. File reads use the canonical path for native `read` permission checks, including external-directory approval. Symlinks are resolved before approval. Up to 64 files are allowed, and each must be a regular UTF-8 text file; missing files, directories, binary data, invalid UTF-8, and oversized evidence fail without a provider request. No glob expansion, URL fetching, or implicit file discovery occurs.
 

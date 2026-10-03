@@ -1,0 +1,192 @@
+{
+  "combined": {
+    "output": {
+      "ok": true,
+      "result": {
+        "answers": {
+          "valid": {
+            "noul": 1,
+            "type": "noul"
+          }
+        },
+        "model": "recording-backend",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "attempts": 1,
+        "durationMs": 849.377464,
+        "provider": "laya",
+        "backend": "recorder"
+      }
+    }
+  },
+  "grammar": {
+    "output": {
+      "definitions": [
+        {
+          "fields": {
+            "body": {
+              "multiple": false,
+              "required": false,
+              "types": [
+                {
+                  "named": true,
+                  "type": "block"
+                }
+              ]
+            },
+            "name": {
+              "multiple": false,
+              "required": true,
+              "types": [
+                {
+                  "named": true,
+                  "type": "identifier"
+                }
+              ]
+            },
+            "parameters": {
+              "multiple": false,
+              "required": true,
+              "types": [
+                {
+                  "named": true,
+                  "type": "parameter_list"
+                }
+              ]
+            },
+            "result": {
+              "multiple": false,
+              "required": false,
+              "types": [
+                {
+                  "named": true,
+                  "type": "_simple_type"
+                },
+                {
+                  "named": true,
+                  "type": "parameter_list"
+                }
+              ]
+            },
+            "type_parameters": {
+              "multiple": false,
+              "required": false,
+              "types": [
+                {
+                  "named": true,
+                  "type": "type_parameter_list"
+                }
+              ]
+            }
+          },
+          "named": true,
+          "type": "function_declaration",
+          "queryable": true
+        }
+      ],
+      "language": "go"
+    }
+  },
+  "outcomes": [
+    {
+      "case": "exact-provider-payload",
+      "passed": true,
+      "requests": 1
+    },
+    {
+      "case": "combined-real-go-typescript-kotlin-payload",
+      "passed": true,
+      "requests": 1
+    },
+    {
+      "case": "selected-content-budget",
+      "passed": true,
+      "requests": 1
+    },
+    {
+      "case": "aggregate-capture-budget",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "denied",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "denied-symlink",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "invalid-query",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "no-match",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "missing-capture",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "query-length",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "capture-limit",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "syntax",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "file-limit",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "expanded-json-limit",
+      "passed": true,
+      "requests": 0
+    },
+    {
+      "case": "deadline",
+      "passed": true,
+      "requests": 0
+    }
+  ],
+  "positive": {
+    "output": {
+      "ok": true,
+      "result": {
+        "answers": {
+          "valid": {
+            "noul": 1,
+            "type": "noul"
+          }
+        },
+        "model": "recording-backend",
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "attempts": 1,
+        "durationMs": 124.450228,
+        "provider": "laya",
+        "backend": "recorder"
+      }
+    }
+  },
+  "version": "OpenCode 2.0.22"
+}

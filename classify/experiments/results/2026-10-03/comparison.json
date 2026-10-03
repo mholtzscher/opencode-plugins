@@ -1,0 +1,1195 @@
+{
+  "endpoint": "http://127.0.0.1:11434/v1/systemone",
+  "model": "clef-flash",
+  "rows": [
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9010547004832538,
+          "question": "Does JSONCodec.Decode explicitly reject a nil codec or nil schema?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9627044860431212,
+          "question": "Does JSONCodec.Decode explicitly validate the normalized result against its schema?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.005715067751798153,
+          "question": "Does JSONCodec.Decode write the decoded value to disk?"
+        }
+      ],
+      "bytes": 4987,
+      "extractionMs": 0.0019940000001952285,
+      "id": "go-decode",
+      "milliseconds": 783.8413389999996,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 1657,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.947212870152397,
+          "question": "Does JSONCodec.Decode explicitly reject a nil codec or nil schema?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.976625763977843,
+          "question": "Does JSONCodec.Decode explicitly validate the normalized result against its schema?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.006452984582677984,
+          "question": "Does JSONCodec.Decode write the decoded value to disk?"
+        }
+      ],
+      "bytes": 2361,
+      "extractionMs": 127.46458600000005,
+      "id": "go-decode",
+      "milliseconds": 560.8764839999994,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 908,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9416564123925483,
+          "question": "Does decodeOne reject empty input?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.02703371163772234,
+          "question": "Does decodeOne accept multiple top-level JSON values?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9630144044646565,
+          "question": "Does decodeOne preserve JSON numbers with decoder.UseNumber()?"
+        }
+      ],
+      "bytes": 1125,
+      "extractionMs": 174.94744300000002,
+      "id": "go-decode-one",
+      "milliseconds": 466.52598600000056,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 562,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9597588116243225,
+          "question": "Does decodeOne reject empty input?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.029031208472417868,
+          "question": "Does decodeOne accept multiple top-level JSON values?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9110220045866754,
+          "question": "Does decodeOne preserve JSON numbers with decoder.UseNumber()?"
+        }
+      ],
+      "bytes": 4933,
+      "extractionMs": 0.0022739999994882965,
+      "id": "go-decode-one",
+      "milliseconds": 700.413422999999,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 1648,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.8831182314323206,
+          "question": "Does isEvidence reject null and undefined?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.003892998527751992,
+          "question": "Does isEvidence perform a filesystem read?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9602049586772323,
+          "question": "Does isEvidence require the type property's value to equal evidence?"
+        }
+      ],
+      "bytes": 1896,
+      "extractionMs": 0.0007010000008449424,
+      "id": "ts-evidence",
+      "milliseconds": 350.3626920000006,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 706,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9548346643644899,
+          "question": "Does isEvidence reject null and undefined?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.0041229937878536,
+          "question": "Does isEvidence perform a filesystem read?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9774188739362093,
+          "question": "Does isEvidence require the type property's value to equal evidence?"
+        }
+      ],
+      "bytes": 1053,
+      "extractionMs": 132.20564699999886,
+      "id": "ts-evidence",
+      "milliseconds": 390.720186999999,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 505,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9458655688486916,
+          "question": "Does the SelectionError constructor derive its message from a messages lookup indexed by reason?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004816469955220094,
+          "question": "Does the SelectionError constructor make an HTTP request?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9371727800049588,
+          "question": "Does the SelectionError constructor pass reason to its superclass?"
+        }
+      ],
+      "bytes": 1106,
+      "extractionMs": 129.1415250000009,
+      "id": "ts-error",
+      "milliseconds": 394.78313100000014,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 515,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9484610555174832,
+          "question": "Does the SelectionError constructor derive its message from a messages lookup indexed by reason?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004531400225406116,
+          "question": "Does the SelectionError constructor make an HTTP request?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9106606552015079,
+          "question": "Does the SelectionError constructor pass reason to its superclass?"
+        }
+      ],
+      "bytes": 4642,
+      "extractionMs": 0.007123000001229229,
+      "id": "ts-error",
+      "milliseconds": 615.0678310000003,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 1381,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": false,
+          "expected": true,
+          "probability": 0.2675560180368564,
+          "question": "Does String.isPlural check whether the string ends with lowercase s?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.021760888807993886,
+          "question": "Does String.isPlural lowercase its input before checking?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.013341675738493347,
+          "question": "Does String.isPlural modify the input string?"
+        }
+      ],
+      "bytes": 5438,
+      "extractionMs": 0.002725000000282307,
+      "id": "kt-plural",
+      "milliseconds": 657.001123,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 1531,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.8744038844785007,
+          "question": "Does String.isPlural check whether the string ends with lowercase s?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.00945126179187267,
+          "question": "Does String.isPlural lowercase its input before checking?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.007070067971717727,
+          "question": "Does String.isPlural modify the input string?"
+        }
+      ],
+      "bytes": 741,
+      "extractionMs": 194.97676599999977,
+      "id": "kt-plural",
+      "milliseconds": 437.3874759999999,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 441,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9680568241884072,
+          "question": "Does parseRouteField delegate to parseParameter?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.7201591907800581,
+          "question": "Does parseRouteField explicitly collect attributes into a map?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004117710367182279,
+          "question": "Does parseRouteField issue an HTTP request?"
+        }
+      ],
+      "bytes": 1163,
+      "extractionMs": 204.45651399999952,
+      "id": "kt-nested",
+      "milliseconds": 472.0575949999984,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 523,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9732001580272875,
+          "question": "Does parseRouteField delegate to parseParameter?"
+        },
+        {
+          "correct": false,
+          "expected": true,
+          "probability": 0.17088467857445394,
+          "question": "Does parseRouteField explicitly collect attributes into a map?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004419785464222081,
+          "question": "Does parseRouteField issue an HTTP request?"
+        }
+      ],
+      "bytes": 5421,
+      "extractionMs": 0.006812999999965541,
+      "id": "kt-nested",
+      "milliseconds": 649.9161659999991,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 0,
+      "usage": {
+        "input_tokens": 1525,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.947212870152397,
+          "question": "Does JSONCodec.Decode explicitly reject a nil codec or nil schema?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.976625763977843,
+          "question": "Does JSONCodec.Decode explicitly validate the normalized result against its schema?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.006452984582677984,
+          "question": "Does JSONCodec.Decode write the decoded value to disk?"
+        }
+      ],
+      "bytes": 2361,
+      "extractionMs": 173.12656900000002,
+      "id": "go-decode",
+      "milliseconds": 601.4671170000001,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 908,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9010547004832538,
+          "question": "Does JSONCodec.Decode explicitly reject a nil codec or nil schema?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9627044860431212,
+          "question": "Does JSONCodec.Decode explicitly validate the normalized result against its schema?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.005715067751798153,
+          "question": "Does JSONCodec.Decode write the decoded value to disk?"
+        }
+      ],
+      "bytes": 4987,
+      "extractionMs": 0.0036460000010265503,
+      "id": "go-decode",
+      "milliseconds": 706.4260000000013,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 1657,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9597588116243225,
+          "question": "Does decodeOne reject empty input?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.029031208472417868,
+          "question": "Does decodeOne accept multiple top-level JSON values?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9110220045866754,
+          "question": "Does decodeOne preserve JSON numbers with decoder.UseNumber()?"
+        }
+      ],
+      "bytes": 4933,
+      "extractionMs": 0.0033469999998487765,
+      "id": "go-decode-one",
+      "milliseconds": 704.4928450000007,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 1648,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9416564123925483,
+          "question": "Does decodeOne reject empty input?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.02703371163772234,
+          "question": "Does decodeOne accept multiple top-level JSON values?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9630144044646565,
+          "question": "Does decodeOne preserve JSON numbers with decoder.UseNumber()?"
+        }
+      ],
+      "bytes": 1125,
+      "extractionMs": 186.35811000000103,
+      "id": "go-decode-one",
+      "milliseconds": 469.4438360000004,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 562,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9548346643644899,
+          "question": "Does isEvidence reject null and undefined?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.0041229937878536,
+          "question": "Does isEvidence perform a filesystem read?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9774188739362093,
+          "question": "Does isEvidence require the type property's value to equal evidence?"
+        }
+      ],
+      "bytes": 1053,
+      "extractionMs": 134.52724800000033,
+      "id": "ts-evidence",
+      "milliseconds": 392.06640700000025,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 505,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.8831182314323206,
+          "question": "Does isEvidence reject null and undefined?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.003892998527751992,
+          "question": "Does isEvidence perform a filesystem read?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9602049586772323,
+          "question": "Does isEvidence require the type property's value to equal evidence?"
+        }
+      ],
+      "bytes": 1896,
+      "extractionMs": 0.01569000000017695,
+      "id": "ts-evidence",
+      "milliseconds": 346.84836499999983,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 706,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9484610555174832,
+          "question": "Does the SelectionError constructor derive its message from a messages lookup indexed by reason?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004531400225406116,
+          "question": "Does the SelectionError constructor make an HTTP request?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9106606552015079,
+          "question": "Does the SelectionError constructor pass reason to its superclass?"
+        }
+      ],
+      "bytes": 4642,
+      "extractionMs": 0.004327999999077292,
+      "id": "ts-error",
+      "milliseconds": 602.2670219999982,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 1381,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9458655688486916,
+          "question": "Does the SelectionError constructor derive its message from a messages lookup indexed by reason?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004816469955220094,
+          "question": "Does the SelectionError constructor make an HTTP request?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9371727800049588,
+          "question": "Does the SelectionError constructor pass reason to its superclass?"
+        }
+      ],
+      "bytes": 1106,
+      "extractionMs": 132.95187000000078,
+      "id": "ts-error",
+      "milliseconds": 401.9489270000013,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 515,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.8744038844785007,
+          "question": "Does String.isPlural check whether the string ends with lowercase s?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.00945126179187267,
+          "question": "Does String.isPlural lowercase its input before checking?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.007070067971717727,
+          "question": "Does String.isPlural modify the input string?"
+        }
+      ],
+      "bytes": 741,
+      "extractionMs": 203.62061699999686,
+      "id": "kt-plural",
+      "milliseconds": 440.03070599999774,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 441,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": false,
+          "expected": true,
+          "probability": 0.2675560180368564,
+          "question": "Does String.isPlural check whether the string ends with lowercase s?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.021760888807993886,
+          "question": "Does String.isPlural lowercase its input before checking?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.013341675738493347,
+          "question": "Does String.isPlural modify the input string?"
+        }
+      ],
+      "bytes": 5438,
+      "extractionMs": 0.01123100000040722,
+      "id": "kt-plural",
+      "milliseconds": 662.9565419999999,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 1531,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9732001580272875,
+          "question": "Does parseRouteField delegate to parseParameter?"
+        },
+        {
+          "correct": false,
+          "expected": true,
+          "probability": 0.17088467857445394,
+          "question": "Does parseRouteField explicitly collect attributes into a map?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004419785464222081,
+          "question": "Does parseRouteField issue an HTTP request?"
+        }
+      ],
+      "bytes": 5421,
+      "extractionMs": 0.0036270000018703286,
+      "id": "kt-nested",
+      "milliseconds": 649.6263319999998,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 1525,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9680568241884072,
+          "question": "Does parseRouteField delegate to parseParameter?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.7201591907800581,
+          "question": "Does parseRouteField explicitly collect attributes into a map?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004117710367182279,
+          "question": "Does parseRouteField issue an HTTP request?"
+        }
+      ],
+      "bytes": 1163,
+      "extractionMs": 191.66201800000272,
+      "id": "kt-nested",
+      "milliseconds": 455.9306880000004,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 1,
+      "usage": {
+        "input_tokens": 523,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9010547004832538,
+          "question": "Does JSONCodec.Decode explicitly reject a nil codec or nil schema?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9627044860431212,
+          "question": "Does JSONCodec.Decode explicitly validate the normalized result against its schema?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.005715067751798153,
+          "question": "Does JSONCodec.Decode write the decoded value to disk?"
+        }
+      ],
+      "bytes": 4987,
+      "extractionMs": 0.002824999999575084,
+      "id": "go-decode",
+      "milliseconds": 705.3414400000001,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 1657,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.947212870152397,
+          "question": "Does JSONCodec.Decode explicitly reject a nil codec or nil schema?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.976625763977843,
+          "question": "Does JSONCodec.Decode explicitly validate the normalized result against its schema?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.006452984582677984,
+          "question": "Does JSONCodec.Decode write the decoded value to disk?"
+        }
+      ],
+      "bytes": 2361,
+      "extractionMs": 163.5346270000009,
+      "id": "go-decode",
+      "milliseconds": 623.8257630000007,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 908,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9416564123925483,
+          "question": "Does decodeOne reject empty input?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.02703371163772234,
+          "question": "Does decodeOne accept multiple top-level JSON values?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9630144044646565,
+          "question": "Does decodeOne preserve JSON numbers with decoder.UseNumber()?"
+        }
+      ],
+      "bytes": 1125,
+      "extractionMs": 220.2229609999995,
+      "id": "go-decode-one",
+      "milliseconds": 570.9510309999969,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 562,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9597588116243225,
+          "question": "Does decodeOne reject empty input?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.029031208472417868,
+          "question": "Does decodeOne accept multiple top-level JSON values?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9110220045866754,
+          "question": "Does decodeOne preserve JSON numbers with decoder.UseNumber()?"
+        }
+      ],
+      "bytes": 4933,
+      "extractionMs": 0.009387999998580199,
+      "id": "go-decode-one",
+      "milliseconds": 711.802080999998,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 1648,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.8831182314323206,
+          "question": "Does isEvidence reject null and undefined?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.003892998527751992,
+          "question": "Does isEvidence perform a filesystem read?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9602049586772323,
+          "question": "Does isEvidence require the type property's value to equal evidence?"
+        }
+      ],
+      "bytes": 1896,
+      "extractionMs": 0.0005920000003243331,
+      "id": "ts-evidence",
+      "milliseconds": 349.002117,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 706,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9548346643644899,
+          "question": "Does isEvidence reject null and undefined?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.0041229937878536,
+          "question": "Does isEvidence perform a filesystem read?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9774188739362093,
+          "question": "Does isEvidence require the type property's value to equal evidence?"
+        }
+      ],
+      "bytes": 1053,
+      "extractionMs": 130.35138799999913,
+      "id": "ts-evidence",
+      "milliseconds": 391.36542499999996,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 505,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9458655688486916,
+          "question": "Does the SelectionError constructor derive its message from a messages lookup indexed by reason?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004816469955220094,
+          "question": "Does the SelectionError constructor make an HTTP request?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9371727800049588,
+          "question": "Does the SelectionError constructor pass reason to its superclass?"
+        }
+      ],
+      "bytes": 1106,
+      "extractionMs": 139.69107000000076,
+      "id": "ts-error",
+      "milliseconds": 404.8873980000026,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 515,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9484610555174832,
+          "question": "Does the SelectionError constructor derive its message from a messages lookup indexed by reason?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004531400225406116,
+          "question": "Does the SelectionError constructor make an HTTP request?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9106606552015079,
+          "question": "Does the SelectionError constructor pass reason to its superclass?"
+        }
+      ],
+      "bytes": 4642,
+      "extractionMs": 0.004798999998456566,
+      "id": "ts-error",
+      "milliseconds": 609.9677599999995,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 1381,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": false,
+          "expected": true,
+          "probability": 0.2675560180368564,
+          "question": "Does String.isPlural check whether the string ends with lowercase s?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.021760888807993886,
+          "question": "Does String.isPlural lowercase its input before checking?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.013341675738493347,
+          "question": "Does String.isPlural modify the input string?"
+        }
+      ],
+      "bytes": 5438,
+      "extractionMs": 0.0016429999996034894,
+      "id": "kt-plural",
+      "milliseconds": 659.1827410000005,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 1531,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.8744038844785007,
+          "question": "Does String.isPlural check whether the string ends with lowercase s?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.00945126179187267,
+          "question": "Does String.isPlural lowercase its input before checking?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.007070067971717727,
+          "question": "Does String.isPlural modify the input string?"
+        }
+      ],
+      "bytes": 741,
+      "extractionMs": 194.8626269999986,
+      "id": "kt-plural",
+      "milliseconds": 438.80249299999923,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 441,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9680568241884072,
+          "question": "Does parseRouteField delegate to parseParameter?"
+        },
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.7201591907800581,
+          "question": "Does parseRouteField explicitly collect attributes into a map?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004117710367182279,
+          "question": "Does parseRouteField issue an HTTP request?"
+        }
+      ],
+      "bytes": 1163,
+      "extractionMs": 198.32338900000104,
+      "id": "kt-nested",
+      "milliseconds": 467.79597600000125,
+      "mode": "code",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 523,
+        "output_tokens": 0
+      }
+    },
+    {
+      "answers": [
+        {
+          "correct": true,
+          "expected": true,
+          "probability": 0.9732001580272875,
+          "question": "Does parseRouteField delegate to parseParameter?"
+        },
+        {
+          "correct": false,
+          "expected": true,
+          "probability": 0.17088467857445394,
+          "question": "Does parseRouteField explicitly collect attributes into a map?"
+        },
+        {
+          "correct": true,
+          "expected": false,
+          "probability": 0.004419785464222081,
+          "question": "Does parseRouteField issue an HTTP request?"
+        }
+      ],
+      "bytes": 5421,
+      "extractionMs": 0.002484000000549713,
+      "id": "kt-nested",
+      "milliseconds": 658.5208849999981,
+      "mode": "file",
+      "model": "clef-flash",
+      "repetition": 2,
+      "usage": {
+        "input_tokens": 1525,
+        "output_tokens": 0
+      }
+    }
+  ],
+  "warmupMs": 6238.494239
+}

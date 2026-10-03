@@ -10,3 +10,6 @@ export const DISTRIBUTION_TOLERANCE = 0.02;
 export const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u;
 export const MAX_EVIDENCE_PATHS = 64;
 export const MAX_EVIDENCE_DIFFS = 16;
+export const MAX_CODE_QUERY_LENGTH = 8192;
+export const MAX_CODE_CAPTURES = 128;
+export const CODE_QUERY_TIMEOUT_MS = 5000;

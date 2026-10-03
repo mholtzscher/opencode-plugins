@@ -145,6 +145,14 @@ test("evidence wrapper is discoverable, validated, and explicit; legacy JSON rem
     { files: ["x\0y"], type: "evidence" },
     { files: Array.from({ length: 65 }, () => "a"), type: "evidence" },
     { files: [{ content: "b", path: "a" }], type: "evidence" },
+    { code: [], type: "evidence" },
+    { code: [{ path: "x.ts", query: "" }], type: "evidence" },
+    { code: [{ path: "x.ts", query: "x".repeat(8193) }], type: "evidence" },
+    { code: [{ path: "x.ts", symbol: "f" }], type: "evidence" },
+    {
+      code: [{ extra: true, path: "x.ts", query: "(_) @evidence" }],
+      type: "evidence",
+    },
     { diffs: [], type: "evidence" },
     { diffs: [{ base: "--help" }], type: "evidence" },
     { diffs: [{ base: "HEAD", paths: [] }], type: "evidence" },
@@ -179,6 +187,128 @@ test("files resolve freshly, retain labels, pass call context, and are not displ
   });
   expect(h.calls[1].context).toBe(next);
   expect(await descriptorsFor(path.join(directory, "a.ts"))).toBe(0);
+});
+
+test("code query selects exact TS source and explicit comments through the resolver", async () => {
+  const directory = await fixture();
+  await writeFile(
+    path.join(directory, "sample.ts"),
+    `const secret = "not sent";
+
+/** Class docs */
+export class Service {
+  /** Method docs */
+  run() {
+    // Body comment
+    return 1;
+  }
+}
+
+/** Function docs */
+export function check() { return true; }
+
+/** Arrow docs */
+export const arrow = () => { /* inline */ return true; };
+`
+  );
+  const h = host(directory);
+  const result = await h.resolve({
+    code: [
+      {
+        path: "sample.ts",
+        query: "((comment) @evidence . (method_definition) @evidence)",
+      },
+    ],
+    type: "evidence",
+  });
+  expect(result).toMatchObject({
+    code: [
+      {
+        captures: [
+          { content: "/** Method docs */", endLine: 5, startLine: 5 },
+          {
+            content: "run() {\n    // Body comment\n    return 1;\n  }",
+            endLine: 9,
+            startLine: 6,
+          },
+        ],
+        path: "sample.ts",
+      },
+    ],
+  });
+  expect(h.calls.map((call) => call.name)).toEqual(["read"]);
+  expect(JSON.stringify(result)).not.toContain("not sent");
+});
+
+test("code fails for unsupported, unmatched, invalid, oversized, and denied queries", async () => {
+  const directory = await fixture();
+  await writeFile(
+    path.join(directory, "sample.ts"),
+    "function duplicate() {}\nfunction duplicate() {}\n"
+  );
+  await writeFile(path.join(directory, "sample.py"), "def sample(): pass\n");
+  await writeFile(
+    path.join(directory, "large.ts"),
+    `${"x".repeat(1024 * 1024)}\nfunction tiny() {}`
+  );
+  const h = host(directory);
+  await Promise.all(
+    [
+      ["sample.ts", "(class_declaration) @evidence"],
+      ["sample.ts", "(no_such_node) @evidence"],
+      ["sample.py", "(_) @evidence"],
+      ["large.ts", "(_) @evidence"],
+    ].map(([filePath, query]) =>
+      expect(
+        h.resolve({ code: [{ path: filePath, query }], type: "evidence" })
+      ).rejects.toThrow()
+    )
+  );
+  await expect(
+    host(directory, denied).resolve({
+      code: [{ path: "sample.ts", query: "(function_declaration) @evidence" }],
+      type: "evidence",
+    })
+  ).rejects.toThrow("Evidence could not be read");
+});
+
+test("Go, TypeScript and Kotlin selections expand together through native file permissions", async () => {
+  const directory = await fixture();
+  const selections = [
+    { path: "cache.go", query: "(method_declaration) @evidence" },
+    { path: "cache.ts", query: "(method_definition) @evidence" },
+    {
+      path: "cache.kt",
+      query: "(class_body (function_declaration) @evidence)",
+    },
+  ];
+  await Promise.all(
+    selections.map(async (selection) => {
+      const source = await readFile(
+        new URL(`fixtures/code/${selection.path}`, import.meta.url),
+        "utf-8"
+      );
+      await writeFile(path.join(directory, selection.path), source);
+    })
+  );
+  const h = host(directory);
+  const result = await h.resolve({ code: selections, type: "evidence" });
+  expect(result).toMatchObject({
+    code: [
+      { captures: [{ endLine: 14, startLine: 10 }], path: "cache.go" },
+      { captures: [{ endLine: 8, startLine: 5 }], path: "cache.ts" },
+      { captures: [{ endLine: 6, startLine: 3 }], path: "cache.kt" },
+    ],
+  });
+  expect(h.calls.map((call) => call.input)).toEqual(
+    selections.map((selection) => ({
+      path: path.join(directory, selection.path),
+    }))
+  );
+  expect(JSON.stringify(result)).not.toContain("not selected");
+  await expect(
+    host(directory, denied).resolve({ code: [selections[0]], type: "evidence" })
+  ).rejects.toThrow("Evidence could not be read");
 });
 
 test("regular-file replacement during native read fails closed and closes the handle", async () => {
@@ -355,6 +485,33 @@ test("Git diffs include staged and unstaged changes, literal paths, and deleted 
   await expect(
     h.resolve({ diffs: [{ base: "HEAD", paths: ["a.ts"] }], type: "evidence" })
   ).rejects.toThrow("Binary diffs");
+});
+
+test("code source has its own read limit while selected content shares the evidence budget", async () => {
+  const directory = await fixture();
+  await Promise.all([
+    writeFile(path.join(directory, "context.txt"), "x".repeat(600_000)),
+    writeFile(
+      path.join(directory, "large.go"),
+      `package x\n// ${"x".repeat(600_000)}\nfunc Get() {}\n`
+    ),
+  ]);
+  const result = await host(directory).resolve({
+    code: [{ path: "large.go", query: "(function_declaration) @evidence" }],
+    files: ["context.txt"],
+    type: "evidence",
+  });
+  expect(result).toMatchObject({
+    code: [{ captures: [{ content: "func Get() {}" }] }],
+  });
+  expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThan(1024 * 1024);
+  await expect(
+    host(directory).resolve({
+      code: [{ path: "large.go", query: "(source_file) @evidence" }],
+      files: ["context.txt"],
+      type: "evidence",
+    })
+  ).rejects.toThrow("1 MiB request limit");
 });
 
 test("expanded evidence shares a byte budget and counts JSON escaping", async () => {

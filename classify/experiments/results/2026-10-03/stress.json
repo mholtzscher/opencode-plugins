@@ -1,0 +1,347 @@
+{
+  "cancellations": [
+    {
+      "cancelled": true,
+      "milliseconds": 704.5845260000006
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 712.2351159999998
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 744.3173239999996
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 741.4417599999997
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 744.5351869999995
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 735.614196999999
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 760.3720940000003
+    },
+    {
+      "cancelled": true,
+      "milliseconds": 813.9364459999997
+    }
+  ],
+  "peakRss": 595390464,
+  "resources": [
+    {
+      "phase": "baseline-after-survey",
+      "descriptors": 8,
+      "heapUsed": 7333226,
+      "rss": 289255424,
+      "threads": 62
+    },
+    {
+      "phase": "1-workers-wave-0",
+      "descriptors": 8,
+      "heapUsed": 7339436,
+      "rss": 248283136,
+      "threads": 63
+    },
+    {
+      "phase": "1-workers-wave-1",
+      "descriptors": 8,
+      "heapUsed": 7339361,
+      "rss": 239083520,
+      "threads": 62
+    },
+    {
+      "phase": "1-workers-wave-2",
+      "descriptors": 8,
+      "heapUsed": 7339363,
+      "rss": 264671232,
+      "threads": 62
+    },
+    {
+      "phase": "1-workers-wave-3",
+      "descriptors": 8,
+      "heapUsed": 7339446,
+      "rss": 270413824,
+      "threads": 62
+    },
+    {
+      "phase": "4-workers-wave-0",
+      "descriptors": 8,
+      "heapUsed": 7341380,
+      "rss": 266485760,
+      "threads": 62
+    },
+    {
+      "phase": "4-workers-wave-1",
+      "descriptors": 8,
+      "heapUsed": 7341780,
+      "rss": 264105984,
+      "threads": 62
+    },
+    {
+      "phase": "4-workers-wave-2",
+      "descriptors": 8,
+      "heapUsed": 7336724,
+      "rss": 311918592,
+      "threads": 62
+    },
+    {
+      "phase": "4-workers-wave-3",
+      "descriptors": 8,
+      "heapUsed": 7340676,
+      "rss": 339898368,
+      "threads": 62
+    },
+    {
+      "phase": "8-workers-wave-0",
+      "descriptors": 8,
+      "heapUsed": 7355825,
+      "rss": 297267200,
+      "threads": 62
+    },
+    {
+      "phase": "8-workers-wave-1",
+      "descriptors": 8,
+      "heapUsed": 7360710,
+      "rss": 321265664,
+      "threads": 62
+    },
+    {
+      "phase": "8-workers-wave-2",
+      "descriptors": 8,
+      "heapUsed": 7363326,
+      "rss": 320921600,
+      "threads": 62
+    },
+    {
+      "phase": "8-workers-wave-3",
+      "descriptors": 8,
+      "heapUsed": 7359937,
+      "rss": 368013312,
+      "threads": 62
+    },
+    {
+      "phase": "after-cancellation-and-idle",
+      "descriptors": 8,
+      "heapUsed": 7370063,
+      "rss": 277344256,
+      "threads": 62
+    }
+  ],
+  "timings": [
+    {
+      "concurrency": 1,
+      "milliseconds": 178.65948199999912
+    },
+    {
+      "concurrency": 1,
+      "milliseconds": 161.82119500000044
+    },
+    {
+      "concurrency": 1,
+      "milliseconds": 166.48447099999976
+    },
+    {
+      "concurrency": 1,
+      "milliseconds": 166.23703000000023
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 130.03590000000077
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 189.51857700000073
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 203.67851299999893
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 204.48369100000127
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 195.597307
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 197.00433499999963
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 209.333568
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 214.05084499999975
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 197.75709300000017
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 198.7374319999999
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 199.0037169999996
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 204.05825299999924
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 185.3145829999994
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 197.6559610000004
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 200.64835700000003
+    },
+    {
+      "concurrency": 4,
+      "milliseconds": 201.50379799999973
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 191.5211650000001
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 191.78389400000015
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 191.22798899999907
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 191.11082800000077
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 230.38285200000064
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 239.4862780000003
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 242.59112600000117
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 243.9115610000008
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 187.52088800000092
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 249.6374799999994
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 251.5599259999999
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 251.99399999999878
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 256.6692459999995
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 279.24524499999825
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 282.3775449999994
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 290.52094000000034
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 187.26015299999926
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 193.52345200000127
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 234.5565459999998
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 247.13810000000012
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 246.88167299999986
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 247.14394100000027
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 251.00823900000069
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 255.15178900000137
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 184.50203200000033
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 187.4808720000001
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 187.50719199999912
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 255.8431810000002
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 259.42301000000043
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 263.0200619999996
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 263.7271440000004
+    },
+    {
+      "concurrency": 8,
+      "milliseconds": 266.57802999999876
+    }
+  ]
+}

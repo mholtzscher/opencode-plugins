@@ -1,0 +1,50 @@
+[
+  {
+    "captureHash": "0a71186fcc529be0e132b93751f7c1a24e8de36cbfc7ce776e65e6d6b8c169ee",
+    "correct": true,
+    "id": "go-decode",
+    "language": "go",
+    "milliseconds": 182.317362,
+    "sourceHash": "4b29f8a3ac3ea2bcaca9e55b1e316b0ee94ba03863a5561a7574980b8c8853bb"
+  },
+  {
+    "captureHash": "d127e56787f73bdfcb07c853fa18a2d2ea468c549cbffc6552916a6f30ee4815",
+    "correct": true,
+    "id": "go-decode-one",
+    "language": "go",
+    "milliseconds": 120.70668799999999,
+    "sourceHash": "4b29f8a3ac3ea2bcaca9e55b1e316b0ee94ba03863a5561a7574980b8c8853bb"
+  },
+  {
+    "captureHash": "6c6497fb27e3fc539ebef03d1701f96bf1ffb6c3ccfcfbb2e2b953ce8365be24",
+    "correct": true,
+    "id": "ts-evidence",
+    "language": "typescript",
+    "milliseconds": 131.26673699999998,
+    "sourceHash": "f9b85564e2286ee68616dc1223cc4bfc8d774d8230e224e67e7d5ce225107c2d"
+  },
+  {
+    "captureHash": "f1012c8f29c63de01c26f4117076826c3036b9200a643904d97f899cfb4ced78",
+    "correct": true,
+    "id": "ts-error",
+    "language": "typescript",
+    "milliseconds": 129.84976000000006,
+    "sourceHash": "a33457a7e58626f805fba07b6cd5df561141d6f718e37100d302345c6a433865"
+  },
+  {
+    "captureHash": "ab4123254fa73c61a53087b43b9d2d9772432bc0e29181097b5ea54c0716c337",
+    "correct": true,
+    "id": "kt-plural",
+    "language": "kotlin",
+    "milliseconds": 202.60687399999995,
+    "sourceHash": "42d3aec7325495431e92a51f6eef04633ba00dea0343d9be492230d810f8452e"
+  },
+  {
+    "captureHash": "c272a2b6cf8656421bfb3bcdf49a0125b9aad33bd0f83d614ddf4cdb1cae2db8",
+    "correct": true,
+    "id": "kt-nested",
+    "language": "kotlin",
+    "milliseconds": 203.82972300000006,
+    "sourceHash": "42d3aec7325495431e92a51f6eef04633ba00dea0343d9be492230d810f8452e"
+  }
+]

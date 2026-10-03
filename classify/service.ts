@@ -99,7 +99,7 @@ const makeClassification = (options: ClassifyOptions) =>
       if (!isEvidence(source)) {
         return source;
       }
-      if (!(source.files || source.diffs)) {
+      if (!(source.files || source.diffs || source.code)) {
         // SAFETY: State validation requires text when an evidence wrapper has no IO sources.
         return { text: source.text as Content };
       }

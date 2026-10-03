@@ -5,7 +5,7 @@ import solid from "ultracite/oxlint/solid";
 
 export default defineConfig({
   extends: [core, solid, antiSlop],
-  ignorePatterns: core.ignorePatterns,
+  ignorePatterns: [...core.ignorePatterns, "videos/**"],
   overrides: [
     {
       files: ["**/*.{tsx,jsx}"],

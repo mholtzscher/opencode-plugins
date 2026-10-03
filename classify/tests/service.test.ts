@@ -358,6 +358,40 @@ test("strategy preflight runs before evidence and dispatch with the same questio
   expect(events).toEqual(["preflight", "evidence", "decide"]);
 });
 
+test("code-only evidence reaches the resolver before provider dispatch", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "laya" } },
+      defaultBackend: "default",
+    })
+  );
+  const state = {
+    code: [{ path: "sample.ts", query: "(function_declaration) @evidence" }],
+    type: "evidence" as const,
+  };
+  const calls: DecisionRequest[] = [];
+  let resolved = false;
+  const output = await Effect.runPromise(
+    classify(options, { questions, state }, toolContext()).pipe(
+      Effect.provide(
+        Layer.merge(
+          decisionLayer(recordingAdapter(calls)),
+          evidenceLayer((source) =>
+            Effect.sync(() => {
+              expect(source).toEqual(state);
+              resolved = true;
+              return "Selected source";
+            })
+          )
+        )
+      )
+    )
+  );
+  expect(output.ok).toBe(true);
+  expect(resolved).toBe(true);
+  expect(calls[0]?.state).toBe("Selected source");
+});
+
 test("service honors any strategy's availability gate without checking provider identity", async () => {
   const options = Effect.runSync(
     loadOptions({

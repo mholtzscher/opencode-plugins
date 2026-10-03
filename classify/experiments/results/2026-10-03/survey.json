@@ -1,0 +1,924 @@
+[
+  {
+    "availableFiles": 771,
+    "name": "hearth",
+    "rows": [
+      {
+        "file": "cmd/hearth-adapter-ecowitt/cli_config.go",
+        "passed": true,
+        "sha256": "fbb30446366a94a292c0983a1da9a32179607334c56c7beb86092a21f77cd580"
+      },
+      {
+        "file": "cmd/hearth-adapter-zwavejs/cli_config.go",
+        "passed": true,
+        "sha256": "bd7ec45feb9c58dd9843ab25ee653afa31e5b41c25a51331a221e03099ddc197"
+      },
+      {
+        "file": "cmd/internal/cmdtest/cancellation.go",
+        "passed": true,
+        "sha256": "03196f40988807726b66ffad0471806b01eb2ea3f81ad8a702b5c1e3e63825b1"
+      },
+      {
+        "file": "entitytypes/brightnessv1/zz_generated_behavior.go",
+        "passed": true,
+        "sha256": "4c5d30738a838c51854e15b17db930ced07535e951e60f828e149dd52e341c51"
+      },
+      {
+        "file": "entitytypes/colormodev1/zz_generated_conformance_test.go",
+        "passed": true,
+        "sha256": "256e128b647543a407d8f35989085e70997779df81350723d1f3e07912788106"
+      },
+      {
+        "file": "entitytypes/enumactionv1/zz_generated_conformance_test.go",
+        "passed": true,
+        "sha256": "8a2f9d4421e1687f1e57cebaf0f58c73ebd8b6fea042ced3a3eeff11897fc140"
+      },
+      {
+        "file": "entitytypes/numericsensorv1/zz_generated_behavior.go",
+        "passed": true,
+        "sha256": "652453d36927cdb58db1ac01799ee59ebdfc28fffdc7c2a24537bf55c454dd2f"
+      },
+      {
+        "file": "entitytypes/pressurev1/state_bounds_test.go",
+        "passed": true,
+        "sha256": "98fe6bdc134c6065c3bdc6ce65590e38830953855a9463fba4222d1b3e58952f"
+      },
+      {
+        "file": "entitytypes/speedv1/zz_generated_conformance_test.go",
+        "passed": true,
+        "sha256": "d456eb87f1a7df9d60bd660b76697a3963b5db6d1191c6af1a0bb832ac256d82"
+      },
+      {
+        "file": "internal/adapters/ecowitt/clock.go",
+        "passed": true,
+        "sha256": "f717cb0717e68cca6fb734610c8224c0dc5e96a3a791539689735c0c9f3938ec"
+      },
+      {
+        "file": "internal/adapters/ecowitt/registration.go",
+        "passed": true,
+        "sha256": "e72143abf88221a9f874c1a54c5e988dbc2b832f0e4214cd6c9c98076f9f2996"
+      },
+      {
+        "file": "internal/adapters/scripted/registry.go",
+        "passed": true,
+        "sha256": "6a18e327bb66226ea6c8713f05e23af4bb919f13d44e5a045033e9befd88c105"
+      },
+      {
+        "file": "internal/adapters/zigbee2mqtt/color_decode_test.go",
+        "passed": true,
+        "sha256": "d2e6ae737d49d6db05760ac237026fad97fea3e3156c65020bf5a002fe692a38"
+      },
+      {
+        "file": "internal/adapters/zigbee2mqtt/discovery_test.go",
+        "passed": true,
+        "sha256": "c7f545d6ba78b3ac41ccef510c28da839b9548164a60f02cf2853879829ec9e1"
+      },
+      {
+        "file": "internal/adapters/zigbee2mqtt/entity_event.go",
+        "passed": true,
+        "sha256": "dbb75b487445e898b456e9d2bdf02716b0f8b020bf8279996536bf1d03e9cc3e"
+      },
+      {
+        "file": "internal/adapters/zigbee2mqtt/expose_index.go",
+        "passed": true,
+        "sha256": "969c3ed9efdda47bfecc1b4bc84179ad4d64427525b2f7f67f024d5858383f7a"
+      },
+      {
+        "file": "internal/adapters/zigbee2mqtt/planner_relay.go",
+        "passed": true,
+        "sha256": "fe4abf510669298d1e3f98ab942b63c320f95c6f17ad0c31479a4c0746766efd"
+      },
+      {
+        "file": "internal/adapters/zigbee2mqtt/runtime_test.go",
+        "passed": true,
+        "sha256": "ce5a86e346a3d8b3a0e38897f2413cfa861c0999252a6259229f4fe1ae3a7db9"
+      },
+      {
+        "file": "internal/adapters/zwavejs/command_test.go",
+        "passed": true,
+        "sha256": "2e793968e84c3194cd47c41bd7538eda3a839cfe1e33b211fd8860a9e25c6b2b"
+      },
+      {
+        "file": "internal/adapters/zwavejs/testhelp_test.go",
+        "passed": true,
+        "sha256": "19e0944d587bb703ebfb980501de654c34c75fc457de60f1c56e61936b2f1d7d"
+      },
+      {
+        "file": "internal/app/hearthd/automations_lifecycle_test.go",
+        "passed": true,
+        "sha256": "869e1beecd2b2ebf1438d5dae259b1a18720ef1532b71d580a5806fb0609e1c8"
+      },
+      {
+        "file": "internal/app/hearthd/held_state_scheduler.go",
+        "passed": true,
+        "sha256": "de0b2b470aec687ca530bc49e7a2e66d2067e7954a4c8c4149788fff9ae13b02"
+      },
+      {
+        "file": "internal/app/hearthd/recovery_integration_test.go",
+        "passed": true,
+        "sha256": "8c92a987bf16ea8bc04bfab5890693d737c5ee2b27d3d51def8107461c475e7d"
+      },
+      {
+        "file": "internal/app/homeassistant/run.go",
+        "passed": true,
+        "sha256": "8411bee3b37baeb58bc30fa93b8799f6a82394e43654a4dc94a387faf8ba9fe9"
+      },
+      {
+        "file": "internal/app/simulator/run_scripted_test.go",
+        "passed": true,
+        "sha256": "f35f5db0e43499daf65c8b5449c9386d620d95d4cce8b9d77db8861d0b42d580"
+      },
+      {
+        "file": "internal/cmd/entitytypegen/event_source.go",
+        "passed": true,
+        "sha256": "3034ac5b40c749a159fc07a0e1024e69a608e76aa3a36e938d802f6f8dc2b1d3"
+      },
+      {
+        "file": "internal/cmd/entitytypegen/render_sdk.go",
+        "passed": true,
+        "sha256": "6415f0d807a91dda4ebaeb0620b9ab090721975c9ac8c24e6e9b4bd1358a8003"
+      },
+      {
+        "file": "internal/contracts/v1/natswire/subjects.go",
+        "passed": true,
+        "sha256": "a65db295f9e46e581e7afe27645acb3eb9545b378009b45ede9b8202098ed205"
+      },
+      {
+        "file": "internal/mcpapi/output_schema.go",
+        "passed": true,
+        "sha256": "1e3c0b9055378b714ab32c2d901761184b65ad4e9da225bf3efb2474ce51e538"
+      },
+      {
+        "file": "internal/modules/agent/automation_prompt_test.go",
+        "passed": true,
+        "sha256": "ecfd4d872fc52c9520e2826783b9cb7c6d1b8239f0caa8380ab8179e5d5ce1b6"
+      },
+      {
+        "file": "internal/modules/agent/sqlite/dbsqlc/conversations.sql.go",
+        "passed": true,
+        "sha256": "c56489a3b62abce49944b74686f6d90bae810b5db9c479b07bee05120c627cd5"
+      },
+      {
+        "file": "internal/modules/agent/turn_serialization_test.go",
+        "passed": true,
+        "sha256": "027176628fa0c17904a5a234bc5060511c31fdf6292e7e214cb7ec7fb51bd738"
+      },
+      {
+        "file": "internal/modules/automations/api/mcp_arguments_test.go",
+        "passed": true,
+        "sha256": "d6905c454dbea1dd31ac170a343fc6e39291b855a469dd10b85f6d1241e61258"
+      },
+      {
+        "file": "internal/modules/automations/api/register.go",
+        "passed": true,
+        "sha256": "d36a4ff0c408e6952d94d98f2c5947fe8bb47214dcce8667ce0db02fc55c9b2e"
+      },
+      {
+        "file": "internal/modules/automations/conditions_evaluation.go",
+        "passed": true,
+        "sha256": "fbe9a472a1509d0900579e844cb5a3d8bd165bd950899cc8ca9ed97bf706c469"
+      },
+      {
+        "file": "internal/modules/automations/errors.go",
+        "passed": true,
+        "sha256": "6ae2faae62e6ddcb3bab3c07896972822484a36704591d15f13b68dac5a7e996"
+      },
+      {
+        "file": "internal/modules/automations/held_state_test.go",
+        "passed": true,
+        "sha256": "7516d7c233b76eddee3a5b85d861929c799c4c6efc056e611f4235627c1e7504"
+      },
+      {
+        "file": "internal/modules/automations/nats/consumer_test.go",
+        "passed": true,
+        "sha256": "11e1ee2b94ed5c12d0fce624475eda0d37d48bef89177d8fc35523556bde57d5"
+      },
+      {
+        "file": "internal/modules/automations/schedule_matching.go",
+        "passed": true,
+        "sha256": "7c8c7b1df0fa839b0ff58c4fed083c9775e17706e9336c8bce399ea3f6744b93"
+      },
+      {
+        "file": "internal/modules/automations/sqlite/definition_mapping.go",
+        "passed": true,
+        "sha256": "4069cc0cc2a7470ac99db9f183705a71d0411eabd9e28e67a343fa6e2688059f"
+      },
+      {
+        "file": "internal/modules/automations/sqlite/repository.go",
+        "passed": true,
+        "sha256": "3fe37f0754d34ba62687cfd52266dda585ea1aaad3cb90217a6ec1b33dcaccc9"
+      },
+      {
+        "file": "internal/modules/devices/api/command_test.go",
+        "passed": true,
+        "sha256": "6fa6776cc8b5f6f9e2b1f8f24792894af023f179b8126752ee37368466db45e0"
+      },
+      {
+        "file": "internal/modules/devices/api/health_test.go",
+        "passed": true,
+        "sha256": "829e8dc99b3385c77effb810682cbd4d2c07b8dce3c06952f95a66975c902fd2"
+      },
+      {
+        "file": "internal/modules/devices/api/pagination.go",
+        "passed": true,
+        "sha256": "62d94fb4fb235fb044cdfc9138cf00584180583189418c514850e7f78e84ab0b"
+      },
+      {
+        "file": "internal/modules/devices/command_completion.go",
+        "passed": true,
+        "sha256": "07dfda8a71a521e09e6cd324b140190f9ec66ad929b52c1b8040fb07f8507459"
+      },
+      {
+        "file": "internal/modules/devices/entity_availability_test.go",
+        "passed": true,
+        "sha256": "4cf40f3f11700b7749340fafcf49854cf2cc3702dbda6c820abcd0db0f3477f8"
+      },
+      {
+        "file": "internal/modules/devices/ids.go",
+        "passed": true,
+        "sha256": "34652f51b7e015d5d2cb1d7a9b4f57142911b9f7b83b21f425b800807082e9b3"
+      },
+      {
+        "file": "internal/modules/devices/nats/device_fact_consumer_policy_test.go",
+        "passed": true,
+        "sha256": "00310fa53680a26a820eb43f6560ce0c4556c4675353a2ba4620186830b164d8"
+      },
+      {
+        "file": "internal/modules/devices/nats/entity_event_resources.go",
+        "passed": true,
+        "sha256": "dd6cfe08fc3167ef9002bd5dbd16fd4d0d1320ee712c3d0e1b9bd09a75a59d8c"
+      },
+      {
+        "file": "internal/modules/devices/nats/registration_test.go",
+        "passed": true,
+        "sha256": "60936ba365d246fe08beb396ab6ea66546f8282e7ab5c72a7e380ad4c8860b5c"
+      },
+      {
+        "file": "internal/modules/devices/registration.go",
+        "passed": true,
+        "sha256": "288a615118df32caf56d370d2775a7aadac2d9e5146147893e0469fed1965888"
+      },
+      {
+        "file": "internal/modules/devices/sqlite/dbsqlc/device_facts.sql.go",
+        "passed": true,
+        "sha256": "7d23985d5e53780b0b15371ebb1f85922b296331f6c8267537f886d0d2fe44b9"
+      },
+      {
+        "file": "internal/modules/devices/sqlite/enablement.go",
+        "passed": true,
+        "sha256": "ab21094ea7a5092d1d2d044e07c1644a0ed8bb6919fe04798a29f675281a1ca9"
+      },
+      {
+        "file": "internal/modules/devices/sqlite/null_mapping.go",
+        "passed": true,
+        "sha256": "14445ab9d40dfdabc6cd64999747c193c2bd1bf5ec108b5a1641c5e2f4d06fef"
+      },
+      {
+        "file": "internal/modules/devices/zz_generated_entitytypes.go",
+        "passed": true,
+        "sha256": "13e86187c2703c15e0490cf1113a8e9ea76981f2083ea53cef7e169fb7433257"
+      },
+      {
+        "file": "internal/platform/db/migrations_held_state_test.go",
+        "passed": true,
+        "sha256": "5a7fef335308e38aa620a07e81253d49ac0768e3d211695722caa774a30444cd"
+      },
+      {
+        "file": "sdk/adapter/adaptertest/adapter_assertions.go",
+        "passed": true,
+        "sha256": "cde0d6f9ff9882bf775f6fa7930a22ced5f34d1df7f38a70f188c44fd7567dd9"
+      },
+      {
+        "file": "sdk/adapter/colortempv1/zz_generated_facade_test.go",
+        "passed": true,
+        "sha256": "e493596e30df7e624ec9bd334dc54959b168df05a07ba809aea9ab14b7f91e7f"
+      },
+      {
+        "file": "sdk/adapter/enumsettingv1/zz_generated_facade_test.go",
+        "passed": true,
+        "sha256": "e2c82db74c8d48c0c4ff0a00a7e9c4cf18c825583ea78696ce9a48e882fd0116"
+      },
+      {
+        "file": "sdk/adapter/relativehumidityv1/zz_generated_facade.go",
+        "passed": true,
+        "sha256": "3bc05fa762c9ee5a567982ea52ca457c81d5e376d3b5081a14ab5fbabdde6bbf"
+      }
+    ]
+  },
+  {
+    "availableFiles": 72,
+    "name": "classify",
+    "rows": [
+      {
+        "file": "backend-config.ts",
+        "passed": true,
+        "sha256": "fcebdab6716ac40f2a9791b7eb7e2ca48a0133025eff6d2a14dc69bb3f19180b"
+      },
+      {
+        "file": "backend-status.ts",
+        "passed": true,
+        "sha256": "7f8a8f8421303df5dbecce6bf4c88d60eb9398acf3c595f4fe30c6ed085a8a8b"
+      },
+      {
+        "file": "bounded-file.ts",
+        "passed": true,
+        "sha256": "c70edf70bfd36bf4859a9a7f7cd94db02ad39abe4874335ac9776e13a04d309a"
+      },
+      {
+        "file": "bounded-stream.ts",
+        "passed": true,
+        "sha256": "042ae30ee9b11cf9b2dff09798292aff6da840af5d9f97477bb5b3f6dbb22052"
+      },
+      {
+        "file": "code-evidence.ts",
+        "passed": true,
+        "sha256": "686698c18ba79d534fd41be7d5034bed49691570daed1b3bb0a34df2a870c376"
+      },
+      {
+        "file": "code-query-worker.ts",
+        "passed": true,
+        "sha256": "b14ab1065a54140d13931476d13522e2c740a4594e7150d9d559120e883dfacc"
+      },
+      {
+        "file": "code-query.ts",
+        "passed": true,
+        "sha256": "a3e6e10119a12074063aad8740705f524869a5a872485a608883bda7757ba2bf"
+      },
+      {
+        "file": "config.ts",
+        "passed": true,
+        "sha256": "7b1cd98abbccea57a79477fc30e7e8ef10606d9222a22c4faa5e0095d016b742"
+      },
+      {
+        "file": "credentials.ts",
+        "passed": true,
+        "sha256": "080169708677cfe0f0537cfb39b81a0284862d9208a29328437ce3764ed4b57a"
+      },
+      {
+        "file": "errors.ts",
+        "passed": true,
+        "sha256": "4b189bd8bcfafb15934cf9e439e04f2a310b6764a29d68565d2d02f1bc7a1552"
+      },
+      {
+        "file": "experiments/corpus.ts",
+        "passed": true,
+        "sha256": "b2f31e8abb517977ebf8623708c8476d384b8fe9856f3db690ed685e27c0cbab"
+      },
+      {
+        "file": "experiments/host-plugin.ts",
+        "passed": true,
+        "sha256": "feed9a39a9d1eb09fcf266bd96c6fdcd27484c9fb2f9af9aba13c13995d9a0de"
+      },
+      {
+        "file": "experiments/host.ts",
+        "passed": true,
+        "sha256": "34bf2066c7c3fe69dcc846b46762b69a43b983df1c2b86c70309d24a60d0267e"
+      },
+      {
+        "file": "experiments/local.ts",
+        "passed": true,
+        "sha256": "06768326b7024f1f41d4af6db434434e82aae44886e7e7e2a9dbbd10869a7f92"
+      },
+      {
+        "file": "experiments/query-trial.ts",
+        "passed": true,
+        "sha256": "cda627a0f36491d9f7153df601708efb8457783c945a6c11cd8ecbfcde871fe3"
+      },
+      {
+        "file": "http-client.ts",
+        "passed": true,
+        "sha256": "35d9f6b7835b16229fc2e2ee7a78697fe6a59a3ab40be7cc0cf61cf25829f138"
+      },
+      {
+        "file": "index.ts",
+        "passed": true,
+        "sha256": "c17432cfc8a546a3dc917cfbc5113475eaf7ed01296f54e3c92c80fcba55177e"
+      },
+      {
+        "file": "layers.ts",
+        "passed": true,
+        "sha256": "18ede304652080b3cbbc20da31ca10a8a513d8789f4347a81bd749ec003974bb"
+      },
+      {
+        "file": "limits.ts",
+        "passed": true,
+        "sha256": "4714ef936405db200e9524ccfca7285a2400921769f01245521cce7e62cc54e5"
+      },
+      {
+        "file": "opencode-access.ts",
+        "passed": true,
+        "sha256": "2efbcad1820db45a6589578b5e4240914bb6d6d47af7552c36c020cd44d8e794"
+      },
+      {
+        "file": "protocols/response.ts",
+        "passed": true,
+        "sha256": "e8a31d131118a8c9cb84defeec798061eb887206ff96f60988b8e1e8a8419d56"
+      },
+      {
+        "file": "protocols/system-one.ts",
+        "passed": true,
+        "sha256": "bdd28a498e6261ba21e435ff849210063ae080dba27fcda9bb5837f053ad0e26"
+      },
+      {
+        "file": "providers/backend.ts",
+        "passed": true,
+        "sha256": "064922430ee24d8235cd7372d58025ae66fe09832411b0406a41225f6956cc71"
+      },
+      {
+        "file": "providers/cloudflare.ts",
+        "passed": true,
+        "sha256": "8a4f81e87551763348a963844e70cd5f9901af127d6301ab8497f4c65926ee88"
+      },
+      {
+        "file": "providers/ids.ts",
+        "passed": true,
+        "sha256": "f3bb099156bb36d9b25abc9dcac915f8bf2a4ecdd3646730722c59813e8b8bda"
+      },
+      {
+        "file": "providers/ollama.ts",
+        "passed": true,
+        "sha256": "8cd41023a06560770c00b6da393a3a581cd98457f9c244508c0958a955150866"
+      },
+      {
+        "file": "providers/openai-decisions.ts",
+        "passed": true,
+        "sha256": "9ab116eda39e13761f9b734b229c3a8641d0ea7603ce7f09abaea5cd038983b1"
+      },
+      {
+        "file": "providers/registry.ts",
+        "passed": true,
+        "sha256": "5b264849514b43c1c8e8910993b6adc548354818ccca1a3d0ee644a824a55785"
+      },
+      {
+        "file": "providers/typesafe.ts",
+        "passed": true,
+        "sha256": "7c2058d320c31e1349e7e0c8f19136d843238d40e952165f28cc23138a4b4aa0"
+      },
+      {
+        "file": "router.ts",
+        "passed": true,
+        "sha256": "fc91fa112f07cdcdb84cfe3194b4d52b0488bc549f33ec5005e6bf3f8b1cc16c"
+      },
+      {
+        "file": "schemas.ts",
+        "passed": true,
+        "sha256": "fe0f873541afadabacbf6ec05e879fd710619500491e0ae2e64f19847fcda6fc"
+      },
+      {
+        "file": "scripts/sync-code-grammars.ts",
+        "passed": true,
+        "sha256": "24f707e6f21ecaf1697feab215daabe731b3ac73011778515a2c43c3133f796d"
+      },
+      {
+        "file": "selection.ts",
+        "passed": true,
+        "sha256": "a33457a7e58626f805fba07b6cd5df561141d6f718e37100d302345c6a433865"
+      },
+      {
+        "file": "service.ts",
+        "passed": true,
+        "sha256": "282bd56d8b75802a0a5468e78b19da7e88a7e6c57f18929e439cf0b15a31eebc"
+      },
+      {
+        "file": "tests/backend-status.test.ts",
+        "passed": true,
+        "sha256": "9422f8fd57d1fc1ae485c282e284b801eb37b839f61017b9535491888630358b"
+      },
+      {
+        "file": "tests/code-evidence.test.ts",
+        "passed": true,
+        "sha256": "0b2701c6e8f74cc078d18661c697c92a6d70c27ddcad59595117730711efec8d"
+      },
+      {
+        "file": "tests/config.test.ts",
+        "passed": true,
+        "sha256": "cbc7a8312e54cd974bda45d1bf7067901aaaf155e8d60210c6c4fe885f731f1f"
+      },
+      {
+        "file": "tests/credentials.test.ts",
+        "passed": true,
+        "sha256": "0815962916e585b17f2eafdf0c015ef7c8c786261b88715d2eb25989af94fc68"
+      },
+      {
+        "file": "tests/effect-fixtures.ts",
+        "passed": true,
+        "sha256": "22a63138c6cbad3582d94750752bbf7ce88b85bd08dd969a658a6b9ae90cb65e"
+      },
+      {
+        "file": "tests/evidence.test.ts",
+        "passed": true,
+        "sha256": "a18799beec25fd831e6a967af727b29d0986774469907f010d2b3bcea34527e1"
+      },
+      {
+        "file": "tests/fixtures/code/cache.ts",
+        "passed": true,
+        "sha256": "475bf37a2eeb3ce42bf98ce226a9a01f3594e2abc4abe675a7d030a57ee62c23"
+      },
+      {
+        "file": "tests/input.test.ts",
+        "passed": true,
+        "sha256": "d2858a179b523435cbd012eafe4dc0debaaee07faea6620109e8b6cc0a3cdfa2"
+      },
+      {
+        "file": "tests/json.test.ts",
+        "passed": true,
+        "sha256": "03f25782b2b8c2ba6a85fc67df5bfdcdfefccd1656b4f7f1dedd67093b7dc977"
+      },
+      {
+        "file": "tests/ollama.test.ts",
+        "passed": true,
+        "sha256": "8a5b58c07c405dd962e5830d5c363305fe78221f0d923d64c727c8583649692c"
+      },
+      {
+        "file": "tests/output.test.ts",
+        "passed": true,
+        "sha256": "f919b8115032d4c2427e2400c789ec6c34e0cd41ad5af1acbb1ce87efe8386f4"
+      },
+      {
+        "file": "tests/preflight.test.ts",
+        "passed": true,
+        "sha256": "c874d8e3e320501a6cafefb7abffea942e28162b05163ccb171810f48016f8db"
+      },
+      {
+        "file": "tests/provider-layers.test.ts",
+        "passed": true,
+        "sha256": "639ac0968b8a6cbb28ea224dd4386dc1cc8d3d66113deb84e354d958a1763ec0"
+      },
+      {
+        "file": "tests/response.test.ts",
+        "passed": true,
+        "sha256": "c0af25bfe668429de872d23edf5d43feb9885f5819c624baaeaf6a7776ab0626"
+      },
+      {
+        "file": "tests/rpc.test.ts",
+        "passed": true,
+        "sha256": "a16b3a4e3dfd1b50502e78968c0db942f1bb86c82685303980f2d50f6d836728"
+      },
+      {
+        "file": "tests/schema.test.ts",
+        "passed": true,
+        "sha256": "757d29b22e22c71b578867899db756cabab3e108d078b77e238522e29ee9ea34"
+      },
+      {
+        "file": "tests/service.test.ts",
+        "passed": true,
+        "sha256": "47b362dad17b0b83125cf3bc0da465a973c00a197a9a1218c7d7ee5739b90398"
+      },
+      {
+        "file": "tests/tool-description.test.ts",
+        "passed": true,
+        "sha256": "ab9a06276d10aa88d8a84f999a0e2ecfad23eb05837417edbe6511398ea7ffec"
+      },
+      {
+        "file": "tests/transport.test.ts",
+        "passed": true,
+        "sha256": "007582fc9bca8b87f4e429fe675315d864ba4e38babd2fd64706dedf7b0c90af"
+      },
+      {
+        "file": "tests/tui.test.ts",
+        "passed": true,
+        "sha256": "a58f38d31ef7785f1e3eb3661376be536e262e0bbcc46aa5444145743dc4d4ac"
+      },
+      {
+        "file": "tool-description.ts",
+        "passed": true,
+        "sha256": "4bf1fa760c3bfa7d994c5bd6f4c8ea3c748ca55faa290b35f1e5663e76d87727"
+      },
+      {
+        "file": "transport.ts",
+        "passed": true,
+        "sha256": "02eeaa81710bc5838c86b3a5ef4401d968a78709fcd7993b6831f30586e61527"
+      },
+      {
+        "file": "tui.ts",
+        "passed": true,
+        "sha256": "7bd9b266fe02cc3aaa3447e2e762379bce3e3919a7e89ef7c1b223794b65362e"
+      },
+      {
+        "file": "types.ts",
+        "passed": true,
+        "sha256": "d8fce8c38c1ae6d1c529e5a7fcf2e42f4c177b5385e812420a7559b99b81fd7f"
+      },
+      {
+        "file": "validation/codec.ts",
+        "passed": true,
+        "sha256": "8ccb9b0a2c2493419755196e26d7c167df50862170272ec615cd859388dd91b7"
+      },
+      {
+        "file": "validation/input.ts",
+        "passed": true,
+        "sha256": "f9b85564e2286ee68616dc1223cc4bfc8d774d8230e224e67e7d5ce225107c2d"
+      }
+    ]
+  },
+  {
+    "availableFiles": 2759,
+    "name": "ktor",
+    "rows": [
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_0c8d09ef2b293b80ddfc7658e4a5a43d/Accessors1o14lwohrtsl26y7sjpg5nxh9.kt",
+        "passed": true,
+        "sha256": "6168cf531331e0bcc32cc2689202e4034d1539bbb97490f09cb7e5ce86c60dc5"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_0c8d09ef2b293b80ddfc7658e4a5a43d/Accessors8td4devrrwikhzxu1to1g92gq.kt",
+        "passed": true,
+        "sha256": "9702f26bad5ce7da3ee99a1c9e856c14401700c7e6a1afe0a5bf0e3d1aeff1bd"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_0c8d09ef2b293b80ddfc7658e4a5a43d/CommonTestApiConfigurationAccessors.kt",
+        "passed": true,
+        "sha256": "dcc226f90547b0584f4faea8b6aae40061904bfedd71f57de334f48b5b681b6d"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_473a33a2a7abda85f8f7c864608e0873/Accessors9388c8jd15p9nvwfpy4rcem1z.kt",
+        "passed": true,
+        "sha256": "d2b334200271863288796547ace4f79394a0160dc7967e4060f6126a36844c41"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_9605e1da3936e68fb74ef67d43502ac2/Accessors47dqvjioi3xaf72qdidxfw6ho.kt",
+        "passed": true,
+        "sha256": "9ccd431f7a3d318feae58dac44c3d5e224ce9785cec5e87ff7a7f63b38d4be7a"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_973c3a7007dd7b410eb4103cf7d28e76/Accessors3jq7xcpp8zxjmu9rvj51zeuwb.kt",
+        "passed": true,
+        "sha256": "e3413b00bea666a3fb1da04d88521c67a2f4593ab6c16e4d856a8d08ab7a6f76"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_973c3a7007dd7b410eb4103cf7d28e76/Accessors7hfc7mtl7c7yydyful1vy1qzh.kt",
+        "passed": true,
+        "sha256": "9f90590869f76798911a338aa175bcb4564ed1c8c9c09f93a2e2871809105430"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_973c3a7007dd7b410eb4103cf7d28e76/Accessorsbxw74g3otztqb39ge6a61agcw.kt",
+        "passed": true,
+        "sha256": "5c604135bf8123d0a3f8558a8dce67d461e93255e993182964e60f1086dc3879"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_973c3a7007dd7b410eb4103cf7d28e76/CommonTestImplementationDependenciesMetadataConfigurationAccessors.kt",
+        "passed": true,
+        "sha256": "772acc37694f6549c964cc385865b301e616e82c26e8e8a58ae2946cb1884ddd"
+      },
+      {
+        "file": "build-logic/build/generated-sources/kotlin-dsl-accessors/kotlin/gradle/kotlin/dsl/accessors/_f67d6e58e3d6fcbc610ee9ce1c4267ba/Accessorsbinuh2dmy82szfgqwl4ef9ib0.kt",
+        "passed": true,
+        "sha256": "0ccda47cad32a10308a30d4394d99eb9ff440ead67ce769c24fe6586ec94c975"
+      },
+      {
+        "file": "build-logic/src/main/kotlin/ktorbuild/targets/JsConfig.kt",
+        "passed": true,
+        "sha256": "3a971f409c5c4f858438f1ecc53651f93f22199b287eebd32a5e0e78db06f6a6"
+      },
+      {
+        "file": "ktor-client/ktor-client-apache5/jvm/src/io/ktor/client/engine/apache5/ApacheUtils.kt",
+        "passed": true,
+        "sha256": "fb5bb82be4146bd8fcf2ad089cd9e5c025db1815bc3ebb59ee1ea0d7eb08ffde"
+      },
+      {
+        "error": "Code evidence contains syntax errors or syntax unsupported by its grammar.",
+        "file": "ktor-client/ktor-client-core/common/src/io/ktor/client/content/ObservableContent.kt",
+        "passed": false,
+        "sha256": "a30bfeb09a4f4b0d97a1b9e2a94c73403039f866d5a48579c9d15e50a19172ba"
+      },
+      {
+        "file": "ktor-client/ktor-client-core/common/src/io/ktor/client/plugins/sse/SSE.kt",
+        "passed": true,
+        "sha256": "e0b508ca3a7fdbc30877beed47638388cd2cce3e63d5935cb210dc31eac3e67a"
+      },
+      {
+        "file": "ktor-client/ktor-client-core/common/test/HttpRequestBuilderTest.kt",
+        "passed": true,
+        "sha256": "260d9b74fd8960bfa0ea2f0824f019ee656dee828768d89002b919da08b1afa5"
+      },
+      {
+        "file": "ktor-client/ktor-client-core/posix/src/io/ktor/client/plugins/observer/ResponseObserverContextPosix.kt",
+        "passed": true,
+        "sha256": "dfcc39b163f5708caf798d81292713c27d5907f1d494cae6fa105746aebb80b9"
+      },
+      {
+        "file": "ktor-client/ktor-client-darwin-legacy/darwin/src/io/ktor/client/engine/darwin/ProxySupportLegacyCommon.kt",
+        "passed": true,
+        "sha256": "f95a48ba31f2d7461b773a7e1980d28c7effb50c4561641e167b29745264b3dd"
+      },
+      {
+        "file": "ktor-client/ktor-client-java/jvm/test/io/ktor/client/engine/java/RequestProducerTest.kt",
+        "passed": true,
+        "sha256": "9ebbdfcaba22c255b640218482281d23653bcd22c8e7a77981ce7469a3549b69"
+      },
+      {
+        "file": "ktor-client/ktor-client-plugins/ktor-client-auth/common/test/io/ktor/client/plugins/auth/AuthTest.kt",
+        "passed": true,
+        "sha256": "bfcc047a4aee8d18b07a0e48b56ed822eb2331748eef451278f0ae378d438945"
+      },
+      {
+        "file": "ktor-client/ktor-client-plugins/ktor-client-logging/common/src/io/ktor/client/plugins/logging/Logger.kt",
+        "passed": true,
+        "sha256": "f01cff2159fabd0bd71ef7e44a900e22cd96c4155580cf874cbcb14c4354eb84"
+      },
+      {
+        "file": "ktor-client/ktor-client-tests/common/src/io/ktor/client/tests/Http2Test.kt",
+        "passed": true,
+        "sha256": "de8626aa1beff179d28faea837f0311fe47369c8dd85f11c56dfa37878c90b02"
+      },
+      {
+        "file": "ktor-client/ktor-client-tests/common/test/io/ktor/client/tests/plugins/SerializationTest.kt",
+        "passed": true,
+        "sha256": "b0c5ae591078de841c3a4d57965beb472e6a159d89f044ba9a66f33c73a9808a"
+      },
+      {
+        "error": "Code evidence contains syntax errors or syntax unsupported by its grammar.",
+        "file": "ktor-client/ktor-client-webrtc/common/src/io/ktor/client/webrtc/WebRtcMedia.kt",
+        "passed": false,
+        "sha256": "247f3d1c09ae09dcf8a78919399e342a80acb2edefd3aebc938379e77a177dd4"
+      },
+      {
+        "file": "ktor-client/ktor-client-webrtc/web/src/io/ktor/client/webrtc/Rtp.kt",
+        "passed": true,
+        "sha256": "a13d46b5cc5ea6a77dc9a2e61fbb60138438a71b0afbe4ab34dfb8eae0cb456d"
+      },
+      {
+        "file": "ktor-compiler-plugin/src/io/ktor/openapi/ir/inference/CallReceiveInference.kt",
+        "passed": true,
+        "sha256": "1c87d4415c8c8c6320d505dcb796aa5c81029377c241f2a924e5a13bd3c970b5"
+      },
+      {
+        "file": "ktor-http/common/src/io/ktor/http/Cookie.kt",
+        "passed": true,
+        "sha256": "d5f98f9e74f0366fc82be759ad5b328b7136c5e5832d1908d231e68728871fb4"
+      },
+      {
+        "file": "ktor-http/common/src/io/ktor/http/parsing/ParserDsl.kt",
+        "passed": true,
+        "sha256": "06dd3a37b70679a058df5189ba63ce4b07d34e64a166d6fd615a71f0886b84b1"
+      },
+      {
+        "file": "ktor-http/ktor-http-cio/common/src/io/ktor/http/cio/HttpParser.kt",
+        "passed": true,
+        "sha256": "ce02caa5c9a0cb6ef348f554de4cd67ee878012fef1b8244069183517a44a1f2"
+      },
+      {
+        "file": "ktor-io/common/src/io/ktor/utils/io/Deprecation.kt",
+        "passed": true,
+        "sha256": "9a6df9fbf8b2c6677e05f2d74453ac3a71efd1b9e7726f368b8603b24cb8a177"
+      },
+      {
+        "file": "ktor-io/js/src/io/ktor/utils/io/core/Closeable.js.kt",
+        "passed": true,
+        "sha256": "0da0308e891accdad4564c5621efe5b283e0ad00821e6eeef90ce5dd862bb145"
+      },
+      {
+        "file": "ktor-io/posix/src/io/ktor/utils/io/bits/ByteOrderNative.kt",
+        "passed": true,
+        "sha256": "16f328f86a41cea9a1a25006d9101506f420e0255cc010385bdc9e86dae05423"
+      },
+      {
+        "file": "ktor-network/ios/src/io/ktor/network/util/SocketUtilsIos.kt",
+        "passed": true,
+        "sha256": "310a82a4e3b8dec018af4d8b69f3d3ab7a0d9722f936f0cb554fbf061b319ca7"
+      },
+      {
+        "file": "ktor-network/ktor-network-tls/jvm/src/io/ktor/network/tls/Hashes.kt",
+        "passed": true,
+        "sha256": "cfdfc42da47047482433fe6ca337dbdcb1edf4951bb0f439e8b418eb6df5322e"
+      },
+      {
+        "file": "ktor-network/nix/test/io/ktor/network/sockets/tests/UdpSocketTestNix.kt",
+        "passed": true,
+        "sha256": "c51277903cf8781100a22ec9f74976441358955eb47eeec3e89853c70b7ecdb8"
+      },
+      {
+        "file": "ktor-server/ktor-server-cio/common/src/io/ktor/server/cio/CIOApplicationCall.kt",
+        "passed": true,
+        "sha256": "5c60653405be1d25091da9662de350075ac0567d0a2f4c7ac520448493457d25"
+      },
+      {
+        "file": "ktor-server/ktor-server-core/common/src/io/ktor/server/application/ApplicationModules.kt",
+        "passed": true,
+        "sha256": "02bad0c76ed2a955b365b71772414ee29a16c189c3175f300fc0fc3fcf42c77b"
+      },
+      {
+        "file": "ktor-server/ktor-server-core/common/src/io/ktor/server/http/Push.kt",
+        "passed": true,
+        "sha256": "d85aae6ff0414fd0001129f483901be60b1d84c15ee59294e1a7b2da7d377c23"
+      },
+      {
+        "file": "ktor-server/ktor-server-core/common/test/io/ktor/server/config/MapApplicationConfigTest.kt",
+        "passed": true,
+        "sha256": "a17faa7b90a9c01792a6fdc876061413db7b53654f98a520022f1789450c6911"
+      },
+      {
+        "file": "ktor-server/ktor-server-core/jvm/src/io/ktor/server/http/content/SinglePageApplication.kt",
+        "passed": true,
+        "sha256": "a7190f4b9d33a0c90184b853cc1fcad41bed3b88effb427368bebc29bb94f335"
+      },
+      {
+        "file": "ktor-server/ktor-server-core/web/src/io/ktor/server/engine/DefaultTransform.web.kt",
+        "passed": true,
+        "sha256": "545d931dc9813d4db2fd90ff3b98bb04b4f58549831e43e5744bdbda5f3f0757"
+      },
+      {
+        "file": "ktor-server/ktor-server-jetty/jvm/src/io/ktor/server/jetty/JettyApplicationEngineBase.kt",
+        "passed": true,
+        "sha256": "77fd84b0dd0fc678d58cd8182335c9ffe3c7921c173f8586e4ccb4b60c3a56e7"
+      },
+      {
+        "file": "ktor-server/ktor-server-netty/jvm/src/io/ktor/server/netty/http1/NettyHttp1ApplicationRequest.kt",
+        "passed": true,
+        "sha256": "21b6d769c86d94e1761030485f79435bf14c01cd9d9e2f070d81af0b8a498d6f"
+      },
+      {
+        "file": "ktor-server/ktor-server-plugins/ktor-server-auth/common/src/io/ktor/server/auth/AuthenticationFailedCause.kt",
+        "passed": true,
+        "sha256": "e2f3274b557236f17364f4263155a37dde725b2392f8769e9832480a8a7747f4"
+      },
+      {
+        "file": "ktor-server/ktor-server-plugins/ktor-server-call-logging/jvm/src/io/ktor/server/plugins/calllogging/CallLogging.kt",
+        "passed": true,
+        "sha256": "1f6d5406f38f2ee33510f46e6e86634618029231ade0bc413b9625245784805d"
+      },
+      {
+        "file": "ktor-server/ktor-server-plugins/ktor-server-di/common/src/io/ktor/server/plugins/di/DependencyRegistry.kt",
+        "passed": true,
+        "sha256": "4d3a840863ddc8d061d950dd7bf365721b85e570af3cd96b29c642dd7686431a"
+      },
+      {
+        "file": "ktor-server/ktor-server-plugins/ktor-server-html-builder/common/test/io/ktor/tests/html/HtmlTemplateTest.kt",
+        "passed": true,
+        "sha256": "f146235b98fa4c158e5334d7c04c07af4dd3dfba74e2c55836120dc566765d25"
+      },
+      {
+        "error": "Code evidence contains syntax errors or syntax unsupported by its grammar.",
+        "file": "ktor-server/ktor-server-plugins/ktor-server-resources/common/src/io/ktor/server/resources/Resources.kt",
+        "passed": false,
+        "sha256": "e84f521097cb6023afe0c31568b223015a0016a84b0be84eaf31f4a9e2860a6e"
+      },
+      {
+        "file": "ktor-server/ktor-server-plugins/ktor-server-sessions/common/src/io/ktor/server/sessions/serialization/MapDecoder.kt",
+        "passed": true,
+        "sha256": "33c2315627bc0ecde7a4aad03dfc7f0d81a3609df3583caff91d4e5e3165c2be"
+      },
+      {
+        "file": "ktor-server/ktor-server-plugins/ktor-server-velocity/jvm/test/io/ktor/tests/velocity/VelocityToolsTest.kt",
+        "passed": true,
+        "sha256": "9a1afb68e5ad04c04fee0a9828caca6e72aee856cc37ec52fc3706a87692c5a4"
+      },
+      {
+        "file": "ktor-server/ktor-server-servlet/jvm/src/io/ktor/server/servlet/ServletApplicationResponse.kt",
+        "passed": true,
+        "sha256": "0a60b6b66db50e61b39eba14f8934422f045275e69e30d6b09754d28d69e3c5f"
+      },
+      {
+        "error": "Code evidence contains syntax errors or syntax unsupported by its grammar.",
+        "file": "ktor-server/ktor-server-test-suites/common/src/io/ktor/server/testing/suites/WebSocketEngineSuite.kt",
+        "passed": false,
+        "sha256": "b4a5321eaad2844a2195dafafcb86341857e38ecb7f7f202e3f5b824a000677c"
+      },
+      {
+        "file": "ktor-server/ktor-server-tests/common/test/io/ktor/tests/server/sessions/SessionTest.kt",
+        "passed": true,
+        "sha256": "eba45bbaf133ffc5219d4e2e7f5f4d2f0669b4b49317fa27eeb87955d73dba54"
+      },
+      {
+        "file": "ktor-shared/ktor-openapi-schema/common/src/io/ktor/openapi/ContentTypeSerializer.kt",
+        "passed": true,
+        "sha256": "b0423ec7f64ae24a302b8a7cca45cf75fb92ad22d5639f223cd52369fd2dbf36"
+      },
+      {
+        "file": "ktor-shared/ktor-serialization/ktor-serialization-gson/jvm/test/GsonContentNegotiationTest.kt",
+        "passed": true,
+        "sha256": "2d8b3fc45d61475bb30f3b62a41d5671c93cb4f12417a0134b77b7c886957f17"
+      },
+      {
+        "file": "ktor-shared/ktor-serialization/ktor-serialization-kotlinx/ktor-serialization-kotlinx-protobuf/jvm/test/ProtoBufServerKotlinxSerializationTest.kt",
+        "passed": true,
+        "sha256": "e32db908f82924d0bcc4d9679e7b08bb8ce8f1ef70a74f41f9bd8dfd64323692"
+      },
+      {
+        "file": "ktor-shared/ktor-websockets/jvm/src/io/ktor/websocket/WebSocketDeflateExtension.kt",
+        "passed": true,
+        "sha256": "7407251d649d5edf9d9425068c0c7a207b013cd6c085e12306f80b73e3dd03ea"
+      },
+      {
+        "file": "ktor-test-server/src/main/kotlin/test/server/tests/Logging.kt",
+        "passed": true,
+        "sha256": "ca497dbac868f381a11ae2d0d7ed95ca684ed2f334572907fa8f89b09aa15690"
+      },
+      {
+        "file": "ktor-utils/common/src/io/ktor/util/debug/IntellijIdeaDebugDetector.kt",
+        "passed": true,
+        "sha256": "052b9dffb03a3b7593d719c137cd7cc9bce8c1821de4bbaf085f69ad15e831ab"
+      },
+      {
+        "file": "ktor-utils/jvm/src/io/ktor/util/InputJvm.kt",
+        "passed": true,
+        "sha256": "bd8b1b3dac2ac9af0da15b1b27d92fd309ce852d2b8672adc42a87095ac28298"
+      },
+      {
+        "file": "ktor-utils/posix/src/io/ktor/util/AttributesNative.kt",
+        "passed": true,
+        "sha256": "96bb0c77ee25bf00a91b0c43f2162a63c606ab320209e1ba56a55dbe1265ffc9"
+      }
+    ]
+  }
+]

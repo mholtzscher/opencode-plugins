@@ -5,6 +5,7 @@ import type { Session } from "@opencode/schema/session";
 import { Effect, Layer, Schema } from "effect";
 
 import { loadOptions } from "./config.js";
+import { grammarTool } from "./grammar-tool.js";
 import { classifyLayer } from "./layers.js";
 import { routeClassification } from "./router.js";
 import {
@@ -172,6 +173,7 @@ export default Plugin.define({
 
       yield* context.tool.transform((editor) => {
         editor.add(tool);
+        editor.add(grammarTool);
       });
     }),
   id: "classify",

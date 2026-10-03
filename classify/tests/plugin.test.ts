@@ -147,13 +147,16 @@ const register = async (
   await Effect.runPromise(plugin.effect(context).pipe(Scope.provide(scope)));
   return tools;
 };
-test("real entry registers one unnamespaced tool with concrete discoverable schema", async () => {
+test("real entry registers classify and grammar discovery with concrete schemas", async () => {
   const tools = await register({
     backends: { default: { provider: "openai-decisions" } },
     classifiers: { triage: { description: "Assess incidents", questions } },
     defaultBackend: "default",
   });
-  expect(tools).toHaveLength(1);
+  expect(tools.map((registered) => registered.name)).toEqual([
+    "classify",
+    "classify_grammar",
+  ]);
   const [tool] = tools;
   expect(plugin.id).toBe("classify");
   expect(tool.name).toBe("classify");
@@ -176,6 +179,24 @@ test("real entry registers one unnamespaced tool with concrete discoverable sche
   const result = await Effect.runPromise(tool.execute(input, toolContext()));
   expect(result.output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
   expect(result.content).toBeUndefined();
+  const grammar = await Effect.runPromise(
+    tools[1].execute(
+      { node: "method_declaration", path: "/not-a-real-file.go" },
+      toolContext()
+    )
+  );
+  expect(grammar.output).toMatchObject({
+    definitions: [
+      {
+        fields: {
+          name: { types: [{ named: true, type: "field_identifier" }] },
+        },
+        queryable: true,
+        type: "method_declaration",
+      },
+    ],
+    language: "go",
+  });
 });
 
 test("server slash commands and RPC share durable session selection and route named profiles", async () => {

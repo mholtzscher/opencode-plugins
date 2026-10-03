@@ -6,7 +6,7 @@ Six independent plugins for OpenCode V2. Each directory is its own Bun package, 
 
 ### [Classify](./classify/README.md)
 
-A server-side `classify` tool for ad hoc typed questions and reusable named classifiers. TypeSafe AI and externally managed Laya servers return native yes probabilities, categorical choices, fractional rubric scores, and uncertainty data. OpenAI Decisions is unavailable pending a verified API adapter. The backend is user-configured; the tool does not execute decisions.
+A server-side `classify` tool for ad hoc typed questions and reusable named classifiers. TypeSafe AI, Cloudflare Clef, and externally managed Laya and Ollama servers return native yes probabilities, categorical choices, fractional rubric scores, and uncertainty data. OpenAI Decisions is unavailable pending a verified API adapter. The backend is user-configured; the tool does not execute decisions.
 
 ### [Cache metrics](./cache-metrics/README.md)
 
@@ -37,7 +37,7 @@ The first four commands run on the server and work in the web UI and TUI. `/pr-r
 
 ### [Spec tools](./spec-tools/README.md)
 
-TUI-only commands that submit specification workflow prompts to the agent. Existing-spec commands use a picker for files directly under the current project's `specs/` directory, newest first.
+Server commands for terminal, web, and desktop clients, requiring OpenCode 2.0.22 or later. `/create-spec` takes an idea; existing-spec commands take a path to a direct file under the invoking session's `specs/` directory on the server. There are no TUI pickers.
 
 | Command | Purpose |
 | --- | --- |
@@ -47,7 +47,7 @@ TUI-only commands that submit specification workflow prompts to the agent. Exist
 | `/scrub-spec` | Request a direct edit to remove repetition and stale details while preserving contracts. |
 | `/scrub-spec-bg` | Request the same cleanup in a background subagent. |
 | `/simplify-spec` | Propose a smaller solution in chat without editing files. |
-| `/spec-annotate` | Submit the selected spec to `/plannotator-annotate`. |
+| `/spec-annotate` | Forward the specified file to the server's `/plannotator-annotate` command. |
 
 Provide the skills and external commands used by your chosen workflow. The plugin does not bundle them.
 
@@ -73,7 +73,7 @@ Add the plugins you want to the `plugins` array in your global `~/.config/openco
 }
 ```
 
-OpenCode installs the packages and loads their TUI entries alongside their server entries. No checkout or manual `bun install` is needed. To try the marketplace prototype, add `github:mholtzscher/opencode-plugins#main::path:marketplace`.
+OpenCode installs the packages and loads any exported TUI entries alongside their server entries. `spec-tools` is server-only. No checkout or manual `bun install` is needed. To try the marketplace prototype, add `github:mholtzscher/opencode-plugins#main::path:marketplace`.
 
 You can also install a plugin globally with the CLI:
 
@@ -83,7 +83,7 @@ opencode plugin add 'github:mholtzscher/opencode-plugins#main::path:cache-metric
 
 ## Development
 
-For a local checkout, run `bun install` inside each plugin directory you use and configure its absolute directory path in `plugins`. This repository's [`opencode.jsonc`](./opencode.jsonc) loads all six plugins. Classify uses TypeSafe AI and requires `TYPESAFE_API_KEY` in the OpenCode server environment; see its README.
+For a local checkout, run `bun install` inside each plugin directory you use and configure its absolute directory path in `plugins`. This repository's [`opencode.jsonc`](./opencode.jsonc) loads all six plugins. Classify defaults to local Ollama and includes Cloudflare and TypeSafe profiles with operator-specific server-local credential paths. Configure credentials or start inference servers separately; see [`classify/README.md`](./classify/README.md).
 
 Run `bun run typecheck` in the affected plugin directory. Also run `bun test` for `classify`, `cache-metrics`, `github-tools`, `quota-usage`, and `spec-tools`. Classify's typecheck includes both entries, nested providers, and tests; live provider checks are opt-in manual checks. For cache metrics TUI changes, run `bun run build:tui` and commit the updated `dist/tui.js`.
 

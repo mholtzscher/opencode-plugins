@@ -6,6 +6,7 @@ import {
   DISTRIBUTION_TOLERANCE,
   MAX_BYTES,
   MAX_CHOICES,
+  MAX_CODE_QUERY_LENGTH,
   MAX_EVIDENCE_DIFFS,
   MAX_EVIDENCE_PATHS,
   MAX_JSON_DEPTH,
@@ -190,6 +191,16 @@ const RevisionSchema = NonblankSchema.check(
   )
 );
 export const EvidenceSchema = Schema.Struct({
+  code: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        path: PathSchema,
+        query: NonblankSchema.check(Schema.isMaxLength(MAX_CODE_QUERY_LENGTH)),
+      }).annotate(strict)
+    )
+      .pipe(Schema.mutable)
+      .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_PATHS))
+  ),
   diffs: Schema.optional(
     Schema.Array(
       Schema.Struct({
@@ -207,14 +218,17 @@ export const EvidenceSchema = Schema.Struct({
   .check(
     Schema.makeFilter(
       (value) =>
-        ["text", "files", "diffs"].some((key) => Object.hasOwn(value, key)),
+        ["text", "files", "diffs", "code"].some((key) =>
+          Object.hasOwn(value, key)
+        ),
       {
-        message: "Evidence requires text, files, or diffs.",
+        message: "Evidence requires text, files, diffs, or code.",
         toJsonSchema: () => ({
           anyOf: [
             { required: ["text"] },
             { required: ["files"] },
             { required: ["diffs"] },
+            { required: ["code"] },
           ],
         }),
       }
