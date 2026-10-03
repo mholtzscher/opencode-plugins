@@ -48,4 +48,12 @@ When Release Please creates a Classify release, `publish-classify` checks out th
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
+If recovery requires a workflow fix, merge that fix and dispatch the updated workflow against the existing release tag:
+
+```sh
+gh workflow run release-please.yml --ref main -f classify_tag=classify-v1.0.1
+```
+
+This publishes the tagged package using the current workflow. It skips Release Please, so it does not create another release or version bump. npm verbose logs include OIDC exchange errors to help diagnose trusted-publisher mismatches.
+
 To opt another plugin into npm, give it a scoped package name, package metadata, a license, a `files` allowlist, and public `publishConfig`; remove `private: true`. Add its release outputs and a publish job to the workflow, then perform its first publish and configure its trusted publisher. Keep package-specific build steps in that job. Cache metrics must include its committed `dist/tui.js` bundle.

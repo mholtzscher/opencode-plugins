@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      classify_tag:
+        description: Existing Classify release tag to publish
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -14,6 +20,7 @@ concurrency:
 
 jobs:
   release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,7 +40,9 @@ jobs:
   # this run, as in pi-extensions. Only Classify opts into npm publishing.
   publish-classify:
     needs: release
-    if: needs.release.outputs.classify_released == 'true'
+    if: >-
+      always() && (needs.release.outputs.classify_released == 'true' ||
+       (github.event_name == 'workflow_dispatch' && startsWith(inputs.classify_tag, 'classify-v')))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release.outputs.classify_tag }}
+          ref: ${{ needs.release.outputs.classify_tag || inputs.classify_tag }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -55,6 +64,14 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - name: Verify release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release.outputs.classify_tag || inputs.classify_tag }}
+        run: |
+          test "$RELEASE_TAG" = "classify-v$(node -p 'require("./package.json").version')"
+          gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx false
+
       # npm trusted publishing requires npm >= 11.5.1.
       - run: npm install -g npm@11
       - run: bun install --frozen-lockfile
@@ -64,4 +81,4 @@ jobs:
 
       # Configure release-please.yml as this package's npm trusted publisher.
       # npm uses GitHub OIDC and generates provenance without NODE_AUTH_TOKEN.
-      - run: npm publish --access public
+      - run: npm publish --access public --loglevel verbose
