@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildBackgroundScrubPrompt, buildSimplifyPrompt } from "./tui.js";
+import { buildBackgroundScrubPrompt, buildSimplifyPrompt } from "./prompts.js";
 
 describe("spec prompts", () => {
   test("the simplify command remains advisory", () => {
