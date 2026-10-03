@@ -53,7 +53,9 @@ export const BackendStatus = (props: BackendStatusProps) => {
   });
   return (
     <Show when={props.sessionID}>
-      <text fg={props.context.theme.text.muted}>classify: {backend()}</text>
+      <text fg={props.context.theme.text.muted} flexShrink={0} wrapMode="none">
+        {`classify: ${backend()}`}
+      </text>
     </Show>
   );
 };
