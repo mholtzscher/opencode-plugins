@@ -15,7 +15,7 @@ Merge this entry into the `plugins` array in your `opencode.jsonc`:
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
     {
-      "package": "github:mholtzscher/opencode-plugins#main::path:classify",
+      "package": "@mholtzscher/opencode-classify",
       "options": {
         "backends": { "default": { "provider": "typesafe" } },
         "defaultBackend": "default",
@@ -26,6 +26,8 @@ Merge this entry into the `plugins` array in your `opencode.jsonc`:
 ```
 
 Set `TYPESAFE_API_KEY` in the OpenCode server environment. For a local checkout, use the plugin's directory as `package` (for example, `./classify` from this repository's root) and run `bun install` inside `classify/`.
+
+Append a version such as `@1.0.0` to pin the npm package. To install from Git, use `"package": "github:mholtzscher/opencode-plugins#main::path:classify"`. Both sources export the server and TUI entries.
 
 To use another provider, replace `backends.default` with a profile from the [configuration guide](./docs/CONFIGURATION.md):
 
