@@ -4,11 +4,12 @@ import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
 
 import type { Tool } from "@opencode/schema/tool";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Predicate } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import { readRegularFile } from "./bounded-file.js";
 import type { ReadFailure } from "./bounded-file.js";
+import { readFileLines } from "./bounded-lines.js";
 import { readBoundedBytes } from "./bounded-stream.js";
 import { extractCode } from "./code-evidence.js";
 import { ClassificationError } from "./errors.js";
@@ -17,6 +18,7 @@ import { OpenCodeAccess } from "./opencode-access.js";
 import type {
   Content,
   EvidenceDiff,
+  EvidenceFile,
   EvidenceState,
   JsonValue,
 } from "./types.js";
@@ -109,18 +111,19 @@ export const EvidenceAccessLive = Layer.effect(
     const readEvidenceFile = Effect.fn("readEvidenceFile")(
       function* readEvidenceFile(
         directory: string,
-        filePath: string,
+        file: EvidenceFile,
         budget: number,
         context: Tool.Context
       ) {
+        const selection = Predicate.isString(file) ? { path: file } : file;
         const canonical = yield* io(() =>
-          realpath(path.resolve(directory, filePath))
+          realpath(path.resolve(directory, selection.path))
         );
         const flags =
           constants.O_RDONLY + constants.O_NOFOLLOW + constants.O_NONBLOCK;
         const handle = yield* Effect.acquireRelease(
           io(() => open(canonical, flags)),
-          (file) => io(() => file.close()).pipe(Effect.orDie)
+          (opened) => io(() => opened.close()).pipe(Effect.orDie)
         );
         const identity = yield* io(() => handle.stat()).pipe(
           Effect.uninterruptible
@@ -149,6 +152,18 @@ export const EvidenceAccessLive = Layer.effect(
         yield* verifyIdentity();
         yield* access.readFile(canonical, context);
         yield* verifyIdentity();
+        if (selection.offset !== undefined || selection.limit !== undefined) {
+          const { bytes, ...range } = yield* readFileLines(
+            handle,
+            selection,
+            budget
+          );
+          return {
+            content: yield* decode(bytes),
+            size: bytes.length,
+            ...range,
+          };
+        }
         return yield* readText(handle, budget);
       },
       Effect.scoped
@@ -231,15 +246,18 @@ export const EvidenceAccessLive = Layer.effect(
         let remaining = MAX_BYTES;
         if (state.files) {
           const files: JsonValue[] = [];
-          for (const evidencePath of state.files) {
-            const { content, size } = yield* readEvidenceFile(
+          for (const file of state.files) {
+            const { size, ...evidence } = yield* readEvidenceFile(
               directory,
-              evidencePath,
+              file,
               remaining,
               context
             );
             remaining -= size;
-            files.push({ content, path: evidencePath });
+            files.push({
+              ...evidence,
+              path: Predicate.isString(file) ? file : file.path,
+            });
           }
           result.files = files;
         }

@@ -48,6 +48,44 @@ Resolution happens freshly on every invocation; source text is not cached.
 - Symlinks resolve before native `read` permission checks, which use the canonical path and include external-directory approval.
 - There is no glob expansion, URL fetching, or implicit file discovery.
 
+### Partial files
+
+File entries also accept `{ path, offset?, limit? }`, using the native read tool's parameter names:
+
+```json
+{
+  "state": {
+    "type": "evidence",
+    "files": [
+      "docs/cache-policy.md",
+      { "path": "src/cache.ts", "limit": 25 },
+      { "path": "src/cache.ts", "offset": 120, "limit": 60 }
+    ]
+  },
+  "classifier": "review-cache"
+}
+```
+
+`review-cache` stands for a configured named classifier. Ad hoc calls use the same state with `questions`.
+
+- `offset` is the **1-based starting line**, default `1`. `offset: 120, limit: 60` selects lines 120 through 179.
+- `limit` is the maximum number of lines. Omit it to read through EOF. Both values must be positive safe integers.
+- Omit both values to read the whole file. `{ "path": "a.ts" }` is equivalent to `"a.ts"`.
+- EOF may return fewer lines than requested. An offset beyond EOF, including an explicit slice of an empty file, returns `EVIDENCE_ERROR`. A final newline ends the last line; it does not create another empty line.
+- Repeated entries can select different sections of the same file. Each resolves freshly and counts toward the 64-entry limit.
+
+For a slice, the provider receives the actual inclusive bounds and whether any source was omitted:
+
+```text
+{ path, content, startLine, endLine, partial }
+```
+
+Content preserves source text, including CRLF/LF line endings and the selected last line's terminator. It has no added line-number prefixes. `partial` is false when the selection covers the entire file. Whole-file entries retain the existing `{ path, content }` shape.
+
+Slices can come from files larger than 1 MiB. The reader scans at most **64 MiB per selection**, including skipped lines, and retains only selected content. A small slice near the start can therefore work even when the source exceeds 64 MiB. Deep offsets that exceed the scan limit fail. UTF-8 and binary checks cover the scanned prefix through the selection; the unread suffix is not validated. The reader stops at the selected final line or EOF and checks for file changes during reading.
+
+Selected content shares the existing 1 MiB evidence/request budget, including JSON escaping in the expanded request. A single oversized line, an oversized selection, or an exceeded scan budget fails without truncation or a provider request. Whole-file and Tree-sitter source reads retain their 1 MiB source limit.
+
 ## Git diffs
 
 Each of up to 16 diffs requires a Git revision `base`, such as `HEAD` or a commit ID. It compares that revision with the **tracked working tree**, incorporating both staged and unstaged changes. Deleted files are included; untracked files are excluded.
