@@ -1,0 +1,91 @@
+{
+  "usage": [
+    {
+      "id": "msg_10921ef17001QRIm7oPzCcgCkJ",
+      "model": {
+        "id": "gpt-6.1-sol",
+        "providerID": "openai"
+      },
+      "time": {
+        "created": 1791154581283,
+        "streamed": 1791154584494,
+        "completed": 1791154584495
+      },
+      "tokens": {
+        "input": 3594,
+        "output": 23,
+        "reasoning": 0,
+        "cache": {
+          "read": 2048,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10921fbb90010xyDEz9zi57fW8",
+      "model": {
+        "id": "gpt-6.1-sol",
+        "providerID": "openai"
+      },
+      "time": {
+        "created": 1791154584515,
+        "streamed": 1791154587385,
+        "completed": 1791154587387
+      },
+      "tokens": {
+        "input": 1319,
+        "output": 35,
+        "reasoning": 0,
+        "cache": {
+          "read": 5504,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109220703001sCpWW2H74KzmH1",
+      "model": {
+        "id": "gpt-6.1-sol",
+        "providerID": "openai"
+      },
+      "time": {
+        "created": 1791154587406,
+        "streamed": 1791154597601,
+        "completed": 1791154597603
+      },
+      "tokens": {
+        "input": 1590,
+        "output": 264,
+        "reasoning": 28,
+        "cache": {
+          "read": 6656,
+          "write": 0
+        }
+      },
+      "finish": "stop"
+    }
+  ],
+  "tools": [
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "outbox",
+        "limit": 50
+      },
+      "outputBytes": 4248
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/devices/nats/device_fact_relay.go",
+        "offset": 331,
+        "limit": 110
+      },
+      "outputBytes": 5324
+    }
+  ]
+}

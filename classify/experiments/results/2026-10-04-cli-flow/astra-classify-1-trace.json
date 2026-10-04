@@ -1,0 +1,813 @@
+{
+  "usage": [
+    {
+      "id": "msg_109377504001q8yanWNPNzG5l8",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791155991824,
+        "streamed": 1791155994865,
+        "completed": 1791155994867
+      },
+      "tokens": {
+        "input": 6065,
+        "output": 33,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093780fd001OFzE6wEDMWO1qK",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791155994888,
+        "streamed": 1791155997099,
+        "completed": 1791155997101
+      },
+      "tokens": {
+        "input": 3274,
+        "output": 39,
+        "reasoning": 0,
+        "cache": {
+          "read": 5888,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093789b5001J95DU31nSMhdE6",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791155997119,
+        "streamed": 1791155999318,
+        "completed": 1791155999319
+      },
+      "tokens": {
+        "input": 268,
+        "output": 45,
+        "reasoning": 0,
+        "cache": {
+          "read": 8960,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937925f001YTmq2ON4IbTasa",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791155999338,
+        "streamed": 1791156003702,
+        "completed": 1791156007923
+      },
+      "tokens": {
+        "input": 1261,
+        "output": 170,
+        "reasoning": 0,
+        "cache": {
+          "read": 9088,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937b3fd0014s4iCPHLuegV5L",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156007944,
+        "streamed": 1791156010680,
+        "completed": 1791156011486
+      },
+      "tokens": {
+        "input": 373,
+        "output": 86,
+        "reasoning": 0,
+        "cache": {
+          "read": 10240,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937c1e700115Skh8lceQKJmG",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156011506,
+        "streamed": 1791156015129,
+        "completed": 1791156019750
+      },
+      "tokens": {
+        "input": 373,
+        "output": 155,
+        "reasoning": 0,
+        "cache": {
+          "read": 10496,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937e230001ML4l3e8a5fSXPv",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156019772,
+        "streamed": 1791156021140,
+        "completed": 1791156021141
+      },
+      "tokens": {
+        "input": 1207,
+        "output": 26,
+        "reasoning": 0,
+        "cache": {
+          "read": 10752,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937e79e001Q84eX3u96yTs1e",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156021160,
+        "streamed": 1791156022829,
+        "completed": 1791156022830
+      },
+      "tokens": {
+        "input": 3058,
+        "output": 25,
+        "reasoning": 0,
+        "cache": {
+          "read": 11776,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937ee36001C5YLCILx6yEl8I",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156022848,
+        "streamed": 1791156024916,
+        "completed": 1791156024917
+      },
+      "tokens": {
+        "input": 1191,
+        "output": 26,
+        "reasoning": 0,
+        "cache": {
+          "read": 14720,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937f65e001Ew8MhsgRILIsY3",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156024935,
+        "streamed": 1791156026411,
+        "completed": 1791156026412
+      },
+      "tokens": {
+        "input": 6858,
+        "output": 24,
+        "reasoning": 0,
+        "cache": {
+          "read": 15744,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10937fc35001SKWpPO0GlWg44b",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156026432,
+        "streamed": 1791156028701,
+        "completed": 1791156028702
+      },
+      "tokens": {
+        "input": 3218,
+        "output": 57,
+        "reasoning": 0,
+        "cache": {
+          "read": 22400,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093805260011fSQNGVpqVWCLZ",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156028719,
+        "streamed": 1791156031074,
+        "completed": 1791156031075
+      },
+      "tokens": {
+        "input": 315,
+        "output": 25,
+        "reasoning": 0,
+        "cache": {
+          "read": 25472,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109380e6b001EfMM2BJsTwUg0E",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156031093,
+        "streamed": 1791156035316,
+        "completed": 1791156037973
+      },
+      "tokens": {
+        "input": 938,
+        "output": 157,
+        "reasoning": 0,
+        "cache": {
+          "read": 25600,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10938295f001KuuhNFZyRHuBKn",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156037994,
+        "streamed": 1791156041050,
+        "completed": 1791156041051
+      },
+      "tokens": {
+        "input": 1262,
+        "output": 26,
+        "reasoning": 0,
+        "cache": {
+          "read": 26368,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109383563001pu936eTZka2Y1S",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156041069,
+        "streamed": 1791156042727,
+        "completed": 1791156042728
+      },
+      "tokens": {
+        "input": 435,
+        "output": 30,
+        "reasoning": 0,
+        "cache": {
+          "read": 27520,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109383bf1001vFNYpKI4nKEjg8",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156042746,
+        "streamed": 1791156048815,
+        "completed": 1791156048816
+      },
+      "tokens": {
+        "input": 1544,
+        "output": 26,
+        "reasoning": 0,
+        "cache": {
+          "read": 27776,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093853b9001zH6xjhEdHOJWGX",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156048836,
+        "streamed": 1791156050939,
+        "completed": 1791156050940
+      },
+      "tokens": {
+        "input": 1754,
+        "output": 61,
+        "reasoning": 0,
+        "cache": {
+          "read": 29184,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109385c05001QBPrTpPTWO5XqE",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156050959,
+        "streamed": 1791156060740,
+        "completed": 1791156061129
+      },
+      "tokens": {
+        "input": 293,
+        "output": 101,
+        "reasoning": 0,
+        "cache": {
+          "read": 30848,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093883d2001it7Adie3UvDfL0",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156061150,
+        "streamed": 1791156063579,
+        "completed": 1791156063580
+      },
+      "tokens": {
+        "input": 437,
+        "output": 36,
+        "reasoning": 0,
+        "cache": {
+          "read": 30976,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109388d65001hwubaV9IwmFofJ",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156063599,
+        "streamed": 1791156066554,
+        "completed": 1791156068423
+      },
+      "tokens": {
+        "input": 456,
+        "output": 88,
+        "reasoning": 12,
+        "cache": {
+          "read": 31232,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10938a052001tk4RVGdSmZ4j65",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156068446,
+        "streamed": 1791156070339,
+        "completed": 1791156070340
+      },
+      "tokens": {
+        "input": 471,
+        "output": 45,
+        "reasoning": 0,
+        "cache": {
+          "read": 31488,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10938a7cc001r72YgP6Y61AHoC",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156070358,
+        "streamed": 1791156071942,
+        "completed": 1791156071943
+      },
+      "tokens": {
+        "input": 220,
+        "output": 31,
+        "reasoning": 0,
+        "cache": {
+          "read": 31872,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10938ae10001Jr4uVp6VG6pt5l",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156071962,
+        "streamed": 1791156075727,
+        "completed": 1791156076281
+      },
+      "tokens": {
+        "input": 601,
+        "output": 99,
+        "reasoning": 18,
+        "cache": {
+          "read": 32000,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10938bf03001ZpLrBeTQevALYe",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156076302,
+        "streamed": 1791156077536,
+        "completed": 1791156077536
+      },
+      "tokens": {
+        "input": 377,
+        "output": 31,
+        "reasoning": 0,
+        "cache": {
+          "read": 32512,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10938c3e8001W13NI16qfrBAi4",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156077554,
+        "streamed": 1791156098617,
+        "completed": 1791156098618
+      },
+      "tokens": {
+        "input": 1559,
+        "output": 975,
+        "reasoning": 0,
+        "cache": {
+          "read": 32768,
+          "write": 0
+        }
+      },
+      "finish": "stop"
+    }
+  ],
+  "tools": [
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return search({query:'classify_decide',limit:1});"
+      },
+      "error": null,
+      "outputBytes": 12863,
+      "output": "{\n  \"items\": [\n    {\n      \"path\": \"tools.classify.decide\",\n      \"description\": \"Evaluate content against independent typed questions using the user's configured decision backend.\\nPut the content being judged in state and each judgment in question.instructions. Question IDs are response keys, not instructions.\\nSupply self-contained evidence: the backend receives state and the selected questions, not conversation history. Plain paths and embedded URLs are inert data; only the explicit evidence wrapper reads files, queried code, or diffs. Submitted content may be sent to a remote backend and incur charges.\\nState, instructions, and non-null criteria descriptions must be nonblank strings, nonempty JSON objects, or nonempty JSON arrays. Nested JSON may contain null, booleans, and finite numbers. Supply 1\u201364 questions; IDs must match ^[A-Za-z][A-Za-z0-9_-]{0,63}$. Inputs are limited to 32 JSON levels and the expanded provider request to 1 MiB; keep evidence focused.\\nRead server-local evidence with state: { type: \\\"evidence\\\", text?, files?: [path | { path, offset?, limit? }], code?: [{ path, query }], diffs?: [{ base, paths? }] }. Code runs raw Tree-sitter queries and sends exact @evidence captures with source ranges; other capture names are query helpers. Use classify_grammar to discover node types/fields for the file extension. Capture comments and enclosing nodes explicitly. Multiple matches are accepted; duplicate ranges collapse. Queries are limited to 8192 characters, 128 unique captures, and five seconds each; invalid queries, unsupported directives, syntax errors, no captures, and exceeded limits fail without truncation. Paths are relative to the session directory; base is compared with the tracked working tree (including staged changes, excluding untracked files). Native read/shell permissions apply. Text files only.\\nFile offset is a 1-based starting line, default 1; limit is the maximum number of lines. Both must be positive safe integers. For example, { path: \\\"src/cache.ts\\\", offset: 120, limit: 60 } selects lines 120 through 179. Omit both for the whole file; omit limit to read through EOF. EOF may return fewer lines; an offset beyond EOF fails. Slices include exact content, startLine, endLine, and partial metadata. Partial reads scan at most 64 MiB per selection and can select from files larger than 1 MiB; selected content shares the 1 MiB request budget. Budget failures never truncate evidence.\\nnoul returns a number in [0, 1], the probability of yes, not a boolean. Its optional criteria defines \\\"true\\\", \\\"false\\\", or both.\\nchoice requires 2\u2013255 distinct nonblank labels (at most 128 characters each); descriptions may be null. It always selects one allowed label: include an \\\"unknown\\\" label with an insufficient-evidence criterion if needed; there is no automatic abstention. Backend limits may be tighter (Laya supports at most 100 choices).\\nscore requires 2\u201310 ordered rubric levels and returns a possibly fractional number on the zero-based scale 0\u2026criteria.length - 1, not a percentage. Order levels from lowest to highest for the property being rated.\\nChoice criteria accept a label-to-description map or [{ label, description }]. Use the list form for special labels such as \\\"__proto__\\\" that Code Mode cannot preserve as object keys. Score legends preserve string, object, or array level descriptions.\\nSupply state and questions for an ad hoc request, or classifier for a configured preset, never both questions and classifier. Named classifiers require caller-supplied state unless they define their own; when state is configured, supply only classifier and never override state. Configured evidence resolves freshly per invocation with the same session-relative paths and native permissions. For judgments depending on previous answers, make another call.\\nReturns structured output: check ok before reading result.answers[id]. Success is { ok: true, result: { answers, provider, model, usage: { input_tokens, output_tokens }, attempts, durationMs, classifier?, requestID? } }; failure is { ok: false, error: { code, message, retryable, provider, attempts, durationMs, path?, status?, requestID?, retryAfterMs? } }, with no partial answers. attempts counts HTTP dispatches, including the initial request; zero means no dispatch. path is a JSON Pointer into invalid input. retryAfterMs is the provider's suggested wait, when available. retryable means a later retry may help, not that it is free; a timed-out request may already incur cost.\\nAnswer fields: noul \u2192 { type, noul }; choice \u2192 { type, choice, probabilities, confidence }; score \u2192 { type, score, scale: { min: 0, max: criteria.length - 1 }, legend, probabilities, confidence }. All listed answer fields and usage counts are required. Distributions use choice labels or zero-based score indices as keys. Native confidence is provider-specific, not probability of correctness or necessarily comparable across providers; no explanations or permission to execute an action are returned.\\nExample input: {\\\"state\\\":\\\"Production is down after a deploy.\\\",\\\"questions\\\":{\\\"active\\\":{\\\"type\\\":\\\"noul\\\",\\\"instructions\\\":\\\"Does this describe an active incident?\\\"},\\\"kind\\\":{\\\"type\\\":\\\"choice\\\",\\\"instructions\\\":\\\"Categorize the report.\\\",\\\"criteria\\\":{\\\"incident\\\":\\\"Active production failure\\\",\\\"other\\\":\\\"Not an incident\\\",\\\"unknown\\\":\\\"Insufficient evidence\\\"}},\\\"impact\\\":{\\\"type\\\":\\\"score\\\",\\\"instructions\\\":\\\"Rate user impact.\\\",\\\"criteria\\\":[\\\"No user impact\\\",\\\"Some users affected\\\",\\\"Production unavailable\\\"]}}}\\nIn Code Mode, discover the classify namespace and use the returned decide signature. Read output.result.answers only when output.ok is true. Use classify_search to find relevant files before selecting evidence.\",\n      \"signature\": \"tools.classify.decide({\\n    questions: {\\n      [key: string]: {\\n          criteria?: {\\n              false?: unknown,\\n              true?: unknown,\\n            } | null,\\n          instructions: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }>,\\n          type: \\\"noul\\\",\\n        } | {\\n          criteria: {\\n              [key: string]: unknown,\\n            } | Array<{\\n                description: unknown,\\n                /** @maxLength 128 @pattern \\\\S */\\n                label: string,\\n              }>,\\n          instructions: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }>,\\n          type: \\\"choice\\\",\\n        } | {\\n          /** @minItems 2 @maxItems 10 */\\n          criteria: Array<string | {\\n                [key: string]: unknown,\\n              } | Array<unknown>>,\\n          instructions: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }>,\\n          type: \\\"score\\\",\\n        },\\n    },\\n    state: {\\n        code?: Array<{\\n              /** @pattern \\\\S */\\n              path: string,\\n              /** @maxLength 8192 @pattern \\\\S */\\n              query: string,\\n            }> | null,\\n        diffs?: Array<{\\n              /** @pattern \\\\S */\\n              base: string,\\n              paths?: Array<unknown> | null,\\n            }> | null,\\n        files?: Array<string | {\\n                /**\\n                 * Maximum number of lines to include. Omit to read through EOF. EOF may return fewer lines; byte budgets fail rather than truncate.\\n                 * @integer @minimum 1 @maximum 9007199254740991\\n                 */\\n                limit?: number,\\n                /**\\n                 * 1-based starting line, default 1. offset: 120, limit: 60 selects lines 120 through 179. An offset beyond EOF fails.\\n                 * @integer @minimum 1 @maximum 9007199254740991\\n                 */\\n                offset?: number,\\n                /** @pattern \\\\S */\\n                path: string,\\n              }> | null,\\n        text?: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }> | null,\\n        type: \\\"evidence\\\",\\n      } | string | {\\n          [key: string]: null | boolean | number | string | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }> | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            },\\n        } | Array<null | boolean | number | string | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }> | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            }>,\\n  }): Promise<{\\n    ok: true,\\n    result: {\\n      answers: {\\n        [key: string]: {\\n            /** Probability of yes, not a boolean or confidence score. @minimum 0 @maximum 1 */\\n            noul: number,\\n            type: \\\"noul\\\",\\n          } | {\\n            /** @maxLength 128 @pattern \\\\S */\\n            choice: string,\\n            /**\\n             * Provider-native uncertainty metric; not probability of correctness or necessarily comparable across providers.\\n             * @minimum 0 @maximum 1\\n             */\\n            confidence: number,\\n            /** Each value: @minimum 0 @maximum 1 */\\n            probabilities: {\\n              [key: string]: number,\\n            },\\n            type: \\\"choice\\\",\\n          } | {\\n            /**\\n             * Provider-native uncertainty metric; not probability of correctness or necessarily comparable across providers.\\n             * @minimum 0 @maximum 1\\n             */\\n            confidence: number,\\n            legend: {\\n              [key: string]: string | {\\n                  [key: string]: unknown,\\n                } | Array<unknown>,\\n            },\\n            /** Each value: @minimum 0 @maximum 1 */\\n            probabilities: {\\n              [key: string]: number,\\n            },\\n            /** @minimum 0 */\\n            score: number,\\n            type: \\\"score\\\",\\n            scale: {\\n              /** @integer @minimum 1 @maximum 9 */\\n              max: number,\\n              min: 0,\\n            },\\n          },\\n      },\\n      /** @integer @minimum 1 */\\n      attempts: number,\\n      /** @pattern ^[A-Za-z][A-Za-z0-9_-]{0,63}$ */\\n      backend?: string,\\n      /** @pattern ^[A-Za-z][A-Za-z0-9_-]{0,63}$ */\\n      classifier?: string,\\n      /** @minimum 0 */\\n      durationMs: number,\\n      /** @pattern \\\\S */\\n      model: string,\\n      provider: \\\"typesafe\\\" | \\\"laya\\\" | \\\"ollama\\\" | \\\"cloudflare\\\" | \\\"openai-decisions\\\",\\n      /** @pattern ^[A-Za-z0-9._:-]{1,256}$ */\\n      requestID?: string,\\n      usage: {\\n        /** @integer @minimum 0 */\\n        input_tokens: number,\\n        /** @integer @minimum 0 */\\n        output_tokens: number,\\n      },\\n    },\\n  } | {\\n    error: {\\n      code: \\\"INVALID_CONFIG\\\" | \\\"INVALID_INPUT\\\" | \\\"EVIDENCE_ERROR\\\" | \\\"MISSING_CREDENTIALS\\\" | \\\"PROVIDER_UNAVAILABLE\\\" | \\\"UNSUPPORTED_TYPE\\\" | \\\"AUTH_FAILED\\\" | \\\"RATE_LIMITED\\\" | \\\"REQUEST_REJECTED\\\" | \\\"NETWORK_ERROR\\\" | \\\"TIMEOUT\\\" | \\\"INVALID_RESPONSE\\\" | \\\"INPUT_TRUNCATED\\\" | \\\"INTERNAL_ERROR\\\",\\n      /** @pattern \\\\S */\\n      message: string,\\n      /** @pattern ^(?:\\\\/(?:[^~]|~[01])*)*$ */\\n      path?: string,\\n      /** @pattern ^[A-Za-z0-9._:-]{1,256}$ */\\n      requestID?: string,\\n      /** @minimum 0 */\\n      retryAfterMs?: number,\\n      retryable: boolean,\\n      /** @integer @minimum 100 @maximum 599 */\\n      status?: number,\\n      /** @integer @minimum 0 */\\n      attempts: number,\\n      /** @pattern ^[A-Za-z][A-Za-z0-9_-]{0,63}$ */\\n      backend?: string,\\n      /** @minimum 0 */\\n      durationMs: number,\\n      provider: \\\"typesafe\\\" | \\\"laya\\\" | \\\"ollama\\\" | \\\"cloudflare\\\" | \\\"openai-decisions\\\",\\n    },\\n    ok: false,\\n  }>\"\n    }\n  ],\n  \"remaining\": 2,\n  \"next\": {\n    \"offset\": 1\n  }\n}"
+    },
+    {
+      "tool": "shell",
+      "status": "completed",
+      "input": {
+        "command": "rg -l 'notification|Notification' -g '*.go' -g '!**/*_test.go' ."
+      },
+      "error": null,
+      "outputBytes": 63
+    },
+    {
+      "tool": "shell",
+      "status": "completed",
+      "input": {
+        "command": "rg -l 'automation|Automation|Ack\\(|Nak\\(' -g '*.go' -g '!**/*_test.go' ."
+      },
+      "error": null,
+      "outputBytes": 4614
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "const files=['internal/modules/automations/nats/consumer.go','internal/modules/automations/nats/device_fact_mapping.go','internal/modules/automations/fact_processing.go','internal/modules/automations/sqlite/admission.go','internal/modules/automations/execution.go','internal/app/hearthd/automations.go']; return await tools.classify.decide({state:{type:'evidence',files},questions:Object.fromEntries(files.map((p,i)=>['f'+i,{type:'choice',instructions:`Is ${p} relevant implementation evidence for tracing incoming device notification delivery, durable automation admission, duplicates, condition snapshot races, callback cancellation, restart recovery or step command identity/completion?`,criteria:{yes:'Relevant',no:'Not relevant'}}]))});"
+      },
+      "error": null,
+      "outputBytes": 258,
+      "output": "{\n  \"error\": {\n    \"code\": \"REQUEST_REJECTED\",\n    \"message\": \"Provider rejected the request.\",\n    \"retryable\": false,\n    \"status\": 400,\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 4257.650334,\n    \"provider\": \"ollama\"\n  },\n  \"ok\": false\n}"
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await tools.classify.decide({state:{type:'evidence',files:['internal/modules/automations/nats/consumer.go']},questions:{relevant:{type:'choice',instructions:'Is this implementation relevant to device notification broker delivery, acknowledgement or retry for automations?',criteria:{yes:'Relevant',no:'Not relevant'}}}});"
+      },
+      "error": null,
+      "outputBytes": 487,
+      "output": "{\n  \"ok\": true,\n  \"result\": {\n    \"answers\": {\n      \"relevant\": {\n        \"choice\": \"yes\",\n        \"confidence\": 0.28849039490542194,\n        \"probabilities\": {\n          \"yes\": 0.8051490886202833,\n          \"no\": 0.19485091137971677\n        },\n        \"type\": \"choice\"\n      }\n    },\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 852.022241,\n    \"model\": \"nimble\",\n    \"provider\": \"ollama\",\n    \"usage\": {\n      \"input_tokens\": 3506,\n      \"output_tokens\": 1\n    }\n  }\n}"
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await Promise.all(['internal/modules/automations/nats/device_fact_mapping.go','internal/modules/automations/fact_processing.go','internal/modules/automations/sqlite/admission.go','internal/modules/automations/execution.go','internal/app/hearthd/automations.go'].map(async p=>({path:p,result:await tools.classify.decide({state:{type:'evidence',files:[p]},questions:{relevant:{type:'choice',instructions:'Is this implementation relevant to tracing device notification delivery through durable automation admission and command step completion, including duplicates, condition definition races, cancellation or restart recovery?',criteria:{yes:'Relevant',no:'Not relevant'}}}})})));"
+      },
+      "error": null,
+      "outputBytes": 3339,
+      "output": "[\n  {\n    \"path\": \"internal/modules/automations/nats/device_fact_mapping.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"no\",\n            \"confidence\": 0.05222168094311497,\n            \"probabilities\": {\n              \"yes\": 0.3662868595149232,\n              \"no\": 0.6337131404850769\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2744.814189,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 3361,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/fact_processing.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.3116761881047393,\n            \"probabilities\": {\n              \"yes\": 0.8161981536429506,\n              \"no\": 0.18380184635704955\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 849.606282,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 1306,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/sqlite/admission.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.3906668534335105,\n            \"probabilities\": {\n              \"yes\": 0.8502025677687947,\n              \"no\": 0.14979743223120534\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 4657.762053,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 7604,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/execution.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.01624253458686209,\n            \"probabilities\": {\n              \"yes\": 0.5748870889214825,\n              \"no\": 0.4251129110785174\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 1778.118933,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 3517,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/app/hearthd/automations.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.019860201540848,\n            \"probabilities\": {\n              \"yes\": 0.5827730566758749,\n              \"no\": 0.41722694332412513\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 419.040608,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 966,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  }\n]"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/consumer.go"
+      },
+      "error": null,
+      "outputBytes": 10694
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/fact_processing.go"
+      },
+      "error": null,
+      "outputBytes": 3708
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/admission.go"
+      },
+      "error": null,
+      "outputBytes": 23996
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/execution.go"
+      },
+      "error": null,
+      "outputBytes": 11286
+    },
+    {
+      "tool": "shell",
+      "status": "completed",
+      "input": {
+        "command": "rg -l 'ConditionSnapshotRequired|Recover|core_restarted|DecideConditions|func .*transaction' internal/modules/automations -g '*.go' -g '!**/*_test.go'"
+      },
+      "error": null,
+      "outputBytes": 485
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/app/hearthd/automations.go"
+      },
+      "error": null,
+      "outputBytes": 2749
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await Promise.all(['internal/modules/automations/conditions_evaluation.go','internal/modules/automations/conditions_decision.go','internal/modules/automations/sqlite/repository.go','internal/modules/automations/sqlite/execution.go','internal/modules/automations/service.go'].map(async p=>({path:p,result:await tools.classify.decide({state:{type:'evidence',files:[p]},questions:{relevant:{type:'choice',instructions:'Does this file provide implementation evidence for automation condition snapshot coverage/definition races, false or unknown conditions, durable transactions, step completion or startup recovery of admitted runs?',criteria:{yes:'Relevant',no:'Not relevant'}}}})})));"
+      },
+      "error": null,
+      "outputBytes": 3352,
+      "output": "[\n  {\n    \"path\": \"internal/modules/automations/conditions_evaluation.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.007200251980430283,\n            \"probabilities\": {\n              \"yes\": 0.5499125535753246,\n              \"no\": 0.4500874464246754\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2292.794599,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 3250,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/conditions_decision.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.0619836847487194,\n            \"probabilities\": {\n              \"yes\": 0.6455075631682736,\n              \"no\": 0.35449243683172627\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 389.28179,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 485,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/sqlite/repository.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"no\",\n            \"confidence\": 0.5750288220148945,\n            \"probabilities\": {\n              \"yes\": 0.08658620513477978,\n              \"no\": 0.9134137948652203\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2676.151768,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 929,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/sqlite/execution.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.33228791048637596,\n            \"probabilities\": {\n              \"yes\": 0.8255820422972291,\n              \"no\": 0.17441795770277088\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 943.27335,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 2017,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/service.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"no\",\n            \"confidence\": 0.20255630102344735,\n            \"probabilities\": {\n              \"yes\": 0.24145025660054487,\n              \"no\": 0.7585497433994551\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 1398.657898,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 1312,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  }\n]"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_decision.go"
+      },
+      "error": null,
+      "outputBytes": 1073
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_evaluation.go",
+        "limit": 120
+      },
+      "error": null,
+      "outputBytes": 5072
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/execution.go"
+      },
+      "error": null,
+      "outputBytes": 5630
+    },
+    {
+      "tool": "shell",
+      "status": "completed",
+      "input": {
+        "command": "rg -l 'InterruptActiveRuns|FailureCoreRestarted|func .*Start|func .*Initialize' internal/modules/automations internal/app/hearthd -g '*.go' -g '!**/*_test.go'"
+      },
+      "error": null,
+      "outputBytes": 601
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await tools.classify.decide({state:{type:'evidence',files:['internal/modules/automations/service.go']},questions:{relevant:{type:'choice',instructions:'Does this file implement startup interruption of active automation runs using FailureCoreRestarted, relevant specifically to whether admitted runs resume after process restart?',criteria:{yes:'Contains relevant startup lifecycle evidence',no:'Contains no relevant startup lifecycle evidence'}}}});"
+      },
+      "error": null,
+      "outputBytes": 488,
+      "output": "{\n  \"ok\": true,\n  \"result\": {\n    \"answers\": {\n      \"relevant\": {\n        \"choice\": \"yes\",\n        \"confidence\": 0.9709378966113369,\n        \"probabilities\": {\n          \"yes\": 0.9970479188589172,\n          \"no\": 0.0029520811410827514\n        },\n        \"type\": \"choice\"\n      }\n    },\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 426.308665,\n    \"model\": \"nimble\",\n    \"provider\": \"ollama\",\n    \"usage\": {\n      \"input_tokens\": 1314,\n      \"output_tokens\": 1\n    }\n  }\n}"
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/service.go",
+        "pattern": "Interrupt|Start|restart",
+        "limit": 20
+      },
+      "error": null,
+      "outputBytes": 935
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await tools.classify.decide({state:{type:'evidence',files:['internal/app/hearthd/run.go']},questions:{relevant:{type:'choice',instructions:'Does this file call automation InterruptActiveRuns at startup before opening fact consumers, relevant to restart recovery?',criteria:{yes:'Relevant',no:'Not relevant'}}}});"
+      },
+      "error": null,
+      "outputBytes": 487,
+      "output": "{\n  \"ok\": true,\n  \"result\": {\n    \"answers\": {\n      \"relevant\": {\n        \"choice\": \"yes\",\n        \"confidence\": 0.9460700934895059,\n        \"probabilities\": {\n          \"yes\": 0.9938620331193173,\n          \"no\": 0.00613796688068256\n        },\n        \"type\": \"choice\"\n      }\n    },\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 1902.573148,\n    \"model\": \"nimble\",\n    \"provider\": \"ollama\",\n    \"usage\": {\n      \"input_tokens\": 7547,\n      \"output_tokens\": 1\n    }\n  }\n}"
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "path": "internal/app/hearthd/run.go",
+        "pattern": "InterruptActiveRuns|automationConsumers|automationsService|\\.start\\(",
+        "limit": 35
+      },
+      "error": null,
+      "outputBytes": 294
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/app/hearthd/run.go",
+        "offset": 166,
+        "limit": 31
+      },
+      "error": null,
+      "outputBytes": 1856
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await tools.classify.decide({state:{type:'evidence',files:['internal/modules/automations/nats/device_fact_mapping.go']},questions:{relevant:{type:'choice',instructions:'Does this file implement mapping incoming NATS Device Fact notifications to automation domain facts, including subject or message identity validation?',criteria:{yes:'Relevant to wire delivery mapping',no:'Not relevant'}}}});"
+      },
+      "error": null,
+      "outputBytes": 488,
+      "output": "{\n  \"ok\": true,\n  \"result\": {\n    \"answers\": {\n      \"relevant\": {\n        \"choice\": \"yes\",\n        \"confidence\": 0.9832309298799546,\n        \"probabilities\": {\n          \"yes\": 0.9984427446884104,\n          \"no\": 0.0015572553115896011\n        },\n        \"type\": \"choice\"\n      }\n    },\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 572.127917,\n    \"model\": \"nimble\",\n    \"provider\": \"ollama\",\n    \"usage\": {\n      \"input_tokens\": 3358,\n      \"output_tokens\": 1\n    }\n  }\n}"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/device_fact_mapping.go",
+        "limit": 132
+      },
+      "error": null,
+      "outputBytes": 5129
+    }
+  ]
+}

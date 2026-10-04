@@ -1,0 +1,1 @@
+Use ordinary grep and targeted source reads. Do not use Classify or other model-based retrieval tools.

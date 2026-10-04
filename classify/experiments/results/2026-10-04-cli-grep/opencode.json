@@ -1,0 +1,21 @@
+{
+  "model": "openai/gpt-6.1-sol",
+  "plugins": [
+    {
+      "package": "/home/michael/.local/share/opencode/worktree/a94374/tidy-garden/classify",
+      "options": {
+        "backends": {
+          "local": {
+            "provider": "ollama",
+            "model": "nimble",
+            "baseURL": "http://127.0.0.1:11434"
+          }
+        },
+        "defaultBackend": "local",
+        "maxRetries": 0,
+        "timeoutMs": 120000
+      }
+    }
+  ],
+  "snapshots": false
+}

@@ -1,0 +1,184 @@
+[
+  {
+    "trial": "astra-classify-1",
+    "sessionID": "ses_ef6c88db6ffer7ez4QA9A2aqIk",
+    "models": [
+      "{\"id\": \"gpt-6-astra\", \"providerID\": \"openai\", \"variant\": \"default\"}"
+    ],
+    "tokens": {
+      "input": 37808,
+      "output": 2417,
+      "reasoning": 30,
+      "cache": {
+        "read": 535680,
+        "write": 0
+      }
+    },
+    "mainInputIncludingCached": 573488,
+    "toolCalls": 24,
+    "readCalls": 10,
+    "filesRead": [
+      "internal/app/hearthd/automations.go",
+      "internal/app/hearthd/run.go",
+      "internal/modules/automations/conditions_decision.go",
+      "internal/modules/automations/conditions_evaluation.go",
+      "internal/modules/automations/execution.go",
+      "internal/modules/automations/fact_processing.go",
+      "internal/modules/automations/nats/consumer.go",
+      "internal/modules/automations/nats/device_fact_mapping.go",
+      "internal/modules/automations/sqlite/admission.go",
+      "internal/modules/automations/sqlite/execution.go"
+    ],
+    "directoryReadCalls": 0,
+    "modelTurns": 25,
+    "elapsedSeconds": 107.499,
+    "helperSuccesses": 14,
+    "helperFailures": [
+      {
+        "code": "REQUEST_REJECTED",
+        "message": "Provider rejected the request.",
+        "retryable": false,
+        "status": 400,
+        "attempts": 1,
+        "backend": "local",
+        "durationMs": 4257.650334,
+        "provider": "ollama"
+      }
+    ],
+    "helperInputTokens": 40472
+  },
+  {
+    "trial": "astra-baseline-1",
+    "sessionID": "ses_ef6c6e7e4ffeWGokE9rmKwJvBi",
+    "models": [
+      "{\"id\": \"gpt-6-astra\", \"providerID\": \"openai\", \"variant\": \"default\"}"
+    ],
+    "tokens": {
+      "input": 48056,
+      "output": 1926,
+      "reasoning": 22,
+      "cache": {
+        "read": 208000,
+        "write": 0
+      }
+    },
+    "mainInputIncludingCached": 256056,
+    "toolCalls": 27,
+    "readCalls": 17,
+    "filesRead": [
+      "internal/app/hearthd/run.go",
+      "internal/modules/automations/conditions_decision.go",
+      "internal/modules/automations/conditions_evaluation.go",
+      "internal/modules/automations/conditions_snapshot.go",
+      "internal/modules/automations/execution.go",
+      "internal/modules/automations/fact_processing.go",
+      "internal/modules/automations/nats/consumer.go",
+      "internal/modules/automations/nats/device_fact_mapping.go",
+      "internal/modules/automations/nats/resources.go",
+      "internal/modules/automations/sqlite/admission.go",
+      "internal/modules/automations/sqlite/dbsqlc/automations.sql.go",
+      "internal/modules/automations/sqlite/execution.go",
+      "internal/modules/automations/trigger_matching.go",
+      "internal/modules/devices/command.go"
+    ],
+    "directoryReadCalls": 0,
+    "modelTurns": 13,
+    "elapsedSeconds": 90.994,
+    "helperSuccesses": 0,
+    "helperFailures": [],
+    "helperInputTokens": 0
+  },
+  {
+    "trial": "astra-baseline-2",
+    "sessionID": "ses_ef6c58298ffeNQP8OFK5zDV46o",
+    "models": [
+      "{\"id\": \"gpt-6-astra\", \"providerID\": \"openai\", \"variant\": \"default\"}"
+    ],
+    "tokens": {
+      "input": 40640,
+      "output": 1922,
+      "reasoning": 28,
+      "cache": {
+        "read": 135296,
+        "write": 0
+      }
+    },
+    "mainInputIncludingCached": 175936,
+    "toolCalls": 29,
+    "readCalls": 24,
+    "filesRead": [
+      "internal/app/hearthd/automations.go",
+      "internal/app/hearthd/run.go",
+      "internal/modules/automations/conditions_decision.go",
+      "internal/modules/automations/conditions_evaluation.go",
+      "internal/modules/automations/conditions_snapshot.go",
+      "internal/modules/automations/execution.go",
+      "internal/modules/automations/fact_processing.go",
+      "internal/modules/automations/nats/consumer.go",
+      "internal/modules/automations/nats/device_fact_mapping.go",
+      "internal/modules/automations/nats/resources.go",
+      "internal/modules/automations/sqlite/admission.go",
+      "internal/modules/automations/sqlite/dbsqlc/automations.sql.go",
+      "internal/modules/automations/sqlite/execution.go",
+      "internal/modules/automations/sqlite/repository.go",
+      "internal/modules/automations/trigger_matching.go",
+      "internal/modules/devices/command.go"
+    ],
+    "directoryReadCalls": 4,
+    "modelTurns": 11,
+    "elapsedSeconds": 85.182,
+    "helperSuccesses": 0,
+    "helperFailures": [],
+    "helperInputTokens": 0
+  },
+  {
+    "trial": "astra-classify-2",
+    "sessionID": "ses_ef6c43404ffeb8SsLp4MI35b7t",
+    "models": [
+      "{\"id\": \"gpt-6-astra\", \"providerID\": \"openai\", \"variant\": \"default\"}"
+    ],
+    "tokens": {
+      "input": 34410,
+      "output": 2162,
+      "reasoning": 54,
+      "cache": {
+        "read": 199808,
+        "write": 0
+      }
+    },
+    "mainInputIncludingCached": 234218,
+    "toolCalls": 21,
+    "readCalls": 12,
+    "filesRead": [
+      "internal/app/hearthd/run.go",
+      "internal/modules/automations/conditions_decision.go",
+      "internal/modules/automations/conditions_evaluation.go",
+      "internal/modules/automations/conditions_snapshot.go",
+      "internal/modules/automations/execution.go",
+      "internal/modules/automations/fact_processing.go",
+      "internal/modules/automations/nats/consumer.go",
+      "internal/modules/automations/nats/device_fact_mapping.go",
+      "internal/modules/automations/service.go",
+      "internal/modules/automations/sqlite/admission.go",
+      "internal/modules/automations/sqlite/execution.go",
+      "internal/modules/automations/trigger_matching.go"
+    ],
+    "directoryReadCalls": 0,
+    "modelTurns": 12,
+    "elapsedSeconds": 92.793,
+    "helperSuccesses": 14,
+    "helperFailures": [
+      {
+        "code": "REQUEST_REJECTED",
+        "message": "Provider rejected the request.",
+        "retryable": false,
+        "status": 400,
+        "attempts": 1,
+        "backend": "local",
+        "durationMs": 84.447512,
+        "provider": "ollama"
+      }
+    ],
+    "helperInputTokens": 40235
+  }
+]

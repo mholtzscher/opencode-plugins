@@ -1,0 +1,5 @@
+{
+  "status": 400,
+  "message": "prompt 0 has 17571 tokens; expected 1\u20138194 (input is never truncated)",
+  "note": "Separate diagnostic replay of the rejected twelve-file batch; no completed retrieval measurements."
+}

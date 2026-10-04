@@ -1,0 +1,3743 @@
+{
+  "metadata": {
+    "baseURL": "http://127.0.0.1:11434",
+    "batchPolicy": {
+      "maxFiles": 3,
+      "minRelevance": 0.5,
+      "version": 2
+    },
+    "bun": "1.4.2",
+    "cases": [
+      {
+        "expected": [
+          {
+            "endLine": 61,
+            "path": "transport.ts",
+            "startLine": 53
+          },
+          {
+            "endLine": 155,
+            "path": "transport.ts",
+            "startLine": 130
+          }
+        ],
+        "id": "auth-versus-retry",
+        "query": "Which HTTP authentication errors fail immediately, and which status codes may be retried?",
+        "rationale": "Authentication mapping and the retry eligibility predicate are separate parts of the transport.",
+        "terms": ["authentication", "status", "retried"]
+      },
+      {
+        "expected": [
+          {
+            "endLine": 155,
+            "path": "evidence.ts",
+            "startLine": 137
+          }
+        ],
+        "id": "permission-file-swap",
+        "query": "How is a file swapped during permission checking detected before evidence is read?",
+        "rationale": "verifyIdentity compares the canonical path and inode/device around native permission access.",
+        "terms": ["swapped", "permission", "file"]
+      },
+      {
+        "expected": [
+          {
+            "endLine": 84,
+            "path": "selection.ts",
+            "startLine": 75
+          },
+          {
+            "endLine": 32,
+            "path": "router.ts",
+            "startLine": 18
+          }
+        ],
+        "id": "invalid-stored-selection",
+        "query": "Where is malformed stored backend selection decoded, and how does that failure become a tool error?",
+        "rationale": "Selection validates persisted values; routing maps failure to the public INVALID_CONFIG response.",
+        "terms": ["stored", "decoded", "error"]
+      },
+      {
+        "expected": [
+          {
+            "endLine": 85,
+            "path": "selection.ts",
+            "startLine": 80
+          },
+          {
+            "endLine": 108,
+            "path": "selection.ts",
+            "startLine": 101
+          }
+        ],
+        "id": "override-roundtrip",
+        "query": "Where is an override removed and subsequently read back as the configured default backend?",
+        "rationale": "The write path removes storage and the read path substitutes the configured default.",
+        "terms": ["override", "removed", "default"]
+      },
+      {
+        "expected": [
+          {
+            "endLine": 12,
+            "path": "validation/input.ts",
+            "startLine": 9
+          },
+          {
+            "endLine": 38,
+            "path": "protocols/response.ts",
+            "startLine": 23
+          }
+        ],
+        "id": "two-validation-boundaries",
+        "query": "Where are malformed user arguments and malformed provider answers converted into classification errors?",
+        "rationale": "Input schema failures and provider response failures have distinct error boundaries.",
+        "terms": ["malformed", "arguments", "answers"]
+      },
+      {
+        "expected": [
+          {
+            "endLine": 53,
+            "path": "protocols/response.ts",
+            "startLine": 41
+          }
+        ],
+        "id": "provider-truncation",
+        "query": "How are truncated backend responses turned into typed failures?",
+        "rationale": "rejectTruncated checks the provider flag and fails with INPUT_TRUNCATED.",
+        "terms": ["truncated", "responses"]
+      },
+      {
+        "expected": [
+          {
+            "endLine": 72,
+            "path": "bounded-lines.ts",
+            "startLine": 69
+          },
+          {
+            "endLine": 96,
+            "path": "bounded-lines.ts",
+            "startLine": 91
+          }
+        ],
+        "id": "scan-and-binary-guards",
+        "query": "What caps scanning through skipped lines and rejects binary content?",
+        "rationale": "The scan-byte cap and NUL-byte rejection protect reads independently of selected bytes.",
+        "terms": ["scanning", "skipped", "binary"]
+      },
+      {
+        "expected": [],
+        "id": "absent-vector-index",
+        "query": "Where are embeddings stored in a vector index for nearest-neighbor retrieval?",
+        "rationale": "The reviewed snapshot has no embeddings, vector index, or nearest-neighbor implementation.",
+        "terms": ["embeddings", "vector", "nearest-neighbor"]
+      }
+    ],
+    "date": "2026-10-04T18:10:00.340Z",
+    "hybridPolicy": {
+      "minRelevance": 0.5,
+      "shortlist": 3,
+      "version": 2,
+      "windowLines": 120
+    },
+    "model": {
+      "digest": "9b953de7a5336756ece1cb1e8632e374b3dbdabe3d02d405cf8291da2d43a131",
+      "name": "nimble:latest"
+    },
+    "options": {
+      "backends": {
+        "bench": {
+          "baseURL": "http://127.0.0.1:11434",
+          "model": "nimble",
+          "provider": "ollama"
+        }
+      },
+      "classifiers": {},
+      "defaultBackend": "bench",
+      "maxRetries": 0,
+      "search": {
+        "concurrency": 2,
+        "excludeDirectories": [
+          "node_modules",
+          "dist",
+          "build",
+          "target",
+          "vendor",
+          "coverage"
+        ],
+        "excludeHidden": true,
+        "linesPerFile": 1000,
+        "maxDepth": 16,
+        "maxEntries": 4096,
+        "maxEvidenceBytes": 1048576,
+        "maxFailureDetails": 64,
+        "maxFileBytes": 32768,
+        "maxFiles": 32,
+        "maxPaths": 16,
+        "maxResults": 32,
+        "timeoutMs": 120000
+      },
+      "timeoutMs": 30000
+    },
+    "repetitions": 2,
+    "revision": "0422ab81fd106ec3d64a600cb283b4a98fa1f21e",
+    "rg": "ripgrep 15.2.0",
+    "sources": {
+      "bounded-lines.ts": "ff36e97d8df542daf662e0a597927f70dd96ff9c5db078109a93bbe340b9cbf1",
+      "classification.ts": "69dfe4df8d0bf1398464ed664b6e2c7c784b3413ff7d60cc54658c8a8e14f85b",
+      "config.ts": "82b37f77495e25b07f25365eca1f92251b693cebabccbe035a17bf0b92e479f9",
+      "credentials.ts": "080169708677cfe0f0537cfb39b81a0284862d9208a29328437ce3764ed4b57a",
+      "evidence.ts": "5dcbc9d544e811f5cd583763436edecfefb820b79fb44e26244842abcdd9c66f",
+      "index.ts": "268cab14f10921f199dc253b22cd0948af232c75cff07aeaa7c13d2b44113ee2",
+      "outcome.ts": "44b5678f6e3b3c486b5516c92b173eea1a9adee4a3c2496c9e4decfc09c92497",
+      "protocols/response.ts": "e99a93fa51eb5d39e5066d859497ce0142221dc84581bac6677e0a3deea73863",
+      "router.ts": "68a7399e60a8e4e30a12cdcfaaa5ef1867f63108ffbad8116832300be33b91da",
+      "selection.ts": "3fd90a02271a85e0aa2b7ff6f4202242cd3c30fb28d058d86c7ec2188828e667",
+      "transport.ts": "02eeaa81710bc5838c86b3a5ef4401d968a78709fcd7993b6831f30586e61527",
+      "validation/input.ts": "957d574cd7605ccabfab8bcebc08a0d02f011cae44e64584777b5dcd85ae66f5"
+    },
+    "strategies": ["search-batch"],
+    "suite": "validation",
+    "warmup": {
+      "elapsedMs": 328.539616,
+      "inputTokens": 151,
+      "outputTokens": 1
+    },
+    "workloadVersion": 1
+  },
+  "rows": [
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 6295.348039,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 258,
+              "partial": false,
+              "path": "transport.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9693151177189401
+            },
+            {
+              "endLine": 31,
+              "partial": false,
+              "path": "validation/input.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8835589767506657
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53973,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 6296.470517000001,
+      "helperAttempts": 4,
+      "helperInputTokens": 53973,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 10805,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": ["transport.ts", "validation/input.ts"],
+      "strategy": "search-batch",
+      "task": "auth-versus-retry",
+      "targetFilesFound": 1,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3586.3303149999992,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 317,
+              "partial": false,
+              "path": "evidence.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9637961889859291
+            },
+            {
+              "endLine": 61,
+              "partial": false,
+              "path": "index.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.7071930675798289
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53949,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3586.619342000001,
+      "helperAttempts": 4,
+      "helperInputTokens": 53949,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 14209,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": ["evidence.ts", "index.ts"],
+      "strategy": "search-batch",
+      "task": "permission-file-swap",
+      "targetFilesFound": 1,
+      "targetsFound": 1,
+      "targetsTotal": 1
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3685.3157279999996,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 123,
+              "partial": false,
+              "path": "selection.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9800758747499126
+            },
+            {
+              "endLine": 106,
+              "partial": false,
+              "path": "router.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9269696868914704
+            },
+            {
+              "endLine": 101,
+              "partial": false,
+              "path": "config.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8027694334187114
+            }
+          ],
+          "omittedMatches": 4,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53997,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3685.56488,
+      "helperAttempts": 4,
+      "helperInputTokens": 53997,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 12741,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": ["selection.ts", "router.ts", "config.ts"],
+      "strategy": "search-batch",
+      "task": "invalid-stored-selection",
+      "targetFilesFound": 2,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3721.3335190000016,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 123,
+              "partial": false,
+              "path": "selection.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9326443147855528
+            },
+            {
+              "endLine": 101,
+              "partial": false,
+              "path": "config.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.6614720115626689
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53961,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3721.5751770000006,
+      "helperAttempts": 4,
+      "helperInputTokens": 53961,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 8866,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": ["selection.ts", "config.ts"],
+      "strategy": "search-batch",
+      "task": "override-roundtrip",
+      "targetFilesFound": 1,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3727.2670660000003,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 258,
+              "partial": false,
+              "path": "transport.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8964710798165022
+            },
+            {
+              "endLine": 123,
+              "partial": false,
+              "path": "selection.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8511155844150078
+            },
+            {
+              "endLine": 83,
+              "partial": false,
+              "path": "protocols/response.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8106757112626615
+            }
+          ],
+          "omittedMatches": 4,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53949,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3727.5317680000007,
+      "helperAttempts": 4,
+      "helperInputTokens": 53949,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 16276,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": [
+        "transport.ts",
+        "selection.ts",
+        "protocols/response.ts"
+      ],
+      "strategy": "search-batch",
+      "task": "two-validation-boundaries",
+      "targetFilesFound": 1,
+      "targetsFound": 1,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3721.1592299999975,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 83,
+              "partial": false,
+              "path": "protocols/response.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9141542984011696
+            },
+            {
+              "endLine": 106,
+              "partial": false,
+              "path": "router.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8262106214835747
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53901,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3721.3853689999996,
+      "helperAttempts": 4,
+      "helperInputTokens": 53901,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 7385,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": ["protocols/response.ts", "router.ts"],
+      "strategy": "search-batch",
+      "task": "provider-truncation",
+      "targetFilesFound": 1,
+      "targetsFound": 1,
+      "targetsTotal": 1
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3696.5028039999997,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 129,
+              "partial": false,
+              "path": "bounded-lines.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9173905831688163
+            },
+            {
+              "endLine": 101,
+              "partial": false,
+              "path": "config.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.7487457586280685
+            },
+            {
+              "endLine": 317,
+              "partial": false,
+              "path": "evidence.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.6626139914448008
+            }
+          ],
+          "omittedMatches": 2,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53913,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3696.8908899999988,
+      "helperAttempts": 4,
+      "helperInputTokens": 53913,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 19808,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 0,
+      "returnedFiles": ["bounded-lines.ts", "config.ts", "evidence.ts"],
+      "strategy": "search-batch",
+      "task": "scan-and-binary-guards",
+      "targetFilesFound": 1,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3696.001064,
+          "failures": [],
+          "matches": [],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53949,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3696.1655250000003,
+      "helperAttempts": 4,
+      "helperInputTokens": 53949,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 715,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [],
+      "repetition": 0,
+      "returnedFiles": [],
+      "strategy": "search-batch",
+      "task": "absent-vector-index",
+      "targetFilesFound": 0,
+      "targetsFound": 0,
+      "targetsTotal": 0
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3732.626376000004,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 258,
+              "partial": false,
+              "path": "transport.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.971058419549576
+            },
+            {
+              "endLine": 31,
+              "partial": false,
+              "path": "validation/input.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.894729110175457
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53973,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3732.925132999997,
+      "helperAttempts": 4,
+      "helperInputTokens": 53973,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 10809,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": ["transport.ts", "validation/input.ts"],
+      "strategy": "search-batch",
+      "task": "auth-versus-retry",
+      "targetFilesFound": 1,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3705.0379729999986,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 317,
+              "partial": false,
+              "path": "evidence.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9644427864187285
+            },
+            {
+              "endLine": 61,
+              "partial": false,
+              "path": "index.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.697148416750887
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53949,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3705.2924459999995,
+      "helperAttempts": 4,
+      "helperInputTokens": 53949,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 14208,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": ["evidence.ts", "index.ts"],
+      "strategy": "search-batch",
+      "task": "permission-file-swap",
+      "targetFilesFound": 1,
+      "targetsFound": 1,
+      "targetsTotal": 1
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3735.462513000006,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 123,
+              "partial": false,
+              "path": "selection.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9800758747499126
+            },
+            {
+              "endLine": 106,
+              "partial": false,
+              "path": "router.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9269696868914704
+            },
+            {
+              "endLine": 101,
+              "partial": false,
+              "path": "config.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8027694334187114
+            }
+          ],
+          "omittedMatches": 4,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53997,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3735.7141300000003,
+      "helperAttempts": 4,
+      "helperInputTokens": 53997,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 12740,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": ["selection.ts", "router.ts", "config.ts"],
+      "strategy": "search-batch",
+      "task": "invalid-stored-selection",
+      "targetFilesFound": 2,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3730.516537999996,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 123,
+              "partial": false,
+              "path": "selection.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9326443147855528
+            },
+            {
+              "endLine": 101,
+              "partial": false,
+              "path": "config.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.6614720115626689
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53961,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3730.7261050000016,
+      "helperAttempts": 4,
+      "helperInputTokens": 53961,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 8865,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": ["selection.ts", "config.ts"],
+      "strategy": "search-batch",
+      "task": "override-roundtrip",
+      "targetFilesFound": 1,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3733.1259539999955,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 258,
+              "partial": false,
+              "path": "transport.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8964710798165022
+            },
+            {
+              "endLine": 123,
+              "partial": false,
+              "path": "selection.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8511155844150078
+            },
+            {
+              "endLine": 83,
+              "partial": false,
+              "path": "protocols/response.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8106757112626615
+            }
+          ],
+          "omittedMatches": 4,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53949,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3733.372411000004,
+      "helperAttempts": 4,
+      "helperInputTokens": 53949,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 16276,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": [
+        "transport.ts",
+        "selection.ts",
+        "protocols/response.ts"
+      ],
+      "strategy": "search-batch",
+      "task": "two-validation-boundaries",
+      "targetFilesFound": 1,
+      "targetsFound": 1,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3721.0212600000013,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 83,
+              "partial": false,
+              "path": "protocols/response.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9141542984011696
+            },
+            {
+              "endLine": 106,
+              "partial": false,
+              "path": "router.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.8262106214835747
+            }
+          ],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53901,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3721.223542999993,
+      "helperAttempts": 4,
+      "helperInputTokens": 53901,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 7385,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": ["protocols/response.ts", "router.ts"],
+      "strategy": "search-batch",
+      "task": "provider-truncation",
+      "targetFilesFound": 1,
+      "targetsFound": 1,
+      "targetsTotal": 1
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3684.829279999998,
+          "failures": [],
+          "matches": [
+            {
+              "endLine": 129,
+              "partial": false,
+              "path": "bounded-lines.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.9173905831688163
+            },
+            {
+              "endLine": 101,
+              "partial": false,
+              "path": "config.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.7487457586280685
+            },
+            {
+              "endLine": 317,
+              "partial": false,
+              "path": "evidence.ts",
+              "startLine": 1,
+              "model": "nimble",
+              "relevance": 0.6626139914448008
+            }
+          ],
+          "omittedMatches": 2,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53913,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3685.1121660000063,
+      "helperAttempts": 4,
+      "helperInputTokens": 53913,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 19807,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        }
+      ],
+      "repetition": 1,
+      "returnedFiles": ["bounded-lines.ts", "config.ts", "evidence.ts"],
+      "strategy": "search-batch",
+      "task": "scan-and-binary-guards",
+      "targetFilesFound": 1,
+      "targetsFound": 2,
+      "targetsTotal": 2
+    },
+    {
+      "discovery": {
+        "ok": true,
+        "result": {
+          "attempts": 4,
+          "budgets": {
+            "concurrency": 2,
+            "excludeDirectories": [
+              "node_modules",
+              "dist",
+              "build",
+              "target",
+              "vendor",
+              "coverage"
+            ],
+            "excludeHidden": true,
+            "linesPerFile": 1000,
+            "maxDepth": 16,
+            "maxEntries": 4096,
+            "maxEvidenceBytes": 1048576,
+            "maxFailureDetails": 64,
+            "maxFileBytes": 32768,
+            "maxFiles": 32,
+            "maxPaths": 16,
+            "maxResults": 3,
+            "timeoutMs": 120000
+          },
+          "coverage": {
+            "classified": 12,
+            "complete": true,
+            "discovered": 12,
+            "discoveryComplete": true,
+            "examined": 12,
+            "failed": 0,
+            "filtered": 0,
+            "limitsReached": [],
+            "partialFiles": 0,
+            "selectedBytes": 48985,
+            "skippedEntries": 0,
+            "visitedEntries": 14
+          },
+          "durationMs": 3967.8571410000004,
+          "failures": [],
+          "matches": [],
+          "omittedMatches": 0,
+          "provider": "ollama",
+          "usage": {
+            "input_tokens": 53949,
+            "output_tokens": 16
+          }
+        }
+      },
+      "elapsedMs": 3967.9417509999985,
+      "helperAttempts": 4,
+      "helperInputTokens": 53949,
+      "helperOutputTokens": 16,
+      "judgedRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "mainContextBytes": 722,
+      "ok": true,
+      "prefixRanges": [
+        {
+          "endLine": 129,
+          "path": "bounded-lines.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 134,
+          "path": "classification.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 101,
+          "path": "config.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 103,
+          "path": "credentials.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 317,
+          "path": "evidence.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 61,
+          "path": "index.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 50,
+          "path": "outcome.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 83,
+          "path": "protocols/response.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 106,
+          "path": "router.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 123,
+          "path": "selection.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 258,
+          "path": "transport.ts",
+          "startLine": 1
+        },
+        {
+          "endLine": 31,
+          "path": "validation/input.ts",
+          "startLine": 1
+        }
+      ],
+      "readRanges": [],
+      "repetition": 1,
+      "returnedFiles": [],
+      "strategy": "search-batch",
+      "task": "absent-vector-index",
+      "targetFilesFound": 0,
+      "targetsFound": 0,
+      "targetsTotal": 0
+    }
+  ]
+}

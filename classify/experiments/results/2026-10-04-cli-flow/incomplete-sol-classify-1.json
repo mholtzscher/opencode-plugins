@@ -1,0 +1,84 @@
+{
+  "sessionID": "ses_ef6d77cf5ffey6Hk5PepwfIvFo",
+  "outcome": "succeeded",
+  "tokens": {
+    "input": 40199,
+    "output": 2809,
+    "reasoning": 253,
+    "cache": {
+      "read": 376064,
+      "write": 0
+    }
+  },
+  "models": [
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    }
+  ],
+  "excludedReason": "Sol comparison was interrupted by the baseline provider quota limit."
+}

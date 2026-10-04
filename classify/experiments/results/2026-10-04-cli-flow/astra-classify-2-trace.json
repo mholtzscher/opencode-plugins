@@ -1,0 +1,486 @@
+{
+  "usage": [
+    {
+      "id": "msg_1093bcea0001cJd2TKOXH7FCBL",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156276908,
+        "streamed": 1791156279300,
+        "completed": 1791156279301
+      },
+      "tokens": {
+        "input": 4021,
+        "output": 30,
+        "reasoning": 0,
+        "cache": {
+          "read": 2048,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093bd80e001eU2JOpMCKV1P7r",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156279321,
+        "streamed": 1791156281980,
+        "completed": 1791156282001
+      },
+      "tokens": {
+        "input": 3278,
+        "output": 40,
+        "reasoning": 0,
+        "cache": {
+          "read": 5888,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093be299001oYrtCmVTahddfc",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156282019,
+        "streamed": 1791156288473,
+        "completed": 1791156288541
+      },
+      "tokens": {
+        "input": 862,
+        "output": 165,
+        "reasoning": 0,
+        "cache": {
+          "read": 8960,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093bfc26001WhZ9bh7ABnTtC1",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156288560,
+        "streamed": 1791156292867,
+        "completed": 1791156293683
+      },
+      "tokens": {
+        "input": 352,
+        "output": 99,
+        "reasoning": 7,
+        "cache": {
+          "read": 9728,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093c103d0013ATAIGPC4ijD8o",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156293704,
+        "streamed": 1791156299510,
+        "completed": 1791156302120
+      },
+      "tokens": {
+        "input": 373,
+        "output": 156,
+        "reasoning": 0,
+        "cache": {
+          "read": 9984,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093c3131001jw274xH2OBt2iO",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156302141,
+        "streamed": 1791156307418,
+        "completed": 1791156307420
+      },
+      "tokens": {
+        "input": 1206,
+        "output": 128,
+        "reasoning": 0,
+        "cache": {
+          "read": 10240,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093c45e7001HHTZQnjmm1ucAI",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156307441,
+        "streamed": 1791156311150,
+        "completed": 1791156311151
+      },
+      "tokens": {
+        "input": 14152,
+        "output": 61,
+        "reasoning": 0,
+        "cache": {
+          "read": 11264,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093c5477001Rfhcbyt7Xi5A4Q",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156311170,
+        "streamed": 1791156317783,
+        "completed": 1791156320871
+      },
+      "tokens": {
+        "input": 427,
+        "output": 184,
+        "reasoning": 0,
+        "cache": {
+          "read": 25216,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093c7a70001YdGR6gh1c0mgqg",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156320891,
+        "streamed": 1791156327294,
+        "completed": 1791156327300
+      },
+      "tokens": {
+        "input": 1660,
+        "output": 177,
+        "reasoning": 0,
+        "cache": {
+          "read": 25472,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093c938c001YGLlnsPfKWyhRG",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156327317,
+        "streamed": 1791156332372,
+        "completed": 1791156332967
+      },
+      "tokens": {
+        "input": 4989,
+        "output": 113,
+        "reasoning": 11,
+        "cache": {
+          "read": 27008,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093ca9b3001itz25Yq7z9j72M",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156332991,
+        "streamed": 1791156336366,
+        "completed": 1791156336370
+      },
+      "tokens": {
+        "input": 419,
+        "output": 74,
+        "reasoning": 0,
+        "cache": {
+          "read": 31872,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093cb6fa001Iye5fCseP8E2sT",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156336388,
+        "streamed": 1791156369018,
+        "completed": 1791156369019
+      },
+      "tokens": {
+        "input": 2671,
+        "output": 935,
+        "reasoning": 36,
+        "cache": {
+          "read": 32128,
+          "write": 0
+        }
+      },
+      "finish": "stop"
+    }
+  ],
+  "tools": [
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return search({query:'classify_decide',limit:1})"
+      },
+      "error": null,
+      "outputBytes": 12863,
+      "output": "{\n  \"items\": [\n    {\n      \"path\": \"tools.classify.decide\",\n      \"description\": \"Evaluate content against independent typed questions using the user's configured decision backend.\\nPut the content being judged in state and each judgment in question.instructions. Question IDs are response keys, not instructions.\\nSupply self-contained evidence: the backend receives state and the selected questions, not conversation history. Plain paths and embedded URLs are inert data; only the explicit evidence wrapper reads files, queried code, or diffs. Submitted content may be sent to a remote backend and incur charges.\\nState, instructions, and non-null criteria descriptions must be nonblank strings, nonempty JSON objects, or nonempty JSON arrays. Nested JSON may contain null, booleans, and finite numbers. Supply 1\u201364 questions; IDs must match ^[A-Za-z][A-Za-z0-9_-]{0,63}$. Inputs are limited to 32 JSON levels and the expanded provider request to 1 MiB; keep evidence focused.\\nRead server-local evidence with state: { type: \\\"evidence\\\", text?, files?: [path | { path, offset?, limit? }], code?: [{ path, query }], diffs?: [{ base, paths? }] }. Code runs raw Tree-sitter queries and sends exact @evidence captures with source ranges; other capture names are query helpers. Use classify_grammar to discover node types/fields for the file extension. Capture comments and enclosing nodes explicitly. Multiple matches are accepted; duplicate ranges collapse. Queries are limited to 8192 characters, 128 unique captures, and five seconds each; invalid queries, unsupported directives, syntax errors, no captures, and exceeded limits fail without truncation. Paths are relative to the session directory; base is compared with the tracked working tree (including staged changes, excluding untracked files). Native read/shell permissions apply. Text files only.\\nFile offset is a 1-based starting line, default 1; limit is the maximum number of lines. Both must be positive safe integers. For example, { path: \\\"src/cache.ts\\\", offset: 120, limit: 60 } selects lines 120 through 179. Omit both for the whole file; omit limit to read through EOF. EOF may return fewer lines; an offset beyond EOF fails. Slices include exact content, startLine, endLine, and partial metadata. Partial reads scan at most 64 MiB per selection and can select from files larger than 1 MiB; selected content shares the 1 MiB request budget. Budget failures never truncate evidence.\\nnoul returns a number in [0, 1], the probability of yes, not a boolean. Its optional criteria defines \\\"true\\\", \\\"false\\\", or both.\\nchoice requires 2\u2013255 distinct nonblank labels (at most 128 characters each); descriptions may be null. It always selects one allowed label: include an \\\"unknown\\\" label with an insufficient-evidence criterion if needed; there is no automatic abstention. Backend limits may be tighter (Laya supports at most 100 choices).\\nscore requires 2\u201310 ordered rubric levels and returns a possibly fractional number on the zero-based scale 0\u2026criteria.length - 1, not a percentage. Order levels from lowest to highest for the property being rated.\\nChoice criteria accept a label-to-description map or [{ label, description }]. Use the list form for special labels such as \\\"__proto__\\\" that Code Mode cannot preserve as object keys. Score legends preserve string, object, or array level descriptions.\\nSupply state and questions for an ad hoc request, or classifier for a configured preset, never both questions and classifier. Named classifiers require caller-supplied state unless they define their own; when state is configured, supply only classifier and never override state. Configured evidence resolves freshly per invocation with the same session-relative paths and native permissions. For judgments depending on previous answers, make another call.\\nReturns structured output: check ok before reading result.answers[id]. Success is { ok: true, result: { answers, provider, model, usage: { input_tokens, output_tokens }, attempts, durationMs, classifier?, requestID? } }; failure is { ok: false, error: { code, message, retryable, provider, attempts, durationMs, path?, status?, requestID?, retryAfterMs? } }, with no partial answers. attempts counts HTTP dispatches, including the initial request; zero means no dispatch. path is a JSON Pointer into invalid input. retryAfterMs is the provider's suggested wait, when available. retryable means a later retry may help, not that it is free; a timed-out request may already incur cost.\\nAnswer fields: noul \u2192 { type, noul }; choice \u2192 { type, choice, probabilities, confidence }; score \u2192 { type, score, scale: { min: 0, max: criteria.length - 1 }, legend, probabilities, confidence }. All listed answer fields and usage counts are required. Distributions use choice labels or zero-based score indices as keys. Native confidence is provider-specific, not probability of correctness or necessarily comparable across providers; no explanations or permission to execute an action are returned.\\nExample input: {\\\"state\\\":\\\"Production is down after a deploy.\\\",\\\"questions\\\":{\\\"active\\\":{\\\"type\\\":\\\"noul\\\",\\\"instructions\\\":\\\"Does this describe an active incident?\\\"},\\\"kind\\\":{\\\"type\\\":\\\"choice\\\",\\\"instructions\\\":\\\"Categorize the report.\\\",\\\"criteria\\\":{\\\"incident\\\":\\\"Active production failure\\\",\\\"other\\\":\\\"Not an incident\\\",\\\"unknown\\\":\\\"Insufficient evidence\\\"}},\\\"impact\\\":{\\\"type\\\":\\\"score\\\",\\\"instructions\\\":\\\"Rate user impact.\\\",\\\"criteria\\\":[\\\"No user impact\\\",\\\"Some users affected\\\",\\\"Production unavailable\\\"]}}}\\nIn Code Mode, discover the classify namespace and use the returned decide signature. Read output.result.answers only when output.ok is true. Use classify_search to find relevant files before selecting evidence.\",\n      \"signature\": \"tools.classify.decide({\\n    questions: {\\n      [key: string]: {\\n          criteria?: {\\n              false?: unknown,\\n              true?: unknown,\\n            } | null,\\n          instructions: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }>,\\n          type: \\\"noul\\\",\\n        } | {\\n          criteria: {\\n              [key: string]: unknown,\\n            } | Array<{\\n                description: unknown,\\n                /** @maxLength 128 @pattern \\\\S */\\n                label: string,\\n              }>,\\n          instructions: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }>,\\n          type: \\\"choice\\\",\\n        } | {\\n          /** @minItems 2 @maxItems 10 */\\n          criteria: Array<string | {\\n                [key: string]: unknown,\\n              } | Array<unknown>>,\\n          instructions: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }>,\\n          type: \\\"score\\\",\\n        },\\n    },\\n    state: {\\n        code?: Array<{\\n              /** @pattern \\\\S */\\n              path: string,\\n              /** @maxLength 8192 @pattern \\\\S */\\n              query: string,\\n            }> | null,\\n        diffs?: Array<{\\n              /** @pattern \\\\S */\\n              base: string,\\n              paths?: Array<unknown> | null,\\n            }> | null,\\n        files?: Array<string | {\\n                /**\\n                 * Maximum number of lines to include. Omit to read through EOF. EOF may return fewer lines; byte budgets fail rather than truncate.\\n                 * @integer @minimum 1 @maximum 9007199254740991\\n                 */\\n                limit?: number,\\n                /**\\n                 * 1-based starting line, default 1. offset: 120, limit: 60 selects lines 120 through 179. An offset beyond EOF fails.\\n                 * @integer @minimum 1 @maximum 9007199254740991\\n                 */\\n                offset?: number,\\n                /** @pattern \\\\S */\\n                path: string,\\n              }> | null,\\n        text?: string | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            } | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }> | null,\\n        type: \\\"evidence\\\",\\n      } | string | {\\n          [key: string]: null | boolean | number | string | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }> | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            },\\n        } | Array<null | boolean | number | string | Array<null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                }> | {\\n              [key: string]: null | boolean | number | string | Array<unknown> | {\\n                  [key: string]: unknown,\\n                },\\n            }>,\\n  }): Promise<{\\n    ok: true,\\n    result: {\\n      answers: {\\n        [key: string]: {\\n            /** Probability of yes, not a boolean or confidence score. @minimum 0 @maximum 1 */\\n            noul: number,\\n            type: \\\"noul\\\",\\n          } | {\\n            /** @maxLength 128 @pattern \\\\S */\\n            choice: string,\\n            /**\\n             * Provider-native uncertainty metric; not probability of correctness or necessarily comparable across providers.\\n             * @minimum 0 @maximum 1\\n             */\\n            confidence: number,\\n            /** Each value: @minimum 0 @maximum 1 */\\n            probabilities: {\\n              [key: string]: number,\\n            },\\n            type: \\\"choice\\\",\\n          } | {\\n            /**\\n             * Provider-native uncertainty metric; not probability of correctness or necessarily comparable across providers.\\n             * @minimum 0 @maximum 1\\n             */\\n            confidence: number,\\n            legend: {\\n              [key: string]: string | {\\n                  [key: string]: unknown,\\n                } | Array<unknown>,\\n            },\\n            /** Each value: @minimum 0 @maximum 1 */\\n            probabilities: {\\n              [key: string]: number,\\n            },\\n            /** @minimum 0 */\\n            score: number,\\n            type: \\\"score\\\",\\n            scale: {\\n              /** @integer @minimum 1 @maximum 9 */\\n              max: number,\\n              min: 0,\\n            },\\n          },\\n      },\\n      /** @integer @minimum 1 */\\n      attempts: number,\\n      /** @pattern ^[A-Za-z][A-Za-z0-9_-]{0,63}$ */\\n      backend?: string,\\n      /** @pattern ^[A-Za-z][A-Za-z0-9_-]{0,63}$ */\\n      classifier?: string,\\n      /** @minimum 0 */\\n      durationMs: number,\\n      /** @pattern \\\\S */\\n      model: string,\\n      provider: \\\"typesafe\\\" | \\\"laya\\\" | \\\"ollama\\\" | \\\"cloudflare\\\" | \\\"openai-decisions\\\",\\n      /** @pattern ^[A-Za-z0-9._:-]{1,256}$ */\\n      requestID?: string,\\n      usage: {\\n        /** @integer @minimum 0 */\\n        input_tokens: number,\\n        /** @integer @minimum 0 */\\n        output_tokens: number,\\n      },\\n    },\\n  } | {\\n    error: {\\n      code: \\\"INVALID_CONFIG\\\" | \\\"INVALID_INPUT\\\" | \\\"EVIDENCE_ERROR\\\" | \\\"MISSING_CREDENTIALS\\\" | \\\"PROVIDER_UNAVAILABLE\\\" | \\\"UNSUPPORTED_TYPE\\\" | \\\"AUTH_FAILED\\\" | \\\"RATE_LIMITED\\\" | \\\"REQUEST_REJECTED\\\" | \\\"NETWORK_ERROR\\\" | \\\"TIMEOUT\\\" | \\\"INVALID_RESPONSE\\\" | \\\"INPUT_TRUNCATED\\\" | \\\"INTERNAL_ERROR\\\",\\n      /** @pattern \\\\S */\\n      message: string,\\n      /** @pattern ^(?:\\\\/(?:[^~]|~[01])*)*$ */\\n      path?: string,\\n      /** @pattern ^[A-Za-z0-9._:-]{1,256}$ */\\n      requestID?: string,\\n      /** @minimum 0 */\\n      retryAfterMs?: number,\\n      retryable: boolean,\\n      /** @integer @minimum 100 @maximum 599 */\\n      status?: number,\\n      /** @integer @minimum 0 */\\n      attempts: number,\\n      /** @pattern ^[A-Za-z][A-Za-z0-9_-]{0,63}$ */\\n      backend?: string,\\n      /** @minimum 0 */\\n      durationMs: number,\\n      provider: \\\"typesafe\\\" | \\\"laya\\\" | \\\"ollama\\\" | \\\"cloudflare\\\" | \\\"openai-decisions\\\",\\n    },\\n    ok: false,\\n  }>\"\n    }\n  ],\n  \"remaining\": 2,\n  \"next\": {\n    \"offset\": 1\n  }\n}"
+    },
+    {
+      "tool": "shell",
+      "status": "completed",
+      "input": {
+        "command": "rg -l --glob '*.go' 'Admission|admission|notification|Notification' .",
+        "timeout": 120000
+      },
+      "error": null,
+      "outputBytes": 2631
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "const files=['internal/modules/automations/nats/consumer.go','internal/platform/nats/managed_consumer.go','internal/modules/automations/fact_processing.go','internal/modules/automations/sqlite/admission.go','internal/modules/automations/execution.go','internal/modules/automations/service.go']; return await tools.classify.decide({state:{type:'evidence',files},questions:Object.fromEntries(files.map((p,i)=>['f'+i,{type:'choice',instructions:`Is ${p} relevant to tracing device notification delivery, durable automation admission, duplicate/revision/condition/cancellation handling, or recovery and step command ownership/completion?`,criteria:{yes:'Contains implementation evidence',no:'Not relevant'}}]))})"
+      },
+      "error": null,
+      "outputBytes": 256,
+      "output": "{\n  \"error\": {\n    \"code\": \"REQUEST_REJECTED\",\n    \"message\": \"Provider rejected the request.\",\n    \"retryable\": false,\n    \"status\": 400,\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 84.447512,\n    \"provider\": \"ollama\"\n  },\n  \"ok\": false\n}"
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await tools.classify.decide({state:{type:'evidence',files:[{path:'internal/modules/automations/nats/consumer.go',offset:1,limit:200}]},questions:{relevant:{type:'choice',instructions:'Does this implement incoming device notification delivery to automation admission and acknowledgment/retry handling?',criteria:{yes:'Relevant implementation',no:'Unrelated'}}}})"
+      },
+      "error": null,
+      "outputBytes": 487,
+      "output": "{\n  \"ok\": true,\n  \"result\": {\n    \"answers\": {\n      \"relevant\": {\n        \"choice\": \"yes\",\n        \"confidence\": 0.9633308181730216,\n        \"probabilities\": {\n          \"yes\": 0.9961194183688921,\n          \"no\": 0.0038805816311078467\n        },\n        \"type\": \"choice\"\n      }\n    },\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 836.70368,\n    \"model\": \"nimble\",\n    \"provider\": \"ollama\",\n    \"usage\": {\n      \"input_tokens\": 2586,\n      \"output_tokens\": 1\n    }\n  }\n}"
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "const files=['internal/platform/nats/managed_consumer.go','internal/modules/automations/fact_processing.go','internal/modules/automations/sqlite/admission.go','internal/modules/automations/execution.go','internal/modules/automations/service.go']; return await Promise.all(files.map(async path=>({path,result:await tools.classify.decide({state:{type:'evidence',files:[path]},questions:{relevant:{type:'choice',instructions:'Is this implementation relevant to tracing device notification delivery, durable automation admission, duplicate/revision/condition/cancellation handling, or recovery and step command ownership/completion?',criteria:{yes:'Relevant implementation',no:'Unrelated'}}}})})))"
+      },
+      "error": null,
+      "outputBytes": 3334,
+      "output": "[\n  {\n    \"path\": \"internal/platform/nats/managed_consumer.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"no\",\n            \"confidence\": 0.004194959645151042,\n            \"probabilities\": {\n              \"yes\": 0.46188894472135844,\n              \"no\": 0.5381110552786416\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 657.599106,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 2041,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/fact_processing.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.802878062387244,\n            \"probabilities\": {\n              \"yes\": 0.9694541476083811,\n              \"no\": 0.03054585239161902\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 1099.657482,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 1309,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/sqlite/admission.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.9457875861314382,\n            \"probabilities\": {\n              \"yes\": 0.9938235160195039,\n              \"no\": 0.006176483980496155\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2640.346738,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 7607,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/execution.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.8897108546751181,\n            \"probabilities\": {\n              \"yes\": 0.9853421855678566,\n              \"no\": 0.014657814432143418\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2052.38277,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 3520,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/service.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.7891729933969205,\n            \"probabilities\": {\n              \"yes\": 0.9666698147838774,\n              \"no\": 0.03333018521612268\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 1556.065554,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 1313,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  }\n]"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/consumer.go",
+        "limit": 200
+      },
+      "error": null,
+      "outputBytes": 7894
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/fact_processing.go"
+      },
+      "error": null,
+      "outputBytes": 3708
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/execution.go"
+      },
+      "error": null,
+      "outputBytes": 11286
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/admission.go"
+      },
+      "error": null,
+      "outputBytes": 23996
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/service.go"
+      },
+      "error": null,
+      "outputBytes": 4144
+    },
+    {
+      "tool": "shell",
+      "status": "completed",
+      "input": {
+        "command": "rg -l --glob '*.go' 'DecideConditions|ConditionSnapshotRequired|InterruptActiveRuns|func .*mapDeviceFactMessage|func .*MatchTriggers|func .*MarkStepRunning|func .*CompleteStep' internal"
+      },
+      "error": null,
+      "outputBytes": 721
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "const files=['internal/modules/automations/conditions_decision.go','internal/modules/automations/conditions_evaluation.go','internal/modules/automations/conditions_snapshot.go','internal/modules/automations/trigger_matching.go','internal/modules/automations/nats/device_fact_mapping.go','internal/modules/automations/sqlite/execution.go','internal/app/hearthd/run.go']; return await Promise.all(files.map(async path=>({path,result:await tools.classify.decide({state:{type:'evidence',files:[path]},questions:{relevant:{type:'choice',instructions:'Does this provide implementation evidence for device notification mapping/trigger matching, condition false/unknown or changed definition state snapshot handling, durable step completion, or startup interrupting admitted runs?',criteria:{yes:'Relevant implementation',no:'Unrelated'}}}})})))"
+      },
+      "error": null,
+      "outputBytes": 4690,
+      "output": "[\n  {\n    \"path\": \"internal/modules/automations/conditions_decision.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.8233584454784371,\n            \"probabilities\": {\n              \"yes\": 0.9734773307608896,\n              \"no\": 0.02652266923911039\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 453.140369,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 489,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/conditions_evaluation.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.7495072940851049,\n            \"probabilities\": {\n              \"yes\": 0.9581983198087036,\n              \"no\": 0.04180168019129635\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2060.060917,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 3254,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/conditions_snapshot.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.10795294786657539,\n            \"probabilities\": {\n              \"yes\": 0.6909730434187548,\n              \"no\": 0.3090269565812452\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 650.81646,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 439,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/trigger_matching.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.9347223329894276,\n            \"probabilities\": {\n              \"yes\": 0.9922785002018972,\n              \"no\": 0.007721499798102763\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 1061.254323,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 1355,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/nats/device_fact_mapping.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"no\",\n            \"confidence\": 0.5950736271327821,\n            \"probabilities\": {\n              \"yes\": 0.08078135381042326,\n              \"no\": 0.9192186461895767\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 1527.020081,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 3367,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/modules/automations/sqlite/execution.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.331686651688455,\n            \"probabilities\": {\n              \"yes\": 0.8253138051873367,\n              \"no\": 0.1746861948126634\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 2546.168059,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 2021,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  },\n  {\n    \"path\": \"internal/app/hearthd/run.go\",\n    \"result\": {\n      \"ok\": true,\n      \"result\": {\n        \"answers\": {\n          \"relevant\": {\n            \"choice\": \"yes\",\n            \"confidence\": 0.4617299264685514,\n            \"probabilities\": {\n              \"yes\": 0.8768775749287547,\n              \"no\": 0.12312242507124525\n            },\n            \"type\": \"choice\"\n          }\n        },\n        \"attempts\": 1,\n        \"backend\": \"local\",\n        \"durationMs\": 3099.439838,\n        \"model\": \"nimble\",\n        \"provider\": \"ollama\",\n        \"usage\": {\n          \"input_tokens\": 7563,\n          \"output_tokens\": 1\n        }\n      }\n    }\n  }\n]"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_snapshot.go"
+      },
+      "error": null,
+      "outputBytes": 1016
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_decision.go"
+      },
+      "error": null,
+      "outputBytes": 1073
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/trigger_matching.go",
+        "limit": 110
+      },
+      "error": null,
+      "outputBytes": 3527
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_evaluation.go",
+        "limit": 130
+      },
+      "error": null,
+      "outputBytes": 5428
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/execution.go"
+      },
+      "error": null,
+      "outputBytes": 5630
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "path": "internal/app/hearthd/run.go",
+        "pattern": "InterruptActiveRuns|StartDeviceFactConsumer|Start.*Command|Recover",
+        "limit": 20
+      },
+      "error": null,
+      "outputBytes": 250
+    },
+    {
+      "tool": "execute",
+      "status": "completed",
+      "input": {
+        "code": "return await tools.classify.decide({state:{type:'evidence',files:['internal/modules/automations/nats/device_fact_mapping.go']},questions:{mapping:{type:'choice',instructions:'Is this file relevant specifically to how a received NATS wire device fact is validated and mapped into an automation DeviceFact (including notification family or stable fact identity)?',criteria:{yes:'Implements any part of that mapping',no:'Does not implement that mapping'}}}})"
+      },
+      "error": null,
+      "outputBytes": 487,
+      "output": "{\n  \"ok\": true,\n  \"result\": {\n    \"answers\": {\n      \"mapping\": {\n        \"choice\": \"yes\",\n        \"confidence\": 0.9756702007920569,\n        \"probabilities\": {\n          \"yes\": 0.9976017368558041,\n          \"no\": 0.0023982631441959437\n        },\n        \"type\": \"choice\"\n      }\n    },\n    \"attempts\": 1,\n    \"backend\": \"local\",\n    \"durationMs\": 612.883945,\n    \"model\": \"nimble\",\n    \"provider\": \"ollama\",\n    \"usage\": {\n      \"input_tokens\": 3371,\n      \"output_tokens\": 1\n    }\n  }\n}"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/device_fact_mapping.go",
+        "limit": 170
+      },
+      "error": null,
+      "outputBytes": 7046
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/app/hearthd/run.go",
+        "offset": 170,
+        "limit": 35
+      },
+      "error": null,
+      "outputBytes": 1895
+    }
+  ]
+}

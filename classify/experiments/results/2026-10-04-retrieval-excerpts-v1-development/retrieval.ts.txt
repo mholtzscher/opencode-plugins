@@ -1,0 +1,234 @@
+import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { promisify } from "node:util";
+
+import { Schema } from "effect";
+import { getEncoding } from "js-tiktoken";
+
+import type { SearchOutput } from "../search-schemas.js";
+import type { SourceRange } from "./retrieval-corpus.js";
+
+export interface Excerpt extends SourceRange {
+  content: string;
+}
+
+export interface GrepHit {
+  path: string;
+  line: number;
+  text: string;
+}
+
+export interface GrepResult {
+  hits: GrepHit[];
+  omittedHits: number;
+}
+
+type RetrievalDiscovery = GrepResult | SearchOutput;
+
+export const mainTokenEncoding = "o200k_base";
+const tokenizer = getEncoding(mainTokenEncoding);
+
+const MatchSchema = Schema.Struct({
+  data: Schema.Struct({
+    line_number: Schema.Int,
+    lines: Schema.Struct({ text: Schema.String }),
+    path: Schema.Struct({ text: Schema.String }),
+  }),
+  type: Schema.Literal("match"),
+});
+
+/** Require the complete reviewed span, not just an intersecting line or the right filename. */
+export const covers = (
+  ranges: readonly SourceRange[],
+  expected: SourceRange
+) => {
+  let next = expected.startLine;
+  for (const range of ranges
+    .filter((item) => item.path === expected.path)
+    .toSorted((a, b) => a.startLine - b.startLine)) {
+    if (range.startLine > next) {
+      break;
+    }
+    next = Math.max(next, range.endLine + 1);
+  }
+  return next > expected.endLine;
+};
+
+export const contextBytes = (
+  discovery: RetrievalDiscovery,
+  reads: readonly Excerpt[]
+) =>
+  Buffer.byteLength(JSON.stringify(discovery)) +
+  Buffer.byteLength(JSON.stringify(reads));
+
+/** Comparable main-model input estimate, excluding host wrappers and answer generation. */
+export const contextTokens = (
+  discovery: RetrievalDiscovery,
+  reads: readonly Excerpt[]
+) =>
+  tokenizer.encode(JSON.stringify(discovery), [], []).length +
+  tokenizer.encode(JSON.stringify(reads), [], []).length;
+
+export const readExcerpt = async (
+  directory: string,
+  range: SourceRange
+): Promise<Excerpt> => {
+  const source = await readFile(path.join(directory, range.path), "utf-8");
+  const lines = source.match(/[^\n]*\n|[^\n]+$/gu) ?? [];
+  return {
+    content: lines.slice(range.startLine - 1, range.endLine).join(""),
+    endLine: Math.min(range.endLine, lines.length),
+    path: range.path,
+    startLine: range.startLine,
+  };
+};
+
+export const grepCorpus = async (directory: string, terms: string[]) => {
+  const result = await promisify(execFile)(
+    "rg",
+    [
+      "--json",
+      "--fixed-strings",
+      "--ignore-case",
+      "--no-ignore",
+      "--hidden",
+      ...terms.flatMap((term) => ["-e", term]),
+      "--",
+      ".",
+    ],
+    { cwd: directory, maxBuffer: 1024 * 1024, timeout: 30_000 }
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Node process failures are decoded at this command boundary.
+  ).catch((error: unknown) => {
+    if (error instanceof Error && "code" in error && error.code === 1) {
+      return { stderr: "", stdout: "" };
+    }
+    throw error;
+  });
+  const hits: GrepHit[] = [];
+  for (const line of result.stdout.split("\n").filter(Boolean)) {
+    const parsed: unknown = JSON.parse(line);
+    const match = Schema.decodeUnknownOption(MatchSchema)(parsed);
+    if (match._tag === "Some") {
+      const { data } = match.value;
+      hits.push({
+        line: data.line_number,
+        path: data.path.text.replace(/^\.\//u, ""),
+        text: data.lines.text,
+      });
+    }
+  }
+  const sorted = hits.toSorted(
+    (a, b) => a.path.localeCompare(b.path) || a.line - b.line
+  );
+  return {
+    hits: sorted.slice(0, 100),
+    omittedHits: Math.max(0, hits.length - 100),
+  };
+};
+
+/** Fixed baseline policy: term coverage, then hit count, then path; no access to labels. */
+export const selectGrepRanges = (
+  hits: readonly GrepHit[],
+  terms: readonly string[],
+  limit: number
+): SourceRange[] => {
+  const files = new Map<string, GrepHit[]>();
+  for (const hit of hits) {
+    const matches = files.get(hit.path) ?? [];
+    matches.push(hit);
+    files.set(hit.path, matches);
+  }
+  const ranked = [...files]
+    .map(([filePath, matches]) => ({
+      matches,
+      path: filePath,
+      termCount: terms.filter((term) =>
+        matches.some((match) =>
+          match.text.toLowerCase().includes(term.toLowerCase())
+        )
+      ).length,
+    }))
+    .toSorted(
+      (a, b) =>
+        b.termCount - a.termCount ||
+        b.matches.length - a.matches.length ||
+        a.path.localeCompare(b.path)
+    );
+  const selected: SourceRange[] = [];
+  for (const file of ranked.slice(0, limit)) {
+    let remaining = 200;
+    let previousEnd = 0;
+    for (const hit of file.matches.toSorted((a, b) => a.line - b.line)) {
+      const startLine = Math.max(1, hit.line - 15, previousEnd + 1);
+      const endLine = Math.min(hit.line + 15, startLine + remaining - 1);
+      if (remaining === 0 || endLine < startLine) {
+        continue;
+      }
+      selected.push({ endLine, path: file.path, startLine });
+      remaining -= endLine - startLine + 1;
+      previousEnd = endLine;
+    }
+  }
+  return selected;
+};
+
+export const RetrievalStrategySchema = Schema.Literals([
+  "grep-read",
+  "search-terms",
+  "search-all",
+  "search-hybrid",
+  "search-batch",
+  "search-excerpts",
+]);
+export type RetrievalStrategy = typeof RetrievalStrategySchema.Type;
+
+export interface RetrievalRow {
+  task: string;
+  strategy: RetrievalStrategy;
+  repetition: number;
+  ok: boolean;
+  elapsedMs: number;
+  mainContextBytes: number;
+  mainContextTokens: number;
+  helperInputTokens: number;
+  helperOutputTokens: number;
+  helperAttempts: number;
+  returnedFiles: string[];
+  readRanges: SourceRange[];
+  prefixRanges: SourceRange[];
+  judgedRanges: SourceRange[];
+  targetFilesFound: number;
+  targetsFound: number;
+  targetsTotal: number;
+  discovery: RetrievalDiscovery;
+}
+
+export const retrievalMarkdown = (rows: readonly RetrievalRow[]) => {
+  const lines = [
+    "# Retrieval comparison",
+    "",
+    "Main-context tokens use o200k_base on serialized discovery and follow-up reads; they estimate main-LLM input, not billed usage. Helper tokens are separate backend-reported diagnostics. Main-agent reasoning/output and host overhead are not measured.",
+    "",
+    "| Task | Strategy | Evidence spans | Target files | Main input tokens | Context bytes | Helper input/output tokens | Attempts | Seconds |",
+    "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ...rows.map(
+      (row) =>
+        `| ${row.task} / ${row.repetition + 1}${row.ok ? "" : " FAILED"} | ${row.strategy} | ${row.targetsFound}/${row.targetsTotal} | ${row.targetFilesFound} | ${row.mainContextTokens} | ${row.mainContextBytes} | ${row.helperInputTokens}/${row.helperOutputTokens} | ${row.helperAttempts} | ${(row.elapsedMs / 1000).toFixed(3)} |`
+    ),
+    "",
+    "## Totals",
+    "",
+    "| Strategy | Evidence spans | Main input tokens | Context bytes | Helper input/output tokens | Attempts | Seconds |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+  ];
+  for (const strategy of new Set(rows.map((row) => row.strategy))) {
+    const selected = rows.filter((row) => row.strategy === strategy);
+    const sum = (value: (row: RetrievalRow) => number) =>
+      selected.reduce((total, row) => total + value(row), 0);
+    lines.push(
+      `| ${strategy} | ${sum((row) => row.targetsFound)}/${sum((row) => row.targetsTotal)} | ${sum((row) => row.mainContextTokens)} | ${sum((row) => row.mainContextBytes)} | ${sum((row) => row.helperInputTokens)}/${sum((row) => row.helperOutputTokens)} | ${sum((row) => row.helperAttempts)} | ${(sum((row) => row.elapsedMs) / 1000).toFixed(3)} |`
+    );
+  }
+  return `${lines.join("\n")}\n`;
+};

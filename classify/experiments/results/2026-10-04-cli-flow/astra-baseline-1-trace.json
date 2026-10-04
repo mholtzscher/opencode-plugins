@@ -1,0 +1,593 @@
+{
+  "usage": [
+    {
+      "id": "msg_109391ac2001cIhtsQ6xd8tPtY",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156099789,
+        "streamed": 1791156102769,
+        "completed": 1791156102770
+      },
+      "tokens": {
+        "input": 5982,
+        "output": 32,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939267b0010Wg7LK5YtPYD9m",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156102789,
+        "streamed": 1791156106551,
+        "completed": 1791156106553
+      },
+      "tokens": {
+        "input": 7488,
+        "output": 40,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_1093935410017xpgvH6GsscIV8",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156106571,
+        "streamed": 1791156110412,
+        "completed": 1791156110413
+      },
+      "tokens": {
+        "input": 7809,
+        "output": 26,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109394455001kgS2swUfsAO03t",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156110431,
+        "streamed": 1791156112854,
+        "completed": 1791156112856
+      },
+      "tokens": {
+        "input": 3004,
+        "output": 30,
+        "reasoning": 0,
+        "cache": {
+          "read": 7680,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109394de0001lV0jreo6cRLvVw",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156112873,
+        "streamed": 1791156117179,
+        "completed": 1791156117180
+      },
+      "tokens": {
+        "input": 2279,
+        "output": 61,
+        "reasoning": 0,
+        "cache": {
+          "read": 10496,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109395ec4001sLXaMp0JxTwnZz",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156117198,
+        "streamed": 1791156121423,
+        "completed": 1791156121424
+      },
+      "tokens": {
+        "input": 4206,
+        "output": 48,
+        "reasoning": 0,
+        "cache": {
+          "read": 12672,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_109396f59001XoggmYIaFWlq4R",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156121443,
+        "streamed": 1791156127874,
+        "completed": 1791156127877
+      },
+      "tokens": {
+        "input": 1632,
+        "output": 145,
+        "reasoning": 0,
+        "cache": {
+          "read": 16768,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939888e001d2LQ4buzPpWAD6",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156127896,
+        "streamed": 1791156135944,
+        "completed": 1791156135945
+      },
+      "tokens": {
+        "input": 4136,
+        "output": 171,
+        "reasoning": 0,
+        "cache": {
+          "read": 18304,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939a812001CXSpOql2HTofRG",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156135963,
+        "streamed": 1791156144479,
+        "completed": 1791156144480
+      },
+      "tokens": {
+        "input": 3915,
+        "output": 194,
+        "reasoning": 13,
+        "cache": {
+          "read": 22272,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939c968001Cnr3HekFASlf0r",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156144498,
+        "streamed": 1791156148809,
+        "completed": 1791156148810
+      },
+      "tokens": {
+        "input": 4091,
+        "output": 31,
+        "reasoning": 0,
+        "cache": {
+          "read": 25984,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939da53001XW73sNFjBV1I75",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156148829,
+        "streamed": 1791156152740,
+        "completed": 1791156152741
+      },
+      "tokens": {
+        "input": 1875,
+        "output": 44,
+        "reasoning": 9,
+        "cache": {
+          "read": 29952,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939e9ad001Z8es4b85985KQs",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156152759,
+        "streamed": 1791156158100,
+        "completed": 1791156158104
+      },
+      "tokens": {
+        "input": 490,
+        "output": 119,
+        "reasoning": 0,
+        "cache": {
+          "read": 31744,
+          "write": 0
+        }
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "id": "msg_10939fea00018oQyDV039B5dru",
+      "model": {
+        "id": "gpt-6-astra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "time": {
+        "created": 1791156158122,
+        "streamed": 1791156190098,
+        "completed": 1791156190099
+      },
+      "tokens": {
+        "input": 1149,
+        "output": 985,
+        "reasoning": 0,
+        "cache": {
+          "read": 32128,
+          "write": 0
+        }
+      },
+      "finish": "stop"
+    }
+  ],
+  "tools": [
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "durable|notification|Admission",
+        "include": "*.go",
+        "limit": 65
+      },
+      "error": null,
+      "outputBytes": 5844
+    },
+    {
+      "tool": "glob",
+      "status": "completed",
+      "input": {
+        "pattern": "**/*{notification,admission,execution,consumer,recovery}*.go",
+        "path": "internal",
+        "limit": 100
+      },
+      "error": null,
+      "outputBytes": 974
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/consumer.go"
+      },
+      "error": null,
+      "outputBytes": 10694
+    },
+    {
+      "tool": "glob",
+      "status": "completed",
+      "input": {
+        "pattern": "*.go",
+        "path": "internal/modules/automations",
+        "limit": 100
+      },
+      "error": null,
+      "outputBytes": 7360
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/fact_processing.go"
+      },
+      "error": null,
+      "outputBytes": 3708
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/execution.go"
+      },
+      "error": null,
+      "outputBytes": 11286
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "^func |snapshot|Snapshot|Duplicate|duplicate|Condition|Commit",
+        "path": "internal/modules/automations/sqlite/admission.go",
+        "limit": 100
+      },
+      "error": null,
+      "outputBytes": 5979
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/admission.go",
+        "offset": 34,
+        "limit": 38
+      },
+      "error": null,
+      "outputBytes": 1715
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "Recover|Interrupt|restart|func .*Start",
+        "path": "internal/modules/automations",
+        "include": "*.go",
+        "limit": 45
+      },
+      "error": null,
+      "outputBytes": 4833
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/admission.go",
+        "offset": 161,
+        "limit": 187
+      },
+      "error": null,
+      "outputBytes": 6358
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_decision.go",
+        "limit": 180
+      },
+      "error": null,
+      "outputBytes": 1073
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_snapshot.go",
+        "limit": 160
+      },
+      "error": null,
+      "outputBytes": 1016
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/device_fact_mapping.go",
+        "limit": 135
+      },
+      "error": null,
+      "outputBytes": 5276
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/execution.go",
+        "limit": 150
+      },
+      "error": null,
+      "outputBytes": 5630
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "InterruptActiveRuns|StartDeviceFactConsumer",
+        "path": "internal/app",
+        "include": "*.go",
+        "limit": 15
+      },
+      "error": null,
+      "outputBytes": 322
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "SnapshotRequired|Covered|coverage|Requested",
+        "path": "internal/modules/automations/conditions_evaluation.go",
+        "limit": 20
+      },
+      "error": null,
+      "outputBytes": 710
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/nats/resources.go",
+        "limit": 110
+      },
+      "error": null,
+      "outputBytes": 4929
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/trigger_matching.go",
+        "limit": 115
+      },
+      "error": null,
+      "outputBytes": 3527
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/conditions_evaluation.go",
+        "limit": 36
+      },
+      "error": null,
+      "outputBytes": 1478
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/app/hearthd/run.go",
+        "offset": 174,
+        "limit": 33
+      },
+      "error": null,
+      "outputBytes": 1729
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/admission.go",
+        "offset": 451,
+        "limit": 27
+      },
+      "error": null,
+      "outputBytes": 1192
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "func .*ExecuteCommand|DispatchCommand|RequestCommand",
+        "path": "internal/modules/devices",
+        "include": "*.go",
+        "limit": 20
+      },
+      "error": null,
+      "outputBytes": 444
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/devices/command.go",
+        "offset": 65,
+        "limit": 165
+      },
+      "error": null,
+      "outputBytes": 6646
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "func .*runCommand|Dispatch|dispatcher",
+        "path": "internal/modules/devices",
+        "include": "command*.go",
+        "limit": 20
+      },
+      "error": null,
+      "outputBytes": 1328
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/devices/command.go",
+        "offset": 231,
+        "limit": 50
+      },
+      "error": null,
+      "outputBytes": 1962
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "input": {
+        "path": "internal/modules/automations/sqlite/dbsqlc/automations.sql.go",
+        "offset": 703,
+        "limit": 29
+      },
+      "error": null,
+      "outputBytes": 1096
+    },
+    {
+      "tool": "grep",
+      "status": "completed",
+      "input": {
+        "pattern": "func .*transaction|Commit|Rollback",
+        "path": "internal/modules/automations/sqlite/repository.go",
+        "limit": 15
+      },
+      "error": null,
+      "outputBytes": 291
+    }
+  ]
+}

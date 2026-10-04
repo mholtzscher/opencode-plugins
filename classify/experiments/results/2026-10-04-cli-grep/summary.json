@@ -1,0 +1,34 @@
+[
+  {
+    "trial": "baseline",
+    "sessionID": "ses_ef6de142fffejtjpY56OJhmOfq",
+    "outcome": "succeeded",
+    "tokens": {
+      "input": 6503,
+      "output": 322,
+      "reasoning": 28,
+      "cache": {
+        "read": 14208,
+        "write": 0
+      }
+    },
+    "mainInputIncludingCached": 20711,
+    "toolCalls": 2
+  },
+  {
+    "trial": "classify",
+    "sessionID": "ses_ef6ddcf2dffeyeNTaaAOLaTnf6",
+    "outcome": "succeeded",
+    "tokens": {
+      "input": 22530,
+      "output": 511,
+      "reasoning": 0,
+      "cache": {
+        "read": 35968,
+        "write": 0
+      }
+    },
+    "mainInputIncludingCached": 58498,
+    "toolCalls": 5
+  }
+]

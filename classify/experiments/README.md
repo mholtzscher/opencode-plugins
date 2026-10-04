@@ -97,6 +97,29 @@ Median extraction overhead was 174 ms. Selected code reduced input tokens by 59.
 
 ## Reproduce
 
+### File retrieval comparison
+
+The [retrieval archive guide](./RETRIEVAL_ARCHIVE.md) indexes the code, reports, retained CLI logs, findings, and instructions for resuming this branch's experiments.
+
+[`RETRIEVAL.md`](./RETRIEVAL.md) defines a paired comparison of bounded search, search with literal terms, and a fixed `grep` + targeted-read baseline. It measures reviewed evidence coverage, main-context bytes including follow-up reads, helper-model tokens, and retrieval time on a hash-pinned source snapshot.
+
+The [2026-10-04 results](./RETRIEVAL.md#result-2026-10-04) found more context consumption and fewer required evidence spans with the current search on this eight-question workload; unfiltered search did recover one terminology-mismatch case that grep missed.
+
+[Subsequent iterations](./RETRIEVAL.md#earlier-shortlist-result) tested full-file evidence, selective excerpt judgments, and batching. The hybrid v2 prototype reduced main context by 54.0% on the original questions and 42.4% on eight additional questions versus grep, with more required evidence in both sets. It still missed some evidence found by exhaustive search. The report retains every trial and its inference cost.
+
+The latest [main-LLM token experiment](./RETRIEVAL.md#main-llm-token-experiment) judges every file, then narrows accepted files to relevant excerpts. Across both question sets it found 38/38 required spans with 51,256 estimated main-input tokens, versus grep's 28/38 spans and 77,504 tokens. That is 33.9% fewer main-input tokens, at about 7.2 seconds per question. Counts use `o200k_base` on tool results and follow-up reads, not billed end-to-end agent usage. Local Classify token usage is a separate diagnostic.
+
+The [Hearth follow-up](./HEARTH_RETRIEVAL.md) tests repository-wide Go implementation retrieval over 411 files, 72,358 lines, and approximately 579,000 source tokens. It includes generated code, larger-file chunking, new cross-file questions, and a lexical baseline that ranks all hits before returning excerpts.
+
+On Hearth, `search-excerpts` found 12/14 required spans with 30,484 estimated main-input tokens; fixed `grep-read` found 3/14 with 58,402. These fixed-algorithm results do not measure adaptive agent retrieval. The [CLI trial](./CLI_RETRIEVAL.md) and [multi-file flow follow-up](./CLI_FLOW_RETRIEVAL.md) instead launch fresh agents and count exported session usage, including repeated conversation input.
+
+```sh
+bun experiments/retrieval-benchmark.ts --model nimble --repetitions 2 \
+  --output /tmp/opencode/retrieval-run-1
+```
+
+It requires `rg` and an already-running local Ollama with the model installed. See the protocol for scope, grading rules, cost accounting, and reproducibility limits.
+
 ### Portable Ollama speed benchmark
 
 [`ollama-benchmark.ts`](./ollama-benchmark.ts) measures cold/warm latency, caller concurrency, and question batching through the production classification service, provider transport, and response validation. It does not require OpenCode or the external code-evidence corpus. It excludes host tool dispatch and evidence IO.

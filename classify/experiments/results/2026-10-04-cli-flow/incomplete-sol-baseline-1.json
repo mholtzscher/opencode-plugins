@@ -1,0 +1,60 @@
+{
+  "sessionID": "ses_ef6d516f8ffek2XMrNCunL4HcN",
+  "outcome": "failed",
+  "tokens": {
+    "input": 31672,
+    "output": 931,
+    "reasoning": 64,
+    "cache": {
+      "read": 139136,
+      "write": 0
+    }
+  },
+  "models": [
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    },
+    {
+      "id": "gpt-6.1-sol",
+      "providerID": "openai"
+    }
+  ],
+  "excludedReason": "Sol comparison was interrupted by the baseline provider quota limit."
+}

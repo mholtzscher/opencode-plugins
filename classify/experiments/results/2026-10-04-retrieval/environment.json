@@ -1,0 +1,8 @@
+{
+  "platform": "Linux-6.18.54-x86_64-with-glibc2.44",
+  "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+  "logicalCpus": 24,
+  "note": "Environment recorded immediately after the paired run. Competing workloads and server inference-slot configuration were not controlled.",
+  "gpu": "NVIDIA GeForce RTX 3090, 24576 MiB, 595.104.02",
+  "ollamaVersion": "{\"version\":\"0.35.1\"}"
+}
