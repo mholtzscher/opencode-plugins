@@ -6,6 +6,7 @@
       "name": "opencode-quota-usage-plugin",
       "dependencies": {
         "@opencode/plugin": "^2.0.12",
+        "@opencode/schema": "2.0.16",
         "effect": "4.0.0-rc.112",
       },
       "devDependencies": {
