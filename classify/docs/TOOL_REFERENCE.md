@@ -2,6 +2,10 @@
 
 [Back to README](../README.md) · [Configuration](./CONFIGURATION.md) · [Evidence](./EVIDENCE.md)
 
+The `classify` namespace contains `decide`, `search`, and `grammar`, with effective IDs `classify_decide`, `classify_search`, and `classify_grammar`. This page describes `decide`. See [search](./SEARCH.md) for file ranking and [evidence](./EVIDENCE.md) for grammar discovery and code extraction.
+
+The former standalone `classify` operation is now `classify_decide`, with unchanged arguments and output. Update tool-ID references and permission rules that target the old ID. Code Mode callers should discover the namespace and use its returned signatures.
+
 ## Input
 
 Tool arguments are exactly one of:

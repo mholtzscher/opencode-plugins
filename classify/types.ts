@@ -6,9 +6,14 @@ import type {
   SchemaClassifyOutput,
   SchemaQuestion,
   SchemaQuestions,
-} from "./schemas.js";
+} from "./classification-schemas.js";
 
 export type { ProviderID } from "./providers/ids.js";
+export type {
+  SearchInput,
+  SearchMatch,
+  SearchOutput,
+} from "./search-schemas.js";
 export { ClassificationError, ERROR_CODES } from "./errors.js";
 export type { ErrorCode, Failure } from "./errors.js";
 

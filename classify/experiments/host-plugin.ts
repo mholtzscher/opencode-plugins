@@ -9,7 +9,11 @@ import { Effect, Schema } from "effect";
 // Test-only bridge to the real host's registered executors. Only loaded in the disposable validation project.
 const Invocation = Schema.Struct({
   input: Schema.Unknown,
-  tool: Schema.Literals(["classify", "classify_grammar"]),
+  tool: Schema.Literals([
+    "classify_decide",
+    "classify_grammar",
+    "classify_search",
+  ]),
 });
 export default Plugin.define({
   effect: (context) =>

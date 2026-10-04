@@ -1,9 +1,12 @@
 import type { Tool } from "@opencode/schema/tool";
 import { Effect } from "effect";
 
+import {
+  buildInputSchema,
+  ClassifyOutputSchema,
+} from "./classification-schemas.js";
+import { Classification } from "./classification.js";
 import type { ClassifyOptions } from "./config.js";
-import { buildInputSchema, ClassifyOutputSchema } from "./schemas.js";
-import { Classification } from "./service.js";
 import { buildToolDescription } from "./tool-description.js";
 
 export const createClassifyTool = (options: ClassifyOptions) =>
@@ -17,7 +20,8 @@ export const createClassifyTool = (options: ClassifyOptions) =>
           .classify(input, context)
           .pipe(Effect.map((output) => ({ output }))),
       input: buildInputSchema(options.classifiers),
-      name: "classify",
+      name: "decide",
+      options: { codemode: true, namespace: "classify" },
       output: ClassifyOutputSchema,
     } satisfies Tool.Info;
   });

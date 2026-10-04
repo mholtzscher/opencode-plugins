@@ -1,13 +1,14 @@
 import { Effect, Schema } from "effect";
 
 import { BackendSchema, normalizeBackend } from "./backend-config.js";
-import { ClassificationError } from "./errors.js";
 import {
   nameKeys,
   NonblankSchema,
   QuestionsStructure,
   StateStructure,
-} from "./schemas.js";
+} from "./classification-schemas.js";
+import { ClassificationError } from "./errors.js";
+import { SearchConfigSchema } from "./search-config.js";
 import { boundedCodec } from "./validation/codec.js";
 
 const strict = { parseOptions: { onExcessProperty: "error" as const } };
@@ -39,6 +40,9 @@ export const OptionsSchema = boundedCodec(
     maxRetries: Schema.Int.check(
       Schema.isBetween({ maximum: 2, minimum: 0 })
     ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
+    search: SearchConfigSchema.pipe(
+      Schema.withDecodingDefaultKey(Effect.succeed({}))
+    ),
     timeoutMs: Schema.Int.check(
       Schema.isBetween({ maximum: 300_000, minimum: 1000 })
     ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(30_000))),

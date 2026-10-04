@@ -1,9 +1,12 @@
 import { Schema } from "effect";
 
-import { ClassifyOutputSchema, ClassifyOutputStructure } from "./schemas.js";
+import {
+  ClassifyOutputSchema,
+  ClassifyOutputStructure,
+} from "./classification-schemas.js";
 import type { ClassifyOutput } from "./types.js";
 
-export { ClassifyOutputSchema } from "./schemas.js";
+export { ClassifyOutputSchema } from "./classification-schemas.js";
 
 const document = Schema.toJsonSchemaDocument(ClassifyOutputStructure);
 

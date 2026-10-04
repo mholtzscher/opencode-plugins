@@ -13,6 +13,7 @@ Use the [installation example](../README.md#quick-start) for the full OpenCode c
 | `classifiers` | None | Up to 32 [named classifiers](./TOOL_REFERENCE.md#named-classifiers) |
 | `timeoutMs` | `30000` | Integer from 1,000 to 300,000 |
 | `maxRetries` | `1` | 0–2 retries after the first attempt; `0` disables retries |
+| `search` | Bounded defaults | Optional [search budgets and exclusions](./SEARCH.md#configuration), shared across backend profiles |
 
 Profile names, classifier names, and question IDs match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. The profile name `reset` is reserved. Profiles may use the same provider with different models, endpoints, accounts, or credential sources. Classifiers, timeout, and retry settings are shared across profiles.
 

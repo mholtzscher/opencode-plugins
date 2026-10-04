@@ -2,15 +2,15 @@ import { expect, test } from "bun:test";
 
 import { Effect, Schema, SchemaRepresentation } from "effect";
 
-import { OptionsSchema, loadOptions } from "../config.js";
-import { MAX_BYTES } from "../limits.js";
-import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
 import {
   buildInputSchema,
   ClassifyOutputSchema,
   boundedCodec,
   QuestionsStructure,
-} from "../schemas.js";
+} from "../classification-schemas.js";
+import { OptionsSchema, loadOptions } from "../config.js";
+import { MAX_BYTES } from "../limits.js";
+import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
 import { adHocInputJsonSchema, parseInputSync } from "./effect-fixtures.js";
 import { input, normalizedResponse } from "./fixtures.js";
 
