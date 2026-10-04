@@ -1,9 +1,9 @@
 import type { Plugin } from "@opencode/plugin/effect";
 import { Effect, Schema } from "effect";
 
+import { NameSchema } from "./classification-schemas.js";
 import type { ClassifyOptions } from "./config.js";
 import type { BackendProfile } from "./rpc.js";
-import { NameSchema } from "./schemas.js";
 
 const selectionKey = (sessionID: string) => `selection/${sessionID}`;
 const storedSelection = Schema.decodeUnknownEffect(

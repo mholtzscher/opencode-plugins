@@ -14,10 +14,10 @@ import {
   Result,
 } from "effect";
 
+import { Classification } from "../classification.js";
 import { loadOptions } from "../config.js";
 import { routeClassification } from "../router.js";
 import { createSelection, SelectionError } from "../selection.js";
-import { Classification } from "../service.js";
 import { toolContext } from "./effect-fixtures.js";
 import { input, normalizedResponse } from "./fixtures.js";
 

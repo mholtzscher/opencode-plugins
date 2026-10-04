@@ -123,7 +123,7 @@ Configure two named profiles in the disposable project using the README's `backe
 
 Record desktop/web and remote-client cases as NOT RUN unless verified in those actual clients.
 
-These examples are **tool arguments**, not provider HTTP bodies. Ask the agent to invoke `classify` exactly as specified, or call `tools.classify` in Code Mode. Do not have the agent read and copy file contents into `state` for evidence cases.
+These examples are **tool arguments**, not provider HTTP bodies. Ask the agent to invoke `classify_decide` exactly as specified. In Code Mode, discover the `classify` namespace and use the returned `decide` signature. Do not have the agent read and copy file contents into `state` for evidence cases.
 
 Check the `ok` discriminator before reading answers. The migrated tool returns structured output; do not call `JSON.parse` on it. Rerun these smoke checks in the real OpenCode host to verify Code Mode handling and native permissions.
 
@@ -332,7 +332,7 @@ Use disposable configuration/key fixtures. Negative configuration cases fail **s
 
 | ID | Case | Expected result / execution mode |
 | --- | --- | --- |
-| C01 | Load/reload server and TUI entries | One unnamespaced `classify` tool; TUI entry performs no classification/credential work. |
+| C01 | Load/reload server and TUI entries | The `classify` namespace contains `decide`, `search`, and `grammar`; TUI entry performs no classification/credential work. |
 | C02 | Setup valid backend without invoking tool | No network calls, model downloads, credential-file reads, or inference. |
 | C03 | Named classifiers present/absent | Schema/description enumerate configured names; ad hoc-only schema when absent. |
 | C04 | Options changed after setup | Existing snapshot unchanged until reload; normalized named questions deeply frozen. |
@@ -392,9 +392,10 @@ For interactive cancellation, use a **separate test client/session** and cancel 
 | `tests/evidence.test.ts` | Files, symlinks, Git evidence, byte budgets, atomic failure, interruption and unavailable-provider guards. |
 | `tests/config.test.ts` | Defaults, option bounds, origins, credentials-source selection, immutable named classifiers. |
 | `tests/credentials.test.ts` | Key files, rotation, source isolation, sanitization, cancellation, OpenAI no-read guard. |
-| `tests/service.test.ts` | Named/ad hoc dispatch, preflight-before-evidence ordering, provider-independent availability gates, result/error envelopes, OpenAI gate, cancellation. |
+| `tests/classification.test.ts` | Named/ad hoc dispatch, preflight-before-evidence ordering, provider-independent availability gates, result/error envelopes, OpenAI gate, cancellation. |
 | `tests/transport.test.ts` | HTTP/auth/status handling, retries/deadlines/streams, native-response validation, request IDs, interruption. |
 | `tests/plugin.test.ts` | Real entry registration/execution, session-location evidence, named/ad hoc list normalization, structured legends, TUI separation. |
+| `tests/search-plugin.test.ts` | Registered search execution, prefix-only evidence, native permissions, stable backend selection, and permission-wait deadlines. |
 
 Matrix rows describe required checks, not a claim that every row has an existing automated regression test. Document NOT RUN cases or add a controlled fixture where a check cannot be exercised safely through the public tool.
 

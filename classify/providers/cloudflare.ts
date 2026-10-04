@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 
+import { JsonValueSchema } from "../classification-schemas.js";
 import type { BackendOptions } from "../config.js";
 import { decodeWith, rejectTruncated } from "../protocols/response.js";
 import type { SystemOneDefinition } from "../protocols/system-one.js";
-import { JsonValueSchema } from "../schemas.js";
 import { boundedCodec } from "../validation/codec.js";
 
 export const CloudflareResponseSchema = boundedCodec(

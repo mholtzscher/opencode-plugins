@@ -58,6 +58,28 @@ test("defaults are explicit, independent and immutable", () => {
     classifiers: {},
     defaultBackend: "default",
     maxRetries: 1,
+    search: {
+      concurrency: 2,
+      excludeDirectories: [
+        "node_modules",
+        "dist",
+        "build",
+        "target",
+        "vendor",
+        "coverage",
+      ],
+      excludeHidden: true,
+      linesPerFile: 200,
+      maxDepth: 16,
+      maxEntries: 4096,
+      maxEvidenceBytes: 1_048_576,
+      maxFailureDetails: 64,
+      maxFileBytes: 32_768,
+      maxFiles: 32,
+      maxPaths: 16,
+      maxResults: 32,
+      timeoutMs: 120_000,
+    },
     timeoutMs: 30_000,
   });
   expect(original).toEqual({
@@ -81,6 +103,42 @@ test("defaults are explicit, independent and immutable", () => {
     Effect.runSync(loadOptions(examples[4])).backends.default.model
   ).toBeUndefined();
 });
+test("search settings default independently and reject unlimited or invalid budgets", () => {
+  const base = {
+    backends: { local: { provider: "laya" } },
+    defaultBackend: "local",
+  };
+  const options = Effect.runSync(
+    loadOptions({
+      ...base,
+      search: { concurrency: 4, excludeDirectories: [], maxFiles: 64 },
+    })
+  );
+  expect(options.search).toMatchObject({
+    concurrency: 4,
+    excludeDirectories: [],
+    linesPerFile: 200,
+    maxFiles: 64,
+  });
+  expect(Object.isFrozen(options.search)).toBe(true);
+  for (const search of [
+    { maxFiles: 0 },
+    { maxFiles: -1 },
+    { maxFiles: 1025 },
+    { concurrency: 1.5 },
+    { timeoutMs: Infinity },
+    { maxFileBytes: 1_048_577 },
+    { maxEvidenceBytes: 67_108_865 },
+    { excludeDirectories: ["src/generated"] },
+    { excludeHidden: "yes" },
+    { unknown: 1 },
+  ]) {
+    expect(() => Effect.runSync(loadOptions({ ...base, search }))).toThrow(
+      "Invalid classify options"
+    );
+  }
+});
+
 test("named classifiers normalize criteria lists into immutable native maps", () => {
   const original = {
     backends: { default: { provider: "laya" } },

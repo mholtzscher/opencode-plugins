@@ -70,7 +70,8 @@ export class EvidenceAccess extends Context.Service<
   {
     resolve: (
       state: EvidenceState,
-      context: Tool.Context
+      context: Tool.Context,
+      byteBudget?: number
     ) => Effect.Effect<Content, ClassificationError>;
   }
 >()("classify/EvidenceAccess") {}
@@ -237,13 +238,17 @@ export const EvidenceAccessLive = Layer.effect(
 
     // Native tools enforce permissions; their display output is not evidence.
     const resolveEvidence = Effect.fn("resolveEvidence")(
-      function* resolveEvidence(state: EvidenceState, context: Tool.Context) {
+      function* resolveEvidence(
+        state: EvidenceState,
+        context: Tool.Context,
+        byteBudget = MAX_BYTES
+      ) {
         const directory = yield* access.directory(context);
         const result: Record<string, JsonValue> = {};
         if (state.text !== undefined) {
           result.text = state.text;
         }
-        let remaining = MAX_BYTES;
+        let remaining = Math.min(byteBudget, MAX_BYTES);
         if (state.files) {
           const files: JsonValue[] = [];
           for (const file of state.files) {

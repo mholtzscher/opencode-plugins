@@ -7,12 +7,12 @@ import { promisify } from "node:util";
 import type { Tool } from "@opencode/schema/tool";
 import { Effect, Layer, Schema } from "effect";
 
+import { Classification, classificationLayer } from "../classification.js";
 import { loadOptions } from "../config.js";
 import { CredentialsLive } from "../credentials.js";
 import { EvidenceAccess } from "../evidence.js";
 import { HttpClientLive } from "../http-client.js";
 import { providerLayer } from "../providers/registry.js";
-import { Classification, classificationLayer } from "../service.js";
 import {
   benchmarkInput,
   benchmarkMarkdown,

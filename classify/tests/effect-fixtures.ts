@@ -1,6 +1,8 @@
 import type { Tool } from "@opencode/schema/tool";
 import { Effect, Layer, Schema } from "effect";
 
+import { buildInputSchema } from "../classification-schemas.js";
+import { Classification, classificationLayer } from "../classification.js";
 import type { ClassifierDefinition, ClassifyOptions } from "../config.js";
 import { EvidenceAccess } from "../evidence.js";
 import { decodeResponse } from "../protocols/response.js";
@@ -11,8 +13,6 @@ import { cloudflare } from "../providers/cloudflare.js";
 import { laya } from "../providers/laya.js";
 import { ollama } from "../providers/ollama.js";
 import { typesafe } from "../providers/typesafe.js";
-import { buildInputSchema } from "../schemas.js";
-import { Classification, classificationLayer } from "../service.js";
 import type { DecisionRequest, JsonValue } from "../types.js";
 import { parseInput } from "../validation/input.js";
 
