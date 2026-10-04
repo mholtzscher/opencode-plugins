@@ -1,8 +1,8 @@
 {
   "cache-metrics": "1.0.0",
-  "classify": "1.0.1",
+  "classify": "1.1.0",
   "github-tools": "1.0.0",
   "marketplace": "0.1.0",
-  "quota-usage": "1.0.0",
+  "quota-usage": "1.1.0",
   "spec-tools": "1.0.0"
 }
