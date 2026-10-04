@@ -162,7 +162,10 @@ Pass explicit references instead of copying source into the call:
   "state": {
     "type": "evidence",
     "text": "Check whether this change fixes stale cache entries.",
-    "files": ["src/cache.test.ts"],
+    "files": [
+      "src/cache.test.ts",
+      { "path": "src/cache.ts", "offset": 120, "limit": 60 }
+    ],
     "diffs": [{ "base": "HEAD", "paths": ["src/cache.ts"] }]
   },
   "questions": {
@@ -175,6 +178,8 @@ Pass explicit references instead of copying source into the call:
 ```
 
 References resolve freshly on the server, relative to the invoking session's directory, using native OpenCode permissions. Git diffs include staged and unstaged tracked changes, but not untracked files. The explicit `type: "evidence"` marker enables resolution; ordinary JSON remains literal data.
+
+File objects accept a 1-based `offset` and a line-count `limit`; the example selects lines 120 through 179. Omit both to read the whole file. Partial reads support sources larger than 1 MiB while keeping selected evidence within the request budget.
 
 The [evidence guide](./docs/EVIDENCE.md) covers file and diff limits, Tree-sitter code selections, and the `classify_grammar` discovery tool.
 

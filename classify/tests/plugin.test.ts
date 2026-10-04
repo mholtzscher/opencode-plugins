@@ -525,6 +525,43 @@ test("executor resolves evidence in the session location before provider HTTP", 
     expect(requests[0]).toHaveProperty("state.files", [
       { content: "actual contents", path: "a.ts" },
     ]);
+    await writeFile(
+      path.join(directory, "a.ts"),
+      "excluded\nselected\nexcluded again\n"
+    );
+    const sliced = await Effect.runPromise(
+      tools[0].execute(
+        {
+          questions,
+          state: {
+            files: [{ limit: 1, offset: 2, path: "a.ts" }],
+            type: "evidence",
+          },
+        },
+        toolContext()
+      )
+    );
+    expect(sliced.output).toHaveProperty("ok", true);
+    expect(requests[1]).toHaveProperty("state.files", [
+      {
+        content: "selected\n",
+        endLine: 2,
+        partial: true,
+        path: "a.ts",
+        startLine: 2,
+      },
+    ]);
+    const invalid = await Effect.runPromise(
+      tools[0].execute(
+        {
+          questions,
+          state: { files: [{ offset: 5, path: "a.ts" }], type: "evidence" },
+        },
+        toolContext()
+      )
+    );
+    expect(invalid.output).toHaveProperty("error.code", "EVIDENCE_ERROR");
+    expect(requests).toHaveLength(2);
   } finally {
     fixture.stop(true);
     await rm(directory, { force: true, recursive: true });
@@ -578,7 +615,10 @@ test("preset evidence is read freshly in the session location with native permis
           review: {
             description: "Review current file",
             questions,
-            state: { files: ["a.ts"], type: "evidence" },
+            state: {
+              files: [{ limit: 1, offset: 2, path: "a.ts" }],
+              type: "evidence",
+            },
           },
         },
         defaultBackend: "default",
@@ -626,21 +666,36 @@ test("preset evidence is read freshly in the session location with native permis
       })
     ).toThrow();
     const context = toolContext();
-    await writeFile(path.join(directory, "a.ts"), "original contents");
+    await writeFile(
+      path.join(directory, "a.ts"),
+      "excluded\noriginal contents"
+    );
     const first = await Effect.runPromise(
       tool.execute({ classifier: "review" }, context)
     );
     expect(first.output).toHaveProperty("result.classifier", "review");
-    await writeFile(path.join(directory, "a.ts"), "updated contents");
+    await writeFile(path.join(directory, "a.ts"), "excluded\nupdated contents");
     const second = await Effect.runPromise(
       tool.execute({ classifier: "review" }, context)
     );
     expect(second.output).toHaveProperty("ok", true);
     expect(requests[0]).toHaveProperty("state.files", [
-      { content: "original contents", path: "a.ts" },
+      {
+        content: "original contents",
+        endLine: 2,
+        partial: true,
+        path: "a.ts",
+        startLine: 2,
+      },
     ]);
     expect(requests[1]).toHaveProperty("state.files", [
-      { content: "updated contents", path: "a.ts" },
+      {
+        content: "updated contents",
+        endLine: 2,
+        partial: true,
+        path: "a.ts",
+        startLine: 2,
+      },
     ]);
     const override = await Effect.runPromise(
       tool.execute({ classifier: "review", state: "Override" }, context)

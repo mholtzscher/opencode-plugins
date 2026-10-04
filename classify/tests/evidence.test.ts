@@ -25,6 +25,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import { EvidenceAccess, EvidenceAccessLive } from "../evidence.js";
 import { processLayer } from "../layers.js";
+import { MAX_EVIDENCE_SCAN_BYTES } from "../limits.js";
 import { OpenCodeAccess, openCodeAccessLayer } from "../opencode-access.js";
 import { ClassificationError } from "../types.js";
 import type { EvidenceState, JsonValue } from "../types.js";
@@ -126,7 +127,7 @@ const descriptorsFor = async (target: string) => {
 test("evidence wrapper is discoverable, validated, and explicit; legacy JSON remains data", () => {
   const state = {
     diffs: [{ base: "HEAD", paths: ["a.ts"] }],
-    files: ["a.ts"],
+    files: ["a.ts", { limit: 60, offset: 120, path: "b.ts" }],
     text: "Review",
     type: "evidence",
   };
@@ -134,8 +135,12 @@ test("evidence wrapper is discoverable, validated, and explicit; legacy JSON rem
   const legacy = { diffs: [{ base: "HEAD" }], files: ["never-read.env"] };
   expect(parseInputSync({ questions, state: legacy }).state).toEqual(legacy);
   expect(adHocInputJsonSchema()).toHaveProperty(
-    "properties.state.anyOf.0.properties.files.anyOf.0.items.type",
+    "properties.state.anyOf.0.properties.files.anyOf.0.items.anyOf.0.type",
     "string"
+  );
+  expect(adHocInputJsonSchema()).toHaveProperty(
+    "properties.state.anyOf.0.properties.files.anyOf.0.items.anyOf.1.properties.offset.minimum",
+    1
   );
   const invalidStates: JsonValue[] = [
     { type: "evidence" },
@@ -145,6 +150,13 @@ test("evidence wrapper is discoverable, validated, and explicit; legacy JSON rem
     { files: ["x\0y"], type: "evidence" },
     { files: Array.from({ length: 65 }, () => "a"), type: "evidence" },
     { files: [{ content: "b", path: "a" }], type: "evidence" },
+    { files: [{ path: "" }], type: "evidence" },
+    { files: [{ path: "x\0y" }], type: "evidence" },
+    { files: [{ offset: 1 }], type: "evidence" },
+    ...[0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "2", null].flatMap((value) => [
+      { files: [{ offset: value, path: "a" }], type: "evidence" },
+      { files: [{ limit: value, path: "a" }], type: "evidence" },
+    ]),
     { code: [], type: "evidence" },
     { code: [{ path: "x.ts", query: "" }], type: "evidence" },
     { code: [{ path: "x.ts", query: "x".repeat(8193) }], type: "evidence" },
@@ -187,6 +199,193 @@ test("files resolve freshly, retain labels, pass call context, and are not displ
   });
   expect(h.calls[1].context).toBe(next);
   expect(await descriptorsFor(path.join(directory, "a.ts"))).toBe(0);
+});
+
+test("file slices preserve exact text and actual bounds across defaults and EOF", async () => {
+  const directory = await fixture();
+  const content = "first\r\n雪 😀\r\n\r\nlast";
+  await writeFile(path.join(directory, "a.txt"), content);
+  const h = host(directory);
+  expect(
+    await h.resolve({
+      files: [
+        { path: "a.txt" },
+        { limit: 1, path: "a.txt" },
+        { limit: 2, offset: 2, path: "a.txt" },
+        { offset: 4, path: "a.txt" },
+        { limit: 100, offset: 3, path: "a.txt" },
+        { offset: 1, path: "a.txt" },
+      ],
+      type: "evidence",
+    })
+  ).toEqual({
+    files: [
+      { content, path: "a.txt" },
+      {
+        content: "first\r\n",
+        endLine: 1,
+        partial: true,
+        path: "a.txt",
+        startLine: 1,
+      },
+      {
+        content: "雪 😀\r\n\r\n",
+        endLine: 3,
+        partial: true,
+        path: "a.txt",
+        startLine: 2,
+      },
+      {
+        content: "last",
+        endLine: 4,
+        partial: true,
+        path: "a.txt",
+        startLine: 4,
+      },
+      {
+        content: "\r\nlast",
+        endLine: 4,
+        partial: true,
+        path: "a.txt",
+        startLine: 3,
+      },
+      { content, endLine: 4, partial: false, path: "a.txt", startLine: 1 },
+    ],
+  });
+  await expect(
+    h.resolve({ files: [{ offset: 5, path: "a.txt" }], type: "evidence" })
+  ).rejects.toThrow("beyond EOF");
+  await writeFile(path.join(directory, "a.txt"), "first\n");
+  await expect(
+    h.resolve({ files: [{ offset: 2, path: "a.txt" }], type: "evidence" })
+  ).rejects.toThrow("beyond EOF");
+  await writeFile(path.join(directory, "a.txt"), "");
+  await expect(
+    h.resolve({ files: [{ limit: 1, path: "a.txt" }], type: "evidence" })
+  ).rejects.toThrow("beyond EOF");
+  expect(
+    await h.resolve({ files: [{ path: "a.txt" }], type: "evidence" })
+  ).toEqual({ files: [{ content: "", path: "a.txt" }] });
+  expect(await descriptorsFor(path.join(directory, "a.txt"))).toBe(0);
+});
+
+test("slices cross UTF-8 and CRLF chunk boundaries and select from sources over 1 MiB", async () => {
+  const directory = await fixture();
+  // The first emoji and the selected line's CRLF straddle separate 64 KiB reads.
+  const prefix = `${"x".repeat(65_535)}😀\n${"skip\n".repeat(220_000)}`;
+  const padding = 65_535 - (Buffer.byteLength(prefix) % 65_536) - 4;
+  const selected = `${"y".repeat(padding)}😀\r\n`;
+  await writeFile(
+    path.join(directory, "large.txt"),
+    `${prefix}${selected}excluded\n`
+  );
+  const result = await host(directory).resolve({
+    files: [{ limit: 1, offset: 220_002, path: "large.txt" }],
+    type: "evidence",
+  });
+  expect(result).toEqual({
+    files: [
+      {
+        content: selected,
+        endLine: 220_002,
+        partial: true,
+        path: "large.txt",
+        startLine: 220_002,
+      },
+    ],
+  });
+  await expect(
+    host(directory).resolve({ files: ["large.txt"], type: "evidence" })
+  ).rejects.toThrow("1 MiB");
+});
+
+test("slices validate scanned text but stop before unselected suffixes", async () => {
+  const directory = await fixture();
+  const filePath = path.join(directory, "a.txt");
+  await writeFile(filePath, Buffer.from([0x61, 10, 0xff, 0]));
+  expect(
+    await host(directory).resolve({
+      files: [{ limit: 1, path: "a.txt" }],
+      type: "evidence",
+    })
+  ).toMatchObject({ files: [{ content: "a\n" }] });
+  await Promise.all(
+    [
+      Buffer.from([0xff, 10, 0x61]),
+      Buffer.from([0, 10, 0x61]),
+      Buffer.from([0x61, 10, 0xf0, 0x9f]),
+    ].map(async (bytes, index) => {
+      const invalidPath = path.join(directory, `invalid-${index}.txt`);
+      await writeFile(invalidPath, bytes);
+      await expect(
+        host(directory).resolve({
+          files: [{ offset: 2, path: invalidPath }],
+          type: "evidence",
+        })
+      ).rejects.toThrow();
+      expect(await descriptorsFor(invalidPath)).toBe(0);
+    })
+  );
+  expect(await descriptorsFor(filePath)).toBe(0);
+});
+
+test("slice budgets count selected bytes, cumulative evidence, and JSON escaping without truncation", async () => {
+  const directory = await fixture();
+  await writeFile(
+    path.join(directory, "a.txt"),
+    `${"x".repeat(600_000)}\n${"y".repeat(600_000)}\n`
+  );
+  await writeFile(
+    path.join(directory, "escaped.txt"),
+    `${'"'.repeat(600_000)}\n`
+  );
+  const h = host(directory);
+  await expect(
+    h.resolve({ files: [{ offset: 1, path: "a.txt" }], type: "evidence" })
+  ).rejects.toThrow("1 MiB");
+  await expect(
+    h.resolve({
+      files: [
+        { limit: 1, path: "a.txt" },
+        { limit: 1, offset: 2, path: "a.txt" },
+      ],
+      type: "evidence",
+    })
+  ).rejects.toThrow("1 MiB");
+  await expect(
+    h.resolve({ files: [{ limit: 1, path: "escaped.txt" }], type: "evidence" })
+  ).rejects.toThrow("classification contract");
+});
+
+test("scan limits bound skipped bytes while allowing early selections in larger sources", async () => {
+  const directory = await fixture();
+  const filePath = path.join(directory, "large.txt");
+  const bytes = Buffer.alloc(MAX_EVIDENCE_SCAN_BYTES + 10, "x");
+  bytes[1] = 10;
+  bytes[MAX_EVIDENCE_SCAN_BYTES - 3] = 10;
+  bytes[MAX_EVIDENCE_SCAN_BYTES - 2] = 0x7a;
+  bytes[MAX_EVIDENCE_SCAN_BYTES - 1] = 10;
+  await writeFile(filePath, bytes);
+  const h = host(directory);
+  expect(
+    await h.resolve({
+      files: [{ limit: 1, path: "large.txt" }],
+      type: "evidence",
+    })
+  ).toMatchObject({ files: [{ content: "x\n" }] });
+  expect(
+    await h.resolve({
+      files: [{ limit: 1, offset: 3, path: "large.txt" }],
+      type: "evidence",
+    })
+  ).toMatchObject({ files: [{ content: "z\n", endLine: 3, startLine: 3 }] });
+  await expect(
+    h.resolve({
+      files: [{ limit: 1, offset: 4, path: "large.txt" }],
+      type: "evidence",
+    })
+  ).rejects.toThrow("64 MiB scan limit");
+  expect(await descriptorsFor(filePath)).toBe(0);
 });
 
 test("code query selects exact TS source and explicit comments through the resolver", async () => {
@@ -311,24 +510,27 @@ test("Go, TypeScript and Kotlin selections expand together through native file p
   ).rejects.toThrow("Evidence could not be read");
 });
 
-test("regular-file replacement during native read fails closed and closes the handle", async () => {
-  const directory = await fixture();
-  const filePath = path.join(directory, "a.ts");
-  const replacement = path.join(directory, "replacement.ts");
-  await writeFile(filePath, "approved original");
-  await writeFile(replacement, "replacement secret");
-  const h = host(directory, () =>
-    Effect.tryPromise(() => rename(replacement, filePath)).pipe(
-      Effect.mapError(
-        () => new ClassificationError("EVIDENCE_ERROR", "Fixture failed")
+test.each(["a.ts", { limit: 1, path: "a.ts" }])(
+  "regular-file replacement during native read fails closed and closes the handle: %j",
+  async (file) => {
+    const directory = await fixture();
+    const filePath = path.join(directory, "a.ts");
+    const replacement = path.join(directory, "replacement.ts");
+    await writeFile(filePath, "approved original");
+    await writeFile(replacement, "replacement secret");
+    const h = host(directory, () =>
+      Effect.tryPromise(() => rename(replacement, filePath)).pipe(
+        Effect.mapError(
+          () => new ClassificationError("EVIDENCE_ERROR", "Fixture failed")
+        )
       )
-    )
-  );
-  await expect(
-    h.resolve({ files: ["a.ts"], type: "evidence" })
-  ).rejects.toThrow("Evidence file changed during permission checking");
-  expect(await descriptorsFor(`${filePath} (deleted)`)).toBe(0);
-});
+    );
+    await expect(
+      h.resolve({ files: [file], type: "evidence" })
+    ).rejects.toThrow("Evidence file changed during permission checking");
+    expect(await descriptorsFor(`${filePath} (deleted)`)).toBe(0);
+  }
+);
 
 test("parent-directory symlink replacement during native read fails closed", async () => {
   const directory = await fixture();
@@ -384,26 +586,29 @@ test("file errors and native denials fail closed without leaking contents", asyn
   expect(await descriptorsFor(path.join(directory, "secret.env"))).toBe(0);
 });
 
-test("interruption during permission checking closes the descriptor and stops subsequent reads", async () => {
-  const directory = await fixture();
-  const filePath = path.join(directory, "a.ts");
-  await writeFile(filePath, "private evidence");
-  const entered = await Effect.runPromise(Deferred.make<boolean>());
-  const h = host(directory, () =>
-    Deferred.succeed(entered, true).pipe(Effect.andThen(Effect.never))
-  );
-  const fiber = Effect.runFork(
-    h.resolveEffect({ files: ["a.ts", "missing"], type: "evidence" })
-  );
-  try {
-    await Effect.runPromise(Deferred.await(entered));
-    expect(await descriptorsFor(filePath)).toBe(1);
-  } finally {
-    await Effect.runPromise(Fiber.interrupt(fiber));
+test.each(["a.ts", { limit: 1, path: "a.ts" }])(
+  "interruption during permission checking closes the descriptor and stops subsequent reads: %j",
+  async (file) => {
+    const directory = await fixture();
+    const filePath = path.join(directory, "a.ts");
+    await writeFile(filePath, "private evidence");
+    const entered = await Effect.runPromise(Deferred.make<boolean>());
+    const h = host(directory, () =>
+      Deferred.succeed(entered, true).pipe(Effect.andThen(Effect.never))
+    );
+    const fiber = Effect.runFork(
+      h.resolveEffect({ files: [file, "missing"], type: "evidence" })
+    );
+    try {
+      await Effect.runPromise(Deferred.await(entered));
+      expect(await descriptorsFor(filePath)).toBe(1);
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber));
+    }
+    expect(await descriptorsFor(filePath)).toBe(0);
+    expect(h.calls).toHaveLength(1);
   }
-  expect(await descriptorsFor(filePath)).toBe(0);
-  expect(h.calls).toHaveLength(1);
-});
+);
 
 test("Git diffs include staged and unstaged changes, literal paths, and deleted files", async () => {
   const directory = await fixture();

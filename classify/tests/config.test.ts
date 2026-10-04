@@ -130,6 +130,10 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
     { message: "Report" },
     [null, false, 2],
     { files: ["missing.ts"], type: "evidence" },
+    {
+      files: [{ limit: 20, offset: 10, path: "missing.ts" }],
+      type: "evidence",
+    },
     { diffs: [{ base: "HEAD" }], text: "Review", type: "evidence" },
   ];
   for (const state of states) {
@@ -176,6 +180,7 @@ test("classifier state is validated, cloned and deeply frozen without evidence r
     [],
     { type: "evidence" },
     { files: [], type: "evidence" },
+    { files: [{ offset: 0, path: "missing.ts" }], type: "evidence" },
     { diffs: [{ base: "--help" }], type: "evidence" },
     { extra: true, text: "Private", type: "evidence" },
   ]) {

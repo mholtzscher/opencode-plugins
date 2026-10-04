@@ -180,6 +180,27 @@ const PathSchema = NonblankSchema.check(
 const PathsSchema = Schema.Array(PathSchema)
   .pipe(Schema.mutable)
   .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_PATHS));
+const PositiveLineSchema = Schema.Int.check(
+  Schema.isBetween({ maximum: Number.MAX_SAFE_INTEGER, minimum: 1 })
+);
+export const EvidenceFileSchema = Schema.Union([
+  PathSchema,
+  Schema.Struct({
+    limit: Schema.optionalKey(
+      PositiveLineSchema.annotate({
+        description:
+          "Maximum number of lines to include. Omit to read through EOF. EOF may return fewer lines; byte budgets fail rather than truncate.",
+      })
+    ),
+    offset: Schema.optionalKey(
+      PositiveLineSchema.annotate({
+        description:
+          "1-based starting line, default 1. offset: 120, limit: 60 selects lines 120 through 179. An offset beyond EOF fails.",
+      })
+    ),
+    path: PathSchema,
+  }).annotate(strict),
+]);
 const RevisionSchema = NonblankSchema.check(
   Schema.makeFilter(
     (value) => !value.startsWith("-") && !value.includes("\0"),
@@ -211,7 +232,11 @@ export const EvidenceSchema = Schema.Struct({
       .pipe(Schema.mutable)
       .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_DIFFS))
   ),
-  files: Schema.optional(PathsSchema),
+  files: Schema.optional(
+    Schema.Array(EvidenceFileSchema)
+      .pipe(Schema.mutable)
+      .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_PATHS))
+  ),
   text: Schema.optional(ContentSchema),
   type: Schema.Literal("evidence"),
 })

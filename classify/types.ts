@@ -21,6 +21,7 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 export type Content = typeof ContentSchema.Type;
 export type EvidenceState = typeof EvidenceSchema.Type;
+export type EvidenceFile = NonNullable<EvidenceState["files"]>[number];
 export type EvidenceDiff = NonNullable<EvidenceState["diffs"]>[number];
 export type EvidenceCode = NonNullable<EvidenceState["code"]>[number];
 export type Question = SchemaQuestion;

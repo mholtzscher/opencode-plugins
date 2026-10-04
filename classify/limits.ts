@@ -9,6 +9,7 @@ export const MAX_SCORE_LEVELS = 10;
 export const DISTRIBUTION_TOLERANCE = 0.02;
 export const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u;
 export const MAX_EVIDENCE_PATHS = 64;
+export const MAX_EVIDENCE_SCAN_BYTES = 64 * 1024 * 1024;
 export const MAX_EVIDENCE_DIFFS = 16;
 export const MAX_CODE_QUERY_LENGTH = 8192;
 export const MAX_CODE_CAPTURES = 128;
