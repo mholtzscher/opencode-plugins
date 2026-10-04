@@ -97,6 +97,34 @@ Median extraction overhead was 174 ms. Selected code reduced input tokens by 59.
 
 ## Reproduce
 
+### Portable Ollama speed benchmark
+
+[`ollama-benchmark.ts`](./ollama-benchmark.ts) measures cold/warm latency, caller concurrency, and question batching through the production classification service, provider transport, and response validation. It does not require OpenCode or the external code-evidence corpus. It excludes host tool dispatch and evidence IO.
+
+On each computer, clone this repository, install [Bun](https://bun.sh), and start Ollama separately with the requested models already installed. From `classify/`:
+
+```sh
+bun install
+bun experiments/ollama-benchmark.ts --help
+# Warm-only; defaults to nimble and clef-flash.
+bun experiments/ollama-benchmark.ts
+# Explicitly allow unloading the benchmark models for three cold trials each.
+bun experiments/ollama-benchmark.ts --cold --models nimble,clef-flash
+# Short run with a different installed model and a new output directory.
+bun experiments/ollama-benchmark.ts --models nimble --concurrency 1,2,4 \
+  --requests 4 --repetitions 1 --batch-sizes 1,4 --output ./my-machine-results
+```
+
+Use an idle inference server: cold tests unload the specified models, and even warm-only model switching may cause Ollama to evict other resident models. The script never downloads models, starts/stops servers, changes settings, or tries to fill the server's queue. It attempts to restore initially resident benchmark models on normal completion/errors; forced termination cannot guarantee cleanup.
+
+Each run creates a new directory (under the OS temporary directory by default) with `results.json` and `summary.md`. Explicit output directories must not already exist, and their parent must exist. Completed phases are saved after each phase; there is no automatic resume. Timeouts and rejected responses count as failures, and the run stops after saving the failed phase. An interrupted phase may not be retained. Allow several minutes; do not impose a two-minute outer command timeout.
+
+JSON includes the exact flags, workload version, Ollama version, installed model metadata/digests, initial residency, OS, CPU, RAM, Bun version, and NVIDIA GPU/driver information when `nvidia-smi` is available (otherwise `null`). Hardware describes the **script host**; with `--base-url` pointing to another machine, record the server's hardware separately. Reports include synthetic inputs' byte counts, full validated answers/usage, elapsed time, median/p95 latency, successful calls and questions per second, and error counts. Hostnames and endpoint URLs may be identifying: review the JSON before sharing it.
+
+For cross-machine comparisons, use the same revision, model digest, flags, Ollama settings, and workload. Record inference slots/`OLLAMA_NUM_PARALLEL`, context size, GPU offload, and competing GPU workloads separately; the portable script cannot reliably discover every server setting. Cold means model-unloaded, not OS disk-cache-cold. Warm repeated and varied input baselines are separate. Sweeps alternate direction to reduce order bias. Fixtures use only yes/no questions so batching comparisons keep a consistent answer type; numbers are not directly comparable to earlier mixed-type tests or an accuracy evaluation. Prefer the smallest concurrency near peak throughput. Testing a higher _server_ parallelism requires separately configuring Ollama and rerunning this script.
+
+### Code-evidence experiments
+
 From `classify/`, with the referenced checkouts available and the installed OpenCode CLI:
 
 ```sh
