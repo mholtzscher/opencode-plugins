@@ -18,6 +18,8 @@ The parser reads `monthly`, `rolling`, and `weekly` windows in that order. Each 
 
 ## Display and refresh
 
+In web or TUI chat, the agent can call `quota_usage` to fetch current quotas on demand. It requests only supported providers in the location's provider list and returns remaining percentages, reset timestamps, and availability. Each call resolves the active credentials again.
+
 The TUI checks the location's provider list and requests only supported providers present there. If neither is present, the panel is hidden. The display uses green above 30% remaining, yellow at 30% or less, and red at 10% or less.
 
 Refresh happens on startup, every 60 seconds, and after `session.execution.succeeded`. Overlapping refreshes are skipped. Countdown updates run every 60 seconds, using days/hours/minutes and clamping elapsed resets to zero.

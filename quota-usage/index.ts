@@ -1,4 +1,5 @@
 import { Plugin } from "@opencode/plugin/effect";
+import { Tool } from "@opencode/schema/tool";
 import { Effect, Schema } from "effect";
 
 import {
@@ -8,7 +9,7 @@ import {
   parseOpenCodeGoUsage,
 } from "./parse.js";
 import type { QuotaProvider } from "./rpc.js";
-import { CodexUsage, OpenCodeGoUsage } from "./rpc.js";
+import { CodexUsage, OpenCodeGoUsage, QuotaProviderSchema } from "./rpc.js";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const OPENCODE_GO_USAGE_URL = "https://opencode.ai/zen/go/v1/usage";
@@ -119,21 +120,55 @@ const openCodeGoQuota = (
 export default Plugin.define({
   effect: (context) =>
     Effect.gen(function* quotaPluginEffect() {
+      const codex = quotaHandler("codex", "Codex", codexQuota(context));
+      const openCodeGo = quotaHandler(
+        "opencode-go",
+        "OpenCode Go",
+        openCodeGoQuota(context)
+      );
       yield* context.rpc
         .register(CodexUsage, {
-          get: () => quotaHandler("codex", "Codex", codexQuota(context)),
+          get: () => codex,
         })
         .pipe(Effect.orDie);
       yield* context.rpc
         .register(OpenCodeGoUsage, {
-          get: () =>
-            quotaHandler(
-              "opencode-go",
-              "OpenCode Go",
-              openCodeGoQuota(context)
-            ),
+          get: () => openCodeGo,
         })
         .pipe(Effect.orDie);
+      yield* context.tool.transform((editor) => {
+        editor.add({
+          description:
+            "Get current account quota usage for configured Codex and OpenCode Go providers. Returns remaining percentages, availability, and reset times, not session token usage. fetchedAt is Unix milliseconds; resetAt is Unix seconds. An empty providers list means neither supported provider is configured.",
+          execute: Effect.fn("quota_usage")(function* quotaUsage() {
+            const available = yield* context.provider.list().pipe(
+              Effect.mapError(
+                () =>
+                  new Tool.Error({
+                    message: "Unable to list quota providers",
+                  })
+              )
+            );
+            const configured = new Set<string>(
+              available.data.map((provider) => provider.id)
+            );
+            const requests: Effect.Effect<QuotaProvider>[] = [];
+            if (configured.has("openai")) {
+              requests.push(codex);
+            }
+            if (configured.has("opencode-go")) {
+              requests.push(openCodeGo);
+            }
+            const providers = yield* Effect.all(requests, { concurrency: 2 });
+            return { output: { providers } };
+          }),
+          input: Schema.Struct({}),
+          name: "quota_usage",
+          output: Schema.Struct({
+            providers: Schema.Array(QuotaProviderSchema),
+          }),
+        });
+      });
     }),
   id: "quota-usage",
 });
