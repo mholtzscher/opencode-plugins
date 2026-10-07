@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.1.0...classify-v1.2.0) (2026-10-07)
+
+
+### Features
+
+* **classify:** support the openai decisions api ([#11](https://github.com/mholtzscher/opencode-plugins/issues/11)) ([e9266c4](https://github.com/mholtzscher/opencode-plugins/commit/e9266c428131703ad1222177355a369362033051))
+
 ## [1.1.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.0.1...classify-v1.1.0) (2026-10-04)
 
 
