@@ -1,9 +1,10 @@
 import type { Tool } from "@opencode/schema/tool";
-import { Cause, Clock, Context, Effect, Layer, Result } from "effect";
+import { Clock, Context, Effect, Layer, Result } from "effect";
 
 import type { ClassifyOptions } from "./config.js";
-import { ClassificationError } from "./errors.js";
+import type { ClassificationError } from "./errors.js";
 import { EvidenceAccess } from "./evidence.js";
+import { captureOutcome } from "./outcome.js";
 import { DecisionBackend } from "./providers/backend.js";
 import type {
   ClassifyInput,
@@ -25,19 +26,6 @@ type ClassificationResponse = Omit<
   ClassifyResult,
   "backend" | "durationMs" | "provider"
 >;
-
-const sanitizeDefect = Effect.fn("sanitizeClassificationDefect")(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Effect defects can be any thrown value; callers receive only the sanitized error.
-  function* sanitizeDefect(defect: unknown) {
-    yield* Effect.logError("Classification failed unexpectedly.", defect);
-    return yield* Effect.fail(
-      new ClassificationError(
-        "INTERNAL_ERROR",
-        "Classification failed unexpectedly."
-      )
-    );
-  }
-);
 
 const formatOutcome = (
   outcome: Result.Result<ClassificationResponse, ClassificationError>,
@@ -130,32 +118,9 @@ const makeClassification = (options: ClassifyOptions) =>
       context: Tool.Context
     ): Effect.fn.Return<ClassifyOutput> {
       const start = yield* Clock.monotonicTimeNanos;
-      const outcome = yield* executeRequest(value, context).pipe(
-        Effect.matchCauseEffect({
-          onFailure: (cause) => {
-            if (Cause.hasInterrupts(cause)) {
-              // Cleanup failures become defects without dropping cancellation.
-              return Effect.failCause(
-                Cause.fromReasons<never>(
-                  cause.reasons.map((reason) =>
-                    Cause.isFailReason(reason)
-                      ? Cause.makeDieReason(reason.error)
-                      : reason
-                  )
-                )
-              );
-            }
-            const defect = Cause.findDefect(cause);
-            if (Result.isSuccess(defect)) {
-              return sanitizeDefect(defect.success).pipe(Effect.result);
-            }
-            const error = Cause.findError(cause);
-            return Result.isSuccess(error)
-              ? Effect.succeed(Result.fail(error.success))
-              : Effect.failCause(error.failure);
-          },
-          onSuccess: (response) => Effect.succeed(Result.succeed(response)),
-        })
+      const outcome = yield* captureOutcome(
+        executeRequest(value, context),
+        "Classification failed unexpectedly."
       );
       const durationMs =
         Number((yield* Clock.monotonicTimeNanos) - start) / 1_000_000;

@@ -2,12 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  CommandDefinition,
-  CommandEditor,
-} from "@opencode/plugin/effect/command";
+import type { CommandDefinition } from "@opencode/plugin/effect/command";
 import type { RpcHandlers } from "@opencode/plugin/effect/rpc";
-import type { ToolEditor } from "@opencode/plugin/effect/tool";
 import { Session } from "@opencode/schema/session";
 import { Tool } from "@opencode/schema/tool";
 import { file, serve } from "bun";
@@ -23,149 +19,43 @@ import {
   Scope,
 } from "effect";
 
+import { buildInputSchema } from "../classification-schemas.js";
 import plugin from "../index.js";
-import type { ClassifyBackends, SelectionSchema } from "../rpc.js";
-import { buildInputSchema } from "../schemas.js";
-import type { JsonValue } from "../types.js";
+import type { ClassifyBackends } from "../rpc.js";
 import { isBoundedJsonValue } from "../validation/json.js";
 import { parseInputSync, toolContext } from "./effect-fixtures.js";
 import { input, questions, response } from "./fixtures.js";
+import { createPluginFixture } from "./plugin-fixtures.js";
 
-type PluginContext = Parameters<typeof plugin.effect>[0];
-type Info = Tool.Info;
-const scopes: Scope.Closeable[] = [];
-afterEach(async () => {
-  await Effect.runPromise(
-    Effect.forEach(scopes.splice(0), (scope) => Scope.close(scope, Exit.void))
-  );
-});
-
-const register = async (
-  options: JsonValue,
-  runtime?: {
-    directory: string;
-    tools: Info[];
-    disposed?: () => void;
-    commands?: CommandDefinition[];
-    handlers?: (handlers: RpcHandlers<typeof ClassifyBackends>) => void;
-    messages?: string[];
-    events?: unknown[];
-    emit?: (
-      selection: typeof SelectionSchema.Type
-    ) => Effect.Effect<void, unknown>;
-    stored?: Map<string, Schema.Json>;
-  }
-): Promise<Info[]> => {
-  const tools: Info[] = [];
-  const stored = runtime?.stored ?? new Map<string, Schema.Json>();
-  // SAFETY: The test editor only implements add, which is the sole method used by plugin.effect.
-  const editor = {
-    add(tool: Info) {
-      tools.push(tool);
-    },
-  } as ToolEditor;
-  const contextFixture = {
-    command: {
-      // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Host command registration uses an editor callback.
-      transform: (callback: (editor: CommandEditor) => void) =>
-        Effect.sync(() => {
-          // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Invoke the host registration contract.
-          callback({
-            add: (command) => {
-              runtime?.commands?.push(command);
-            },
-          });
-        }),
-    },
-    location: { directory: runtime?.directory },
-    options,
-    rpc: {
-      register: (
-        _definition: typeof ClassifyBackends,
-        handlers: RpcHandlers<typeof ClassifyBackends>
-      ) =>
-        Effect.sync(() => {
-          runtime?.handlers?.(handlers);
-          return {
-            events: {
-              emit: (_name: string, value: typeof SelectionSchema.Type) =>
-                runtime?.emit?.(value) ??
-                Effect.sync(() => {
-                  runtime?.events?.push(value);
-                }),
-            },
-          };
-        }),
-    },
-    session: {
-      get: () =>
-        Effect.succeed({ location: { directory: runtime?.directory } }),
-      synthetic: ({ text }: { text: string }) =>
-        Effect.sync(() => {
-          runtime?.messages?.push(text);
-        }),
-    },
-    storage: {
-      get: (key: string) => Effect.sync(() => stored.get(key)),
-      remove: (key: string) =>
-        Effect.sync(() => {
-          stored.delete(key);
-        }),
-      set: (key: string, value: Schema.Json) =>
-        Effect.sync(() => {
-          stored.set(key, value);
-        }),
-    },
-    tool: {
-      list: () =>
-        Effect.succeed(
-          (runtime?.tools ?? []).map((tool) => ({ ...tool, id: tool.name }))
-        ),
-      // OpenCode's transform contract is callback-based and this plugin registers synchronously inside it.
-      // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Preserve the host transform callback semantics in the fixture.
-      transform: (callback: (editor: ToolEditor) => void) =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            // oxlint-disable-next-line promise/prefer-await-to-callbacks -- The API requires invoking this registration callback.
-            callback(editor);
-            return {
-              dispose: Effect.sync(() => {
-                runtime?.disposed?.();
-                tools.splice(0);
-              }),
-            };
-          }),
-          (registration) => registration.dispose
-        ),
-    },
-  };
-  // SAFETY: The fixture implements the options, session.get, and tool.list/transform members exercised by setup and the registered executor; unused host APIs are outside this test's contract.
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The partial host fixture requires a TypeScript bridge at this test-only boundary.
-  const context = contextFixture as unknown as PluginContext;
-  const scope = await Effect.runPromise(Scope.make());
-  scopes.push(scope);
-  await Effect.runPromise(plugin.effect(context).pipe(Scope.provide(scope)));
-  return tools;
-};
-test("real entry registers classify and grammar discovery with concrete schemas", async () => {
-  const tools = await register({
-    backends: {
-      default: {
-        apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
-        provider: "openai-decisions",
+const { dispose, register, scopes } = createPluginFixture();
+afterEach(dispose);
+test("real entry registers the classify namespace with concrete operation schemas", async () => {
+  const namespaces: Tool.Namespace[] = [];
+  const tools = await register(
+    {
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+          provider: "openai-decisions",
+        },
       },
+      classifiers: { triage: { description: "Assess incidents", questions } },
+      defaultBackend: "default",
     },
-    classifiers: { triage: { description: "Assess incidents", questions } },
-    defaultBackend: "default",
-  });
+    { directory: "/tmp/opencode", namespaces, tools: [] }
+  );
+  expect(namespaces).toMatchObject([{ name: "classify" }]);
   expect(tools.map((registered) => registered.name)).toEqual([
-    "classify",
-    "classify_grammar",
+    "decide",
+    "grammar",
+    "search",
   ]);
   const [tool] = tools;
   expect(plugin.id).toBe("classify");
-  expect(tool.name).toBe("classify");
-  expect(tool.options?.namespace).toBeUndefined();
+  expect(tool.name).toBe("decide");
+  expect(
+    tools.map((item) => `${item.options?.namespace}_${item.name}`)
+  ).toEqual(["classify_decide", "classify_grammar", "classify_search"]);
   expect(tool.description).toContain("triage: Assess incidents");
   if (!Schema.isSchema(tool.input)) {
     throw new TypeError("Registered tool input must be a native codec");
@@ -181,6 +71,8 @@ test("real entry registers classify and grammar discovery with concrete schemas"
   expect(JSON.stringify(document)).toContain('"triage"');
   expect(JSON.stringify(document)).toContain('"classifier"');
   expect(tool.output).toBeDefined();
+  expect(tools.every((item) => item.options?.codemode)).toBe(true);
+  expect(Schema.isSchema(tools[2].input)).toBe(true);
   const result = await Effect.runPromise(tool.execute(input, toolContext()));
   expect(result.output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
   expect(result.content).toBeUndefined();

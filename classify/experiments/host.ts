@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { Schema } from "effect";
 
-import { JsonValueSchema, QuestionsStructure } from "../schemas.js";
+import {
+  JsonValueSchema,
+  QuestionsStructure,
+} from "../classification-schemas.js";
 import type { JsonValue } from "../types.js";
 import { corpus, expectedContent, readCorpusSource } from "./corpus.js";
 
@@ -208,7 +211,7 @@ try {
   };
   const query =
     '((function_declaration name: (identifier) @_n) @evidence (#eq? @_n "Get"))';
-  const positive = await invoke("classify", {
+  const positive = await invoke("classify_decide", {
     questions,
     state: { code: [{ path: "source.go", query }], type: "evidence" },
   });
@@ -251,7 +254,7 @@ try {
       return { content, entry, relative };
     })
   );
-  const combined = await invoke("classify", {
+  const combined = await invoke("classify_decide", {
     questions,
     state: {
       code: sources.map(({ entry, relative }) => ({
@@ -282,7 +285,7 @@ try {
     passed: true,
     requests: 1,
   });
-  await invoke("classify", {
+  await invoke("classify_decide", {
     questions,
     state: {
       code: [{ path: "budget.go", query }],
@@ -378,7 +381,7 @@ try {
   for (const [name, state] of negative) {
     const count = requests.length;
     // oxlint-disable-next-line eslint/no-await-in-loop -- Serialize cases so every failure has an exact dispatch count.
-    const result = await invoke("classify", { questions, state });
+    const result = await invoke("classify_decide", { questions, state });
     const failure = Schema.decodeUnknownSync(failureSchema)(result);
     const passed =
       requests.length === count && failure.output.error.attempts === 0;

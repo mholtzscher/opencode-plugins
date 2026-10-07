@@ -1,10 +1,14 @@
 import { Effect, Predicate, Schema } from "effect";
 
+import {
+  NonblankSchema,
+  ProbabilitySchema,
+  UsageSchema,
+} from "../classification-schemas.js";
 import type { BackendOptions } from "../config.js";
 import { ClassificationError } from "../errors.js";
 import { decodeWith } from "../protocols/response.js";
 import type { SystemOneDefinition } from "../protocols/system-one.js";
-import { NonblankSchema, ProbabilitySchema, UsageSchema } from "../schemas.js";
 import type {
   Content,
   DecisionRequest,

@@ -6,7 +6,7 @@ Six independent Bun packages for OpenCode V2. Each plugin owns its dependencies,
 
 | Plugin | What it does | Interface and requirements |
 | --- | --- | --- |
-| [Classify](./classify/README.md) | Typed judgments with OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama; named classifiers and file/code/diff evidence | Server tools and backend-selection command; TUI picker/status. Requires explicit backend configuration. |
+| [Classify](./classify/README.md) | Typed judgments and bounded semantic file search with OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama; file/code/diff evidence | Namespaced server tools and backend-selection command; TUI picker/status. Requires explicit backend configuration. |
 | [Cache metrics](./cache-metrics/README.md) | Session input cache-hit rate, token totals, per-response history, and JSON export | TUI sidebar and history panel. History includes subagents by default. |
 | [Quota usage](./quota-usage/README.md) | Remaining Codex weekly and OpenCode Go monthly/rolling/weekly account quotas | Web/TUI chat tool and TUI sidebar backed by server RPC. Uses active provider connections. |
 | [GitHub tools](./github-tools/README.md) | PR creation/descriptions, review-thread validation and fixes, check investigation, Plannotator review | Four server commands plus the TUI-only `/pr-review` picker. Requires authenticated `gh`. |

@@ -2,8 +2,8 @@ import { Rpc } from "@opencode/plugin/rpc";
 import { Session } from "@opencode/schema/session";
 import { Schema } from "effect";
 
+import { NameSchema, NonblankSchema } from "./classification-schemas.js";
 import { providerIDs } from "./providers/ids.js";
-import { NameSchema, NonblankSchema } from "./schemas.js";
 
 export const SelectionSchema = Schema.Struct({
   backend: NameSchema,

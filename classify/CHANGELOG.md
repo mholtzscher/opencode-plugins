@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.0.1...classify-v1.1.0) (2026-10-04)
+
+
+### Features
+
+* **classify:** add bounded file search and namespaced tools ([#10](https://github.com/mholtzscher/opencode-plugins/issues/10)) ([c4cee89](https://github.com/mholtzscher/opencode-plugins/commit/c4cee8936230c5b1baf87cecdef6f574de4f6d93))
+* **classify:** add partial file evidence reads ([#8](https://github.com/mholtzscher/opencode-plugins/issues/8)) ([29afd23](https://github.com/mholtzscher/opencode-plugins/commit/29afd23ff62e66163cc673b590b6c2016b46f96f))
+* **classify:** add portable Ollama speed benchmark ([db963b4](https://github.com/mholtzscher/opencode-plugins/commit/db963b4f4f3d26f179dfab119163bb4c530f1f3a))
+
 ## [1.0.1](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.0.0...classify-v1.0.1) (2026-10-03)
 
 

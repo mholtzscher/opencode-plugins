@@ -1,6 +1,6 @@
 # Classify
 
-An OpenCode V2 plugin for bounded judgments: yes/no probabilities, categorical choices, and fractional rubric scores. The server-side `classify` tool evaluates supplied content against typed questions using OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama. It returns measurements; it does not execute decisions.
+An OpenCode V2 plugin for typed judgments and bounded semantic file search using OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama. Its `classify` namespace provides `decide`, `search`, and `grammar`. It returns measurements and source references; it does not execute decisions.
 
 Credentials, evidence reads, backend selection, and classification run on the **OpenCode server**, including when clients connect remotely. The TUI adds a backend picker and session status indicator. Setup makes no network calls and downloads no models.
 
@@ -51,7 +51,7 @@ OpenAI Decisions is in public beta. It uses the dedicated `/v1/decisions` endpoi
 
 ### 2. Ask the agent to classify content
 
-This is a `classify` tool call, not a provider HTTP request. The plugin supplies the model and authentication:
+Call `classify_decide` with these arguments. The plugin supplies the model and authentication:
 
 ```json
 {
@@ -154,6 +154,24 @@ Then call:
 
 Named classifiers use their configured questions unchanged. They can also define a preset `state`, in which case callers supply only `{ "classifier": "name" }`. See [named classifiers](./docs/TOOL_REFERENCE.md#named-classifiers) for preset evidence and state rules.
 
+## Find relevant files
+
+Call `classify_search` to rank files without copying their source into the agent's context:
+
+```json
+{
+  "query": "Where are failed requests retried with backoff?",
+  "paths": ["src", "tests"],
+  "terms": ["retry", "backoff"],
+  "maxFiles": 16,
+  "limit": 5
+}
+```
+
+Search works outside Git and evaluates bounded file prefixes. Optional terms match those prefixes with case-insensitive literal OR matching. Results include paths, actual line ranges, relevance, failures, coverage, and effective budgets. Check coverage before interpreting an empty or low-scoring result. Configure the limits under `options.search`; see the [search guide](./docs/SEARCH.md).
+
+The effective tool IDs are `classify_decide`, `classify_search`, and `classify_grammar`. Existing callers of the standalone `classify` tool must switch to `classify_decide`; its payload is unchanged. In Code Mode, discover the `classify` namespace and use the returned operation signatures.
+
 ## Use files and changes as evidence
 
 Pass explicit references instead of copying source into the call:
@@ -186,7 +204,7 @@ The [evidence guide](./docs/EVIDENCE.md) covers file and diff limits, Tree-sitte
 
 ## Data and actions
 
-Calls send the supplied or explicitly resolved state, questions, and configured model to the selected backend and may incur API charges. The plugin does not gather conversation history, fetch embedded URLs, or execute decisions. Normal OpenCode history may retain tool inputs, outputs, and native evidence previews. Backend selections are persisted, but there is no additional classification cache, telemetry, history database, or audit store.
+Classification sends supplied or explicitly resolved state to the selected backend. Search sends bounded prefixes from files discovered under the supplied paths. Both send questions and the configured model and may incur API charges. The plugin does not gather conversation history, fetch embedded URLs, or execute decisions. Normal OpenCode history may retain tool inputs, outputs, and native evidence previews. Backend selections are persisted, but there is no additional classification cache, telemetry, history database, or audit store.
 
 Credentials come from a server-side environment variable or private key file and are resolved at invocation time. Key contents and file-read errors never appear in tool output. High confidence does not authorize another tool; normal OpenCode permissions govern subsequent actions.
 
@@ -197,6 +215,7 @@ Credentials come from a server-side environment variable or private key file and
 | [Configuration](./docs/CONFIGURATION.md) | Provider profiles, credentials, local servers, option limits, session selection |
 | [Tool reference](./docs/TOOL_REFERENCE.md) | Input and output contracts, named classifiers, errors, parser, RPC |
 | [Evidence](./docs/EVIDENCE.md) | Files, Git diffs, Tree-sitter queries, permissions, size limits |
+| [Search](./docs/SEARCH.md) | File ranking, configurable work budgets, partial results, coverage |
 | [Development](./docs/DEVELOPMENT.md) | Architecture, adding providers, automated verification |
 | [Smoke testing](./docs/SMOKE_TESTING.md) | Disposable fixtures, live checks, verification history |
 | [Code-evidence validation](./experiments/README.md) | Grammar compatibility, real-host checks, runtime and model comparisons |

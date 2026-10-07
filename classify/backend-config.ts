@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { Effect, Schema } from "effect";
 
-import { NonblankSchema } from "./schemas.js";
+import { NonblankSchema } from "./classification-schemas.js";
 
 const strict = { parseOptions: { onExcessProperty: "error" as const } };
 const KeySourceFields = {

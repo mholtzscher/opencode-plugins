@@ -1,9 +1,9 @@
 import { Tool } from "@opencode/schema/tool";
 import { Effect, Schema } from "effect";
 
+import { NonblankSchema } from "./classification-schemas.js";
 import { grammarInfo, NodeTypeInfo } from "./code-grammar.js";
 import { ClassificationError } from "./errors.js";
-import { NonblankSchema } from "./schemas.js";
 
 const inputSchema = Schema.Struct({
   node: Schema.optional(NonblankSchema),
@@ -60,6 +60,7 @@ export const grammarTool = {
   ),
   // Publish portable schemas for the live host; execution still validates with the native codec.
   input: Schema.toJsonSchemaDocument(inputSchema).schema,
-  name: "classify_grammar",
+  name: "grammar",
+  options: { codemode: true, namespace: "classify" },
   output: Schema.toJsonSchemaDocument(outputSchema).schema,
 } satisfies Tool.Info;

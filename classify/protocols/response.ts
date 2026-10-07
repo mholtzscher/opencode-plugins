@@ -1,12 +1,12 @@
 import { Effect, Schema } from "effect";
 
-import { ClassificationError } from "../errors.js";
 import {
   buildAnswerSchema,
   JsonValueSchema,
   NonblankSchema,
   UsageSchema,
-} from "../schemas.js";
+} from "../classification-schemas.js";
+import { ClassificationError } from "../errors.js";
 import type {
   DecisionRequest,
   DecisionResponse,

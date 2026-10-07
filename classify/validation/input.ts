@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 
+import { buildInputSchema } from "../classification-schemas.js";
 import type { ClassifierDefinition } from "../config.js";
 import { ClassificationError } from "../errors.js";
-import { buildInputSchema } from "../schemas.js";
 import type { ClassifyInput, EvidenceState, JsonValue } from "../types.js";
 import { schemaIssueDetails } from "./codec.js";
 
