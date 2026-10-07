@@ -81,7 +81,9 @@ const OllamaBackendSchema = Schema.Struct({
 
 const OpenaiDecisionsBackendSchema = Schema.Struct({
   ...KeySourceFields,
-  model: Schema.optional(NonblankSchema),
+  model: NonblankSchema.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("gpt-6-luna"))
+  ),
   provider: Schema.Literal("openai-decisions"),
 }).annotate(strict);
 

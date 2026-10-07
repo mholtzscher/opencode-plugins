@@ -52,17 +52,7 @@ test("provider preflight performs no credential lookups or HTTP calls", async ()
           const adapter = yield* DecisionBackend;
           result.push(adapter.provider);
           const exit = yield* Effect.exit(adapter.preflight(questions));
-          if (provider === "openai-decisions") {
-            expect(Exit.isFailure(exit)).toBe(true);
-            if (Exit.isFailure(exit)) {
-              expect(Cause.squash(exit.cause)).toHaveProperty(
-                "failure.code",
-                "PROVIDER_UNAVAILABLE"
-              );
-            }
-          } else {
-            expect(Exit.isSuccess(exit)).toBe(true);
-          }
+          expect(Exit.isSuccess(exit)).toBe(true);
         }).pipe(
           Effect.provide(
             providerLayer(options, options.backends.default).pipe(
@@ -137,10 +127,15 @@ test("every provider preflight preserves fiber interruption", async () => {
   );
 });
 
-test("unavailable strategy also rejects direct decide calls", async () => {
+test("OpenAI direct decide calls resolve configured credentials", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backends: { default: { provider: "openai-decisions" } },
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+          provider: "openai-decisions",
+        },
+      },
       defaultBackend: "default",
     })
   );
@@ -154,7 +149,7 @@ test("unavailable strategy also rejects direct decide calls", async () => {
   if (Exit.isFailure(exit)) {
     expect(Cause.squash(exit.cause)).toHaveProperty(
       "failure.code",
-      "PROVIDER_UNAVAILABLE"
+      "MISSING_CREDENTIALS"
     );
   }
 });

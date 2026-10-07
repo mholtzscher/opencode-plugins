@@ -113,12 +113,12 @@ On platforms without symlink support, mark symlink cases NOT RUN. Git must be in
 
 Configure two named profiles in the disposable project using the README's `backends` example. Use controlled local endpoints when checking routing; do not send real evidence to hosted profiles merely to test switching.
 
-- In the TUI, open the command palette and choose **Classify: Select backend**. Verify profiles and model labels, current selection, cancel without changes, and the `(default)` marker on the configured backend's row. Selecting that row should clear the session override, without a separate reset option. OpenAI Decisions should be disabled.
+- In the TUI, open the command palette and choose **Classify: Select backend**. Verify profiles and model labels, current selection, cancel without changes, and the `(default)` marker on the configured backend's row. Selecting that row should clear the session override, without a separate reset option. OpenAI Decisions should be selectable.
 - Verify the bottom session status row shows `classify: <profile>`, follows session/tab switches, updates after picker/slash changes and changes from another client, and refreshes on reconnect. Unreadable selection must show `unavailable`, not an old or default backend. The home screen should not show a session-specific selection.
 - In TUI, desktop, and web, run `/classify-backend`, `/classify-backend <name>`, and `/classify-backend reset`. Verify server-generated confirmation without an LLM turn or inference request.
 - Open the same session in another client: verify it observes the selected profile and subsequent classification reports `result.backend` (or `error.backend`). A separate session should still use the configured default.
 - Reconnect/reload and reopen the session: an explicit override should persist. Switching while a controlled request is in flight must not reroute that request or retries; the next call uses the new selection.
-- Unknown names and the unimplemented OpenAI profile must not change selection. Remove an overridden profile and reload: calls should fail without HTTP until explicitly reset or switched, never silently fall back. Verify the TUI picker still opens without a current row and can select another profile or reset by choosing the configured default. Canceling must preserve the removed-profile override. A storage or transport failure must stop the picker rather than be treated as a removed profile.
+- Unknown names must not change selection. Remove an overridden profile and reload: calls should fail without HTTP until explicitly reset or switched, never silently fall back. Verify the TUI picker still opens without a current row and can select another profile or reset by choosing the configured default. Canceling must preserve the removed-profile override. A storage or transport failure must stop the picker rather than be treated as a removed profile.
 - With a remote TUI, verify profiles and key files are resolved on the server. Picker/RPC output must not contain credentials, key-file paths, or environment-variable names.
 
 Record desktop/web and remote-client cases as NOT RUN unless verified in those actual clients.
@@ -346,8 +346,8 @@ Use disposable configuration/key fixtures. Negative configuration cases fail **s
 | C12 | Both `apiKeyEnv` and `apiKeyFile` | Setup rejection; file source never falls back to environment. |
 | C13 | Missing/unreadable/nonregular/empty/>16 KiB key file; invalid UTF-8/internal whitespace/control characters | Sanitized `MISSING_CREDENTIALS`, no HTTP/fallback. Use automated fixtures for permissions/platform-specific cases. |
 | C14 | Rotate synthetic key file/environment value between invocations | New value used without reload. Record only that authentication changed, never the key. |
-| C15 | Reserved `openai-decisions` backend | `PROVIDER_UNAVAILABLE`; no credentials, evidence, HTTP, chat fallback, or alternate backend used. |
-| C16 | Configured adapter lacks a requested capability | Service fixture: `UNSUPPORTED_TYPE` before dispatch; unavailable OpenAI gate takes precedence. |
+| C15 | `openai-decisions` backend | Default `gpt-6-luna`, server-side `OPENAI_API_KEY`, selectable profile, native predicate/choice/score translation; no chat fallback or alternate backend. |
+| C16 | Configured adapter lacks a requested capability | Service fixture: `UNSUPPORTED_TYPE` before dispatch. |
 | C17 | Required native read/shell tool unavailable | Evidence resolver fixture: fail closed with `EVIDENCE_ERROR`. |
 | C18 | Read/external-directory/shell approval asks, then accept/reject | Manual disposable-session check: native decisions honored; reject yields no provider result. Do not auto-approve to make the test pass. |
 
@@ -377,6 +377,7 @@ Run these with `bun test`, recording adapters, injected fetch, or a disposable S
 | T18 | Extra upstream fields / raw error body / unexpected exception | Strip unrecognized answer/response fields; locally sanitized errors; no raw bodies, credentials, or arbitrary thrown messages leaked. |
 | T19 | Abort before invocation, while resolving evidence/credentials, during fetch/body/retry wait, or just before adapter completion | Cancellation rejects to OpenCode, not a failure/success envelope; no late successful completion. |
 | T20 | Stop only a separately managed disposable Laya instance | Subsequent call fails with sanitized `NETWORK_ERROR`; plugin never starts/stops/downloads that service itself. |
+| T21 | OpenAI Decisions request and response | POST `/v1/decisions`, text input and named question array, native answer-array mapping, structured legends and `x-request-id` preserved. Refusal, duplicate names/options/indices, mismatched types/labels, or incomplete answers fail atomically. |
 
 For interactive cancellation, use a **separate test client/session** and cancel its pending request. Do not interrupt the session coordinating this checklist. Timed-out or cancelled hosted requests may already have incurred charges.
 
@@ -388,11 +389,12 @@ For interactive cancellation, use a **separate test client/session** and cancel 
 | `tests/input.test.ts` | Input contracts, native question bounds, special labels, and criteria-list normalization. |
 | `tests/response.test.ts` | Provider response contracts and shared answer validation: distributions, structured legends, usage, truncation, and atomic failure. |
 | `tests/tool-description.test.ts` | Tool guidance, named-classifier state modes, and the mixed-type example. |
-| `tests/preflight.test.ts` | Provider strategy selection, supported-question checks, cancellation, side-effect-free preflight, and the direct OpenAI gate. |
+| `tests/preflight.test.ts` | Provider strategy selection, supported-question checks, cancellation, side-effect-free preflight, and direct OpenAI credential resolution. |
 | `tests/evidence.test.ts` | Files, symlinks, Git evidence, byte budgets, atomic failure, interruption and unavailable-provider guards. |
 | `tests/config.test.ts` | Defaults, option bounds, origins, credentials-source selection, immutable named classifiers. |
-| `tests/credentials.test.ts` | Key files, rotation, source isolation, sanitization, cancellation, OpenAI no-read guard. |
-| `tests/service.test.ts` | Named/ad hoc dispatch, preflight-before-evidence ordering, provider-independent availability gates, result/error envelopes, OpenAI gate, cancellation. |
+| `tests/credentials.test.ts` | Key files, rotation, source isolation, sanitization, cancellation, OpenAI invocation-time reads. |
+| `tests/service.test.ts` | Named/ad hoc dispatch, preflight-before-evidence ordering, provider-independent availability gates, result/error envelopes, OpenAI credentials, cancellation. |
+| `tests/openai-decisions.test.ts` | Decisions HTTP contract, named dispatch, output parsing, native measurements, malformed/refused answers, structured content, special labels. |
 | `tests/transport.test.ts` | HTTP/auth/status handling, retries/deadlines/streams, native-response validation, request IDs, interruption. |
 | `tests/plugin.test.ts` | Real entry registration/execution, session-location evidence, named/ad hoc list normalization, structured legends, TUI separation. |
 
@@ -425,4 +427,14 @@ Those TypeSafe and Laya checks preceded the Effect migration. The migrated runti
 
 Live Ollama 0.35.0 validation with `nimble:latest` (Q8_0, digest `9b953de7a5336756ece1cb1e8632e374b3dbdabe3d02d405cf8291da2d43a131`) exercised the classification service, provider layer, HTTP transport, and public output parser on synthetic data. A mixed string-input request returned all three native answer types, usage, and derived score bounds in about 4.7 seconds. A preset named classifier with structured state and choice-entry-list criteria succeeded in about 0.4 seconds. Structured score descriptions were rejected with HTTP 400 and surfaced as `REQUEST_REJECTED`.
 
-The Ollama checks did not exercise an OpenCode client or evidence permissions. One outage example selected `other` despite high severity; connectivity is not an accuracy guarantee. For new local-provider runs, record the Ollama version and model tag, or inspect Laya `/health` for loaded checkpoints, revisions, and actual devices. Start and stop only separately managed test servers, then verify stopped-server `NETWORK_ERROR` and the OpenAI `PROVIDER_UNAVAILABLE` gate without a substitute-provider call.
+The Ollama checks did not exercise an OpenCode client or evidence permissions. One outage example selected `other` despite high severity; connectivity is not an accuracy guarantee. For new local-provider runs, record the Ollama version and model tag, or inspect Laya `/health` for loaded checkpoints, revisions, and actual devices. Start and stop only separately managed test servers, then verify stopped-server `NETWORK_ERROR` without a substitute-provider call.
+
+### OpenAI Decisions public-beta verification
+
+On 2026-10-06, two live calls through `createClassifyTool().execute` and the public output parser succeeded against `https://api.openai.com/v1/decisions`, requested and reported model `gpt-6-luna`. Both used synthetic incident data and a server-local key file, with no retries or fallback. OpenAI documents this as public beta, with only `gpt-6-luna` supported, not GA.
+
+- Mixed text input returned native predicate, choice, and score measurements, complete distributions, usage, and a request ID in about 1.54 seconds. Reported usage was 424 input tokens and zero output tokens.
+- A named preset with structured state returned all three types in about 0.22 seconds. Reported usage was 428 input tokens and zero output tokens. Structured instructions/descriptions, `__proto__` and `constructor` choice labels, and structured score legends survived translation and output parsing.
+- Native fractional scores, malformed/refused responses, and real plugin-entry dispatch use controlled automated fixtures. The live examples returned an integer score; fractional preservation was not demonstrated by those live calls.
+
+These calls exercised the tool executor, service, credentials, adapter, HTTP transport, and output parser directly in Bun. Interactive OpenCode clients, Code Mode transport, native file/diff permissions, and live cancellation were NOT RUN for this provider. Request IDs were `req_c3e72ef6161f47928aed1ee099b0067d` and `req_12175e242a104b6f9899fabc353258cf`. The temporary runner contained no key contents and was removed after verification. No user configuration or inference servers changed.

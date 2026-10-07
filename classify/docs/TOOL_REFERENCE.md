@@ -158,7 +158,7 @@ All answer measurements shown above and both usage counts are required. `scale` 
 | `attempts` | HTTP dispatches, including retries; zero on failure means no dispatch |
 | `durationMs` | Monotonic elapsed time across the whole invocation, including evidence and retries; included on success and failure |
 | `usage` | Successful attempt's reported tokens, not necessarily total billed tokens |
-| `requestID` | Validated final-attempt `x-typesafe-request-id`, or `cf-ray` for Cloudflare; may also appear on HTTP, body, or native-response validation failures |
+| `requestID` | Validated final-attempt `x-typesafe-request-id`, `x-request-id` for OpenAI, or `cf-ray` for Cloudflare; may also appear on HTTP, body, or native-response validation failures |
 
 An illustrative failure:
 
@@ -166,8 +166,8 @@ An illustrative failure:
 {
   "ok": false,
   "error": {
-    "code": "PROVIDER_UNAVAILABLE",
-    "message": "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
+    "code": "MISSING_CREDENTIALS",
+    "message": "Set the configured API-key environment variable on the OpenCode server.",
     "retryable": false,
     "provider": "openai-decisions",
     "attempts": 0,
@@ -189,7 +189,7 @@ Only explicit HTTP **429 and 529** responses automatically retry. Delays are 500
 | `MISSING_CREDENTIALS` | Set the configured server-side variable or supply a valid key file. No HTTP. |
 | `AUTH_FAILED` | HTTP 401/403. No retry. |
 | `RATE_LIMITED` | HTTP 429 after permitted attempts. Retryable. |
-| `PROVIDER_UNAVAILABLE` | HTTP 529 or other 5xx is retryable, but other 5xx do not automatically retry. The OpenAI gate is not retryable. |
+| `PROVIDER_UNAVAILABLE` | HTTP 529 or other 5xx is retryable, but other 5xx do not automatically retry. |
 | `REQUEST_REJECTED` | Other unsuccessful status, including 422. No retry. |
 | `NETWORK_ERROR`, `TIMEOUT` | Connection failure or invocation deadline. Retryable but never automatically retried. |
 | `INVALID_RESPONSE`, `INPUT_TRUNCATED` | Invalid/oversized JSON, native contract violation, or explicit upstream truncation marker. No retry. |

@@ -1,6 +1,6 @@
 # Classify
 
-An OpenCode V2 plugin for bounded judgments: yes/no probabilities, categorical choices, and fractional rubric scores. The server-side `classify` tool evaluates supplied content against typed questions using TypeSafe AI, Cloudflare Clef, Laya, or Ollama. It returns measurements; it does not execute decisions.
+An OpenCode V2 plugin for bounded judgments: yes/no probabilities, categorical choices, and fractional rubric scores. The server-side `classify` tool evaluates supplied content against typed questions using OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama. It returns measurements; it does not execute decisions.
 
 Credentials, evidence reads, backend selection, and classification run on the **OpenCode server**, including when clients connect remotely. The TUI adds a backend picker and session status indicator. Setup makes no network calls and downloads no models.
 
@@ -41,12 +41,13 @@ To use another provider, replace `backends.default` with a profile from the [con
 
 | Provider | Default model | Setup |
 | --- | --- | --- |
+| [OpenAI Decisions](./docs/CONFIGURATION.md#openai-decisions) | `gpt-6-luna` | Server-side API key |
 | [TypeSafe AI](./docs/CONFIGURATION.md#typesafe-ai) | `jev-latest` | Server-side API key |
 | [Cloudflare Clef](./docs/CONFIGURATION.md#cloudflare-clef) | `clef` | Account ID and Workers AI token |
 | [Ollama](./docs/CONFIGURATION.md#ollama) | `nimble` | Ollama 0.35+, model pulled, server running |
 | [Laya](./docs/CONFIGURATION.md#laya) | `english` | Separately managed Laya HTTP server |
 
-OpenAI Decisions is reserved but **unavailable** pending a verified API adapter. There is no chat or Responses fallback.
+OpenAI Decisions is in public beta. It uses the dedicated `/v1/decisions` endpoint, with no chat or Responses fallback. Currently, OpenAI supports only `gpt-6-luna` on that endpoint.
 
 ### 2. Ask the agent to classify content
 

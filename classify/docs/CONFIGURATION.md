@@ -139,13 +139,17 @@ The first run installs dependencies and downloads weights. Checkpoint, hardware,
 
 The plugin never installs Python, downloads weights, starts or stops Laya, exposes a listener, or polls for readiness. A stopped server produces a sanitized network error.
 
-### OpenAI Decisions (unavailable)
+### OpenAI Decisions
 
 ```json
 { "provider": "openai-decisions" }
 ```
 
-This profile can be configured, but cannot be selected through the picker or slash command. If configured as the default, valid tool invocations return `PROVIDER_UNAVAILABLE` without credential lookup, evidence reads, or HTTP. `OPENAI_API_KEY` is reserved; no model default is defined. See the [implementation gate](../../specs/classify-tool-plugin.md#openai-implementation-gate) before adding an adapter.
+Defaults are model `gpt-6-luna` and credential variable `OPENAI_API_KEY`. You can instead set `apiKeyEnv` or `apiKeyFile`, using the same credential rules as TypeSafe. Profiles are selectable through the picker and slash command.
+
+The [Decisions API](https://developers.openai.com/api/docs/guides/decisions) is in public beta and currently supports only `gpt-6-luna`. The plugin sends bearer-authenticated requests to `https://api.openai.com/v1/decisions`, never Chat Completions or Responses. A configured `model` is passed unchanged; unsupported models produce `REQUEST_REJECTED`, with no fallback.
+
+The adapter maps `noul` to a native `predicate`, choice criteria to `choices`, and score criteria to ordered `levels`. Strings remain text; structured state, instructions, and descriptions are JSON-serialized. Optional yes/no criteria are appended to predicate instructions. Score levels use their zero-based indices as wire labels; returned indices and labels are validated before restoring the original structured legend. Native probabilities, confidence, fractional scores, and reported token usage remain unchanged. Refusals fail the entire call with sanitized `INVALID_RESPONSE`, without partial answers. This plugin still accepts text/JSON evidence only; it does not add image inputs or fetch embedded URLs.
 
 ## Local-server origins
 
@@ -158,7 +162,7 @@ Use [`/classify-backend` or the TUI picker](../README.md#switch-backends-in-a-se
 - Overrides persist in server plugin storage and are shared by clients connected to the same session. Reopening a session preserves its override; new and child sessions use the configured default.
 - Each invocation captures its backend. In-flight evidence reads, HTTP calls, and retries keep that backend even if selection changes. Results include `result.backend` or `error.backend` when selection succeeds.
 - The TUI status follows the active session and updates after picker/slash changes, changes from other clients, and reconnects. `…` means loading; `unavailable` means selection could not be read. This reports selection, not provider health.
-- There is no automatic failover or liveness probing. A configured profile does not imply a running server or available credentials. OpenAI Decisions is displayed as not implemented.
+- There is no automatic failover or liveness probing. A configured profile does not imply a running server or available credentials.
 - Removing an overridden profile makes classification fail until you select another profile or reset. It never silently sends evidence to the default. The picker still opens for recovery; choosing the configured default clears the override. Other selection-read failures stop the picker without changing selection.
 - Credentials are resolved only at invocation and are not exposed through picker/RPC metadata. See the [RPC reference](./TOOL_REFERENCE.md#backend-selection-rpc) for client integration.
 

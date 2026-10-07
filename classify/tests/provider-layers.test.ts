@@ -104,7 +104,7 @@ test("provider layers share injectable IO but own their endpoints and decoding",
   expect(credentialReads).toBe(4);
 });
 
-test("unavailable provider layer needs no IO implementation", async () => {
+test("OpenAI preflight does not invoke IO implementations", async () => {
   const options = Effect.runSync(
     loadOptions({
       backends: { default: { provider: "openai-decisions" } },
@@ -131,12 +131,12 @@ test("unavailable provider layer needs no IO implementation", async () => {
       return yield* backend.preflight(input.questions).pipe(
         Effect.match({
           onFailure: (error) => error.failure.code,
-          onSuccess: () => "unexpected",
+          onSuccess: () => "supported",
         })
       );
     }).pipe(Effect.provide(layer))
   );
-  expect(code).toBe("PROVIDER_UNAVAILABLE");
+  expect(code).toBe("supported");
 });
 
 test("provider deadline excludes evidence permission waits and credential IO", async () => {

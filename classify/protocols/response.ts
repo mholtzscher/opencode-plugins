@@ -17,7 +17,8 @@ import { boundedCodec } from "../validation/codec.js";
 
 type NativeResponse = Pick<DecisionResponse, "answers" | "model" | "usage">;
 export type NativeDecoder = (
-  value: JsonValue
+  value: JsonValue,
+  request: DecisionRequest
 ) => Effect.Effect<Record<string, JsonValue>, ClassificationError>;
 
 // Upstream parse errors may contain provider response data; expose only the sanitized classification error.
@@ -74,7 +75,7 @@ export const decodeResponse = Effect.fn("decodeResponse")(
     request: DecisionRequest,
     decode: NativeDecoder
   ): Effect.fn.Return<NativeResponse, ClassificationError> {
-    const native = yield* decode(value);
+    const native = yield* decode(value, request);
     const { answers, model, usage } = yield* Schema.decodeUnknownEffect(
       responseSchema(request.questions)
     )(native).pipe(Effect.mapError(invalidResponse));

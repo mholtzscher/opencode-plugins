@@ -191,7 +191,7 @@ test("file credentials are used for HTTP and rotated between invocations", async
     globalThis.fetch = original;
   }
 });
-test("fiber interruption skips credentials and OpenAI never opens configured files", async () => {
+test("fiber interruption skips credentials and OpenAI resolves files at invocation", async () => {
   // Does not exist. Setup must not read it.
   const keyPath = await fixture();
   await Effect.runPromise(
@@ -225,7 +225,7 @@ test("fiber interruption skips credentials and OpenAI never opens configured fil
       )
     )
   );
-  expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+  expect(output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
 });
 
 test("credentials layer reads current environment and keeps keys redacted", async () => {

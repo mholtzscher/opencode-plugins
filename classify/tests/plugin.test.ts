@@ -149,7 +149,12 @@ const register = async (
 };
 test("real entry registers classify and grammar discovery with concrete schemas", async () => {
   const tools = await register({
-    backends: { default: { provider: "openai-decisions" } },
+    backends: {
+      default: {
+        apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+        provider: "openai-decisions",
+      },
+    },
     classifiers: { triage: { description: "Assess incidents", questions } },
     defaultBackend: "default",
   });
@@ -177,7 +182,7 @@ test("real entry registers classify and grammar discovery with concrete schemas"
   expect(JSON.stringify(document)).toContain('"classifier"');
   expect(tool.output).toBeDefined();
   const result = await Effect.runPromise(tool.execute(input, toolContext()));
-  expect(result.output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+  expect(result.output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
   expect(result.content).toBeUndefined();
   const grammar = await Effect.runPromise(
     tools[1].execute(
@@ -197,6 +202,102 @@ test("real entry registers classify and grammar discovery with concrete schemas"
     ],
     language: "go",
   });
+});
+
+test("real entry executes OpenAI Decisions with native answer translation", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests: unknown[] = [];
+  globalThis.fetch = Object.assign(
+    async (resource: RequestInfo | URL, init?: RequestInit) => {
+      const request = new Request(resource, init);
+      expect(request.url).toBe("https://api.openai.com/v1/decisions");
+      expect(request.headers.get("authorization")).toBe("Bearer synthetic-key");
+      requests.push(await request.json());
+      return Response.json(
+        {
+          answers: [
+            { name: "urgent", probability: 0.98, type: "predicate" },
+            {
+              choice: "incident",
+              confidence: 0.8,
+              name: "category",
+              probabilities: [
+                { probability: 0.9, value: "incident" },
+                { probability: 0.1, value: "other" },
+              ],
+              type: "choice",
+            },
+            {
+              confidence: 0.4,
+              name: "severity",
+              probabilities: [
+                { label: "0", probability: 0.1, value: 0 },
+                { label: "1", probability: 0.2, value: 1 },
+                { label: "2", probability: 0.7, value: 2 },
+              ],
+              score: 1.6,
+              type: "score",
+            },
+          ],
+          model: "gpt-6-luna",
+          usage: { input_tokens: 312, output_tokens: 0 },
+        },
+        { headers: { "x-request-id": "decision-entry" } }
+      );
+    },
+    { preconnect: originalFetch.preconnect }
+  );
+  const originalKey = process.env.CLASSIFY_OPENAI_ENTRY_TEST;
+  process.env.CLASSIFY_OPENAI_ENTRY_TEST = "synthetic-key";
+  try {
+    const [tool] = await register({
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_OPENAI_ENTRY_TEST",
+          provider: "openai-decisions",
+        },
+      },
+      classifiers: {
+        preset: {
+          description: "Synthetic preset",
+          questions,
+          state: input.state,
+        },
+      },
+      defaultBackend: "default",
+    });
+    expect(requests).toHaveLength(0);
+    const result = await Effect.runPromise(
+      tool.execute({ classifier: "preset" }, toolContext())
+    );
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toHaveProperty("input", JSON.stringify(input.state));
+    expect(requests[0]).toHaveProperty("model", "gpt-6-luna");
+    expect(result.output).toMatchObject({
+      ok: true,
+      result: {
+        answers: {
+          ...response().answers,
+          severity: {
+            ...response().answers.severity,
+            scale: { max: 2, min: 0 },
+          },
+        },
+        backend: "default",
+        classifier: "preset",
+        model: "gpt-6-luna",
+        provider: "openai-decisions",
+        requestID: "decision-entry",
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) {
+      delete process.env.CLASSIFY_OPENAI_ENTRY_TEST;
+    } else {
+      process.env.CLASSIFY_OPENAI_ENTRY_TEST = originalKey;
+    }
+  }
 });
 
 test("server slash commands and RPC share durable session selection and route named profiles", async () => {
@@ -279,10 +380,10 @@ test("server slash commands and RPC share durable session selection and route na
     expect(stored.get("selection/ses_a")).toBe("first");
     expect(events).toHaveLength(2);
     await Effect.runPromise(command("reserved"));
-    expect(messages.at(-1)).toContain("not implemented");
+    expect(messages.at(-1)).toContain("Classify backend: reserved");
     await Effect.runPromise(command("missing"));
     expect(messages.at(-1)).toContain("Unknown classify backend");
-    expect(stored.get("selection/ses_a")).toBe("first");
+    expect(stored.get("selection/ses_a")).toBe("reserved");
     await Effect.runPromise(command("reset"));
     expect(stored.has("selection/ses_a")).toBe(false);
     expect(messages.at(-1)).toContain("configured default");
@@ -432,7 +533,12 @@ test("selection RPC exposes reset metadata only for removed profiles", async () 
 
 test("tool teaches self-contained requests, result interpretation, and Code Mode handling", async () => {
   const [tool] = await register({
-    backends: { default: { provider: "openai-decisions" } },
+    backends: {
+      default: {
+        apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+        provider: "openai-decisions",
+      },
+    },
     defaultBackend: "default",
   });
   for (const guidance of [
@@ -473,7 +579,7 @@ test("tool teaches self-contained requests, result interpretation, and Code Mode
   ]);
   const output = await Effect.runPromise(tool.execute(parsed, toolContext()));
   expect(output.output).toMatchObject({
-    error: { code: "PROVIDER_UNAVAILABLE", retryable: false },
+    error: { code: "MISSING_CREDENTIALS", retryable: false },
     ok: false,
   });
 });
@@ -768,7 +874,12 @@ test("registration stays live through execution and disposes when the plugin sco
   let disposals = 0;
   const tools = await register(
     {
-      backends: { default: { provider: "openai-decisions" } },
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+          provider: "openai-decisions",
+        },
+      },
       defaultBackend: "default",
     },
     {
@@ -783,7 +894,7 @@ test("registration stays live through execution and disposes when the plugin sco
   const output = await Effect.runPromise(
     tools[0].execute(input, toolContext())
   );
-  expect(output.output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+  expect(output.output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
   expect(disposals).toBe(0);
   const scope = scopes.pop();
   if (!scope) {

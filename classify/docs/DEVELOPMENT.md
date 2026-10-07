@@ -15,7 +15,8 @@ The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the
 | [`service.ts`](../service.ts) | Validate input, resolve named classifiers, preflight, resolve evidence, and dispatch |
 | [`providers/backend.ts`](../providers/backend.ts), [`providers/registry.ts`](../providers/registry.ts) | `DecisionBackend` Effect service and provider-layer selection |
 | [`backend-config.ts`](../backend-config.ts) | Provider configuration schemas and defaults |
-| [`protocols/system-one.ts`](../protocols/system-one.ts) | Shared System One backend construction for TypeSafe, Laya, Ollama, and Cloudflare |
+| [`protocols/system-one.ts`](../protocols/system-one.ts) | Shared backend construction, transport, and validation, with System One serialization by default |
+| [`providers/openai-decisions.ts`](../providers/openai-decisions.ts) | Decisions request encoding and request-aware native answer decoding |
 | [`layers.ts`](../layers.ts) | Compose providers with credentials, transport, and evidence services |
 | [`tui.ts`](../tui.ts), [`rpc.ts`](../rpc.ts) | TUI backend picker/status and shared client contract |
 
@@ -30,7 +31,7 @@ The tool description includes a mixed-type example, structured-output and `ok` h
 3. For System One-compatible APIs, implement `SystemOneDefinition` with an endpoint, response decoder, and optional request-ID header, reusing shared layer construction. Other protocols can supply their own layer without changing the classifier program.
 4. Add configuration rejection, HTTP contract, malformed-response, and output-parser tests.
 
-Each backend exposes `provider`, `preflight(questions)`, and `decide(request)`. Both methods return Effects with typed failures. Layer construction and preflight must remain free of credential, evidence, and network reads. Preflight owns availability/capability checks and runs before evidence resolution. The unavailable OpenAI layer fails preflight and rejects direct `decide` calls without HTTP; see its [implementation gate](../../specs/classify-tool-plugin.md#openai-implementation-gate).
+Each backend exposes `provider`, `preflight(questions)`, and `decide(request)`. Both methods return Effects with typed failures. Layer construction and preflight must remain free of credential, evidence, and network reads. Preflight owns capability checks and runs before evidence resolution. OpenAI Decisions supplies a custom encoder and decoder while reusing the existing credentials, bounded transport, retry, deadline, cancellation, and answer-validation code.
 
 ### Code-evidence implementation
 
