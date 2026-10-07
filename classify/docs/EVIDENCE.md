@@ -2,7 +2,7 @@
 
 [Back to README](../README.md) · [Tool reference](./TOOL_REFERENCE.md)
 
-Use an explicit evidence wrapper to have the server read files, select code, or generate Git diffs before classification. Named classifiers support the same wrapper as caller-supplied state.
+Use an explicit evidence wrapper to have the server read UTF-8 files, resolve local images, select code, or generate Git diffs before classification. Named classifiers support the same wrapper as caller-supplied state.
 
 ## Evidence state
 
@@ -26,7 +26,7 @@ Use an explicit evidence wrapper to have the server read files, select code, or 
 }
 ```
 
-Supply at least one of `text`, `files`, `code`, or `diffs`; each is individually optional. `text` accepts the usual string/object/array content. The `type: "evidence"` marker is required, so arbitrary JSON (including objects with a `files` key) stays inert. The marker is reserved at the top level of `state`; wrap literal data containing it under `text`.
+Supply at least one of `text`, `files`, `code`, `diffs`, or `images`; each is individually optional. `text` accepts the usual string/object/array content. The `type: "evidence"` marker is required, so arbitrary JSON, including objects with `files` or `images` keys, stays inert. The marker is reserved at the top level of `state`; wrap literal data containing it under `text`.
 
 The plugin expands references before calling the configured backend:
 
@@ -39,7 +39,54 @@ The plugin expands references before calling the configured backend:
 }
 ```
 
-Resolution happens freshly on every invocation; source text is not cached.
+Resolution happens freshly on every invocation; source text and images are not cached. Text-only calls retain the expanded shape above. Image calls wrap it as `{ evidence: existingResolvedState, images: [{ index: 1 }, ...] }` and send image parts separately. Image-only calls use `{}` for `evidence`. The ordinal manifest contains no image paths.
+
+## Images
+
+Only `openai-decisions` supports image evidence. Select that backend before calling `classify_decide`:
+
+```json
+{
+  "state": {
+    "type": "evidence",
+    "images": [{ "path": "screenshots/a.png" }, { "path": "screenshots/b.png" }]
+  },
+  "questions": {
+    "same_layout": {
+      "type": "noul",
+      "instructions": "Do image 1 and image 2 have the same layout?"
+    }
+  }
+}
+```
+
+- Each reference is exactly `{ "path": "..." }`. Nonblank literal local paths without null characters are required. No string shorthand, glob expansion, URLs, MIME overrides, inline bytes, or transformations are accepted.
+- Paths resolve on the server against the invoking session's directory. Absolute paths follow the same native `read` and external-directory permissions as text files. Symlinks resolve to canonical paths; aliases cannot bypass a denied target.
+- Array order defines identity. The first reference is image 1. Duplicates remain separate and count against all budgets. An empty array is invalid.
+- `files` remains regular UTF-8 text only. Put images in `images`, even when mixing them with `text`, `files`, `code`, or `diffs`.
+- Format detection uses bytes, not filename extensions. PNG, JPEG, and static WebP containers are supported. Empty files, text, SVG, PDF, GIF, animated PNG/WebP, unsupported signatures, and obvious malformed containers fail with `EVIDENCE_ERROR`.
+- Checks cover signatures and basic container structure, not full pixel decoding or all corruption. There is no pixel-count limit, resizing, OCR preprocessing, or dimension-based transformation. The provider can still reject an image that passes these checks.
+
+These are fixed plugin limits, not provider maximums or configurable options:
+
+| Boundary | Limit |
+| --- | --- |
+| Images per call | 4 |
+| Raw bytes per image | 4 MiB |
+| Aggregate raw image bytes | 8 MiB |
+| Public tool arguments | 1 MiB, depth 32 |
+| Resolved non-image state plus questions | 1 MiB, depth 32 |
+| Complete encoded OpenAI image request | 13 MiB, depth 32 |
+| Provider response | 1 MiB |
+| Image-resolution deadline | 30 seconds total, including native permission waits |
+
+The server reads images sequentially, bounded by the smaller of 4 MiB and the remaining aggregate budget. A one-byte overflow fails; evidence is never truncated, resized, or omitted. One failed image aborts the whole call before inference. The resolver reads each image reference once per invocation after native authorization. HTTP retries reuse the encoded body and do not read the source again. Native `read` can separately load a preview.
+
+The resolver opens a regular-file descriptor and checks canonical path/descriptor identity before and after native authorization and reading. Replacement races, size changes, and file mutation fail closed. Scoped cleanup closes handles on success, failure, interruption, and timeout. Pending descriptor operations finish before closure, so filesystem cleanup can extend the nominal 30-second deadline. `TIMEOUT` at image resolution has zero provider attempts. The configured `timeoutMs` controls the separate provider transport deadline, not this fixed image deadline.
+
+Valid image evidence on any other backend returns `UNSUPPORTED_INPUT` with zero attempts before text/image resolution, credentials, or HTTP. Invalid reference shapes return `INVALID_INPUT`. Access, format, byte-budget, and mutation failures return sanitized `EVIDENCE_ERROR`; encoded-request overflow returns `INVALID_INPUT` before credential or network access.
+
+OpenAI receives a user message containing the resolved text and ordinal manifest followed by ordered `input_image` parts with verified inline data URLs. Image-reference paths are not sent. Existing paths in file/code/diff evidence remain intact, and a path supplied inside ordinary text is still text. The plugin does not put image bytes or data URLs in output, logs, progress metadata, or storage. Normal OpenCode history can retain the public input paths and native image previews; this is separate from plugin storage. Images are sent to OpenAI and may incur charges. There is no automatic collection of conversation attachments.
 
 ## Files
 
@@ -179,6 +226,6 @@ The current plugin API exposes no standalone permission-request primitive. The r
 
 Diff access follows `shell` policy, like running `git diff` directly; it does not enforce per-file `read` rules on Git output. Use a narrow shell policy for repositories containing sensitive history.
 
-The fully expanded serialized provider request has a 1 MiB limit, including JSON escaping, questions, and model. Evidence is never silently truncated. File/Git/permission failures return sanitized `EVIDENCE_ERROR`; expanded JSON exceeding the request budget returns `INVALID_INPUT`. Cancellation aborts resolution and provider work.
+Text-only serialized provider requests have a 1 MiB limit, including JSON escaping, questions, and model. Image calls retain the 1 MiB non-image state/question limit and use the separate 13 MiB encoded-body limit above. Evidence is never silently truncated. File/Git/permission failures return sanitized `EVIDENCE_ERROR`; expanded JSON exceeding its request budget returns `INVALID_INPUT`. Cancellation aborts resolution and provider work and propagates to OpenCode rather than returning an error envelope.
 
 Evidence reads may send private source code or history to the configured backend and may be retained in normal session history. Native tool progress or previews may also be observable. See [data and actions](../README.md#data-and-actions).

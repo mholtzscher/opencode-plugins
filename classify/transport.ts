@@ -12,6 +12,7 @@ export interface TransportOptions {
   endpoint: string;
   key?: string;
   maxRetries: number;
+  maxRequestBytes?: number;
   requestIDHeader?: string;
   timeoutMs: number;
 }
@@ -156,12 +157,13 @@ const retryPolicy = (maxRetries: number, deadline: bigint) =>
 
 const prepareRequest = Effect.fn("prepareRequest")(function* prepareRequest(
   endpoint: string,
-  { body, key }: Pick<TransportOptions, "body" | "key">
+  { body, key }: Pick<TransportOptions, "body" | "key">,
+  maxBytes = MAX_BYTES
 ) {
-  if (Buffer.byteLength(body) > MAX_BYTES) {
+  if (Buffer.byteLength(body) > maxBytes) {
     return yield* new ClassificationError(
       "INVALID_INPUT",
-      "Serialized request exceeds 1 MiB.",
+      "Serialized request exceeds the request limit.",
       false,
       { attempts: 0 }
     );
@@ -219,7 +221,11 @@ export const makeDecisionRequest = (
   return Effect.fn("executeDecisionRequest")(function* executeDecisionRequest(
     input: Pick<TransportOptions, "body" | "key">
   ): Effect.fn.Return<TransportResult, ClassificationError> {
-    const request = yield* prepareRequest(options.endpoint, input);
+    const request = yield* prepareRequest(
+      options.endpoint,
+      input,
+      options.maxRequestBytes
+    );
     const deadline =
       (yield* Clock.monotonicTimeNanos) +
       BigInt(options.timeoutMs) * 1_000_000n;

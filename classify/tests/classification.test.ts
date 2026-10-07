@@ -11,11 +11,15 @@ import {
   Result,
 } from "effect";
 import { TestClock } from "effect/testing";
+import { HttpClient } from "effect/unstable/http";
 
 import { loadOptions } from "../config.js";
+import { Credentials } from "../credentials.js";
 import { backendLayer } from "../layers.js";
-import { createPreflight } from "../providers/backend.js";
+import { MAX_BYTES } from "../limits.js";
+import { createPreflight, DecisionBackend } from "../providers/backend.js";
 import type { DecisionAdapter } from "../providers/backend.js";
+import { providerLayer } from "../providers/registry.js";
 import { ClassificationError } from "../types.js";
 import type { DecisionRequest, JsonValue } from "../types.js";
 import {
@@ -31,6 +35,13 @@ import {
   questions,
   response,
 } from "./fixtures.js";
+import { pngBytes } from "./image-fixtures.js";
+
+const resolvedPng = () => ({
+  byteLength: pngBytes.length,
+  dataURL: `data:image/png;base64,${pngBytes.toString("base64")}`,
+  mime: "image/png" as const,
+});
 
 const recordingAdapter = (
   calls: DecisionRequest[],
@@ -43,6 +54,218 @@ const recordingAdapter = (
     }),
   preflight: createPreflight(["noul", "choice", "score"]),
   provider,
+});
+
+test("every non-image backend rejects image evidence and direct image requests before all IO", async () => {
+  for (const profile of [
+    { provider: "typesafe" },
+    { provider: "laya" },
+    { provider: "ollama" },
+    { accountID: "a".repeat(32), provider: "cloudflare" },
+  ]) {
+    const options = Effect.runSync(
+      loadOptions({ backends: { default: profile }, defaultBackend: "default" })
+    );
+    let touched = 0;
+    const unexpected = () =>
+      Effect.sync(() => {
+        touched += 1;
+      }).pipe(Effect.andThen(Effect.die(new Error("Unexpected IO"))));
+    const decision = providerLayer(options, options.backends.default).pipe(
+      Layer.provide(
+        Layer.merge(
+          Layer.succeed(Credentials, { resolve: unexpected }),
+          Layer.succeed(HttpClient.HttpClient, HttpClient.make(unexpected))
+        )
+      )
+    );
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Exercise each registered provider independently.
+    await Effect.runPromise(
+      Effect.gen(function* rejectImages() {
+        const output = yield* classify(
+          options,
+          {
+            questions,
+            state: {
+              files: ["never.ts"],
+              images: [{ path: "never.png" }],
+              type: "evidence",
+            },
+          },
+          toolContext(),
+          unexpected
+        ).pipe(Effect.provide(evidenceLayer(unexpected)));
+        expect(output).toMatchObject({
+          error: { attempts: 0, code: "UNSUPPORTED_INPUT" },
+          ok: false,
+        });
+        const backend = yield* DecisionBackend;
+        const direct = yield* backend
+          .decide({ ...input, images: [resolvedPng()] })
+          .pipe(Effect.result);
+        expect(direct).toHaveProperty(
+          "failure.failure.code",
+          "UNSUPPORTED_INPUT"
+        );
+        yield* backend.preflight(questions);
+        expect(touched).toBe(0);
+      }).pipe(Effect.provide(decision))
+    );
+  }
+});
+
+test("image-only, mixed and named image evidence resolve freshly with ordinal identity and stripped references", async () => {
+  const source = {
+    code: [{ path: "a.ts", query: "(identifier) @evidence" }],
+    diffs: [{ base: "HEAD" }],
+    files: ["a.ts"],
+    images: [{ path: "private.png" }, { path: "private.png" }],
+    text: "Compare",
+    type: "evidence" as const,
+  };
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      classifiers: {
+        visual: { description: "Visual", questions, state: source },
+      },
+      defaultBackend: "default",
+    })
+  );
+  const calls: DecisionRequest[] = [];
+  const events: string[] = [];
+  const context = toolContext();
+  let imageReads = 0;
+  const resolveImages = (
+    refs: readonly { path: string }[],
+    forwarded: typeof context
+  ) =>
+    Effect.sync(() => {
+      events.push("images");
+      expect(forwarded).toBe(context);
+      expect(refs).toEqual(source.images);
+      imageReads += 1;
+      return refs.map(() => ({
+        ...resolvedPng(),
+        dataURL: `fresh-${imageReads}`,
+      }));
+    });
+  const adapter = recordingAdapter(calls, "openai-decisions");
+  adapter.preflight = (selected, requirements) =>
+    Effect.sync(() => {
+      events.push("preflight");
+      expect(selected).toEqual(questions);
+      expect(requirements).toEqual({ images: true });
+    });
+  const resolved = {
+    code: [{ content: "Code" }],
+    diffs: [{ content: "Diff" }],
+    files: [{ content: "File" }],
+    text: "Compare",
+  };
+  await Effect.runPromise(
+    Effect.gen(function* imageOrchestration() {
+      for (const args of [
+        { questions, state: { images: source.images, type: "evidence" } },
+        { questions, state: source },
+        { classifier: "visual" },
+        { classifier: "visual" },
+      ]) {
+        const output = yield* classify(options, args, context, resolveImages);
+        expect(output.ok).toBe(true);
+      }
+    }).pipe(
+      Effect.provide(
+        Layer.merge(
+          decisionLayer(adapter),
+          evidenceLayer((state, forwarded) =>
+            Effect.sync(() => {
+              events.push("text");
+              expect(forwarded).toBe(context);
+              expect(state).not.toHaveProperty("images");
+              const { images: _images, ...rest } = source;
+              expect(state).toEqual(rest);
+              return resolved;
+            })
+          )
+        )
+      )
+    )
+  );
+  expect(events).toEqual([
+    "preflight",
+    "images",
+    "preflight",
+    "text",
+    "images",
+    "preflight",
+    "text",
+    "images",
+    "preflight",
+    "text",
+    "images",
+  ]);
+  expect(calls[0].state).toEqual({
+    evidence: {},
+    images: [{ index: 1 }, { index: 2 }],
+  });
+  expect(calls[1].state).toEqual({
+    evidence: resolved,
+    images: [{ index: 1 }, { index: 2 }],
+  });
+  expect(calls[2].images?.[0].dataURL).toBe("fresh-3");
+  expect(calls[3].images?.[0].dataURL).toBe("fresh-4");
+  expect(JSON.stringify(calls.map((call) => call.state))).not.toContain(
+    "private.png"
+  );
+});
+
+test("image failure is atomic and the ordinal text state retains the existing joint JSON budget", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
+  );
+  const calls: DecisionRequest[] = [];
+  const adapter = recordingAdapter(calls, "openai-decisions");
+  adapter.preflight = createPreflight(["noul", "choice", "score"], true);
+  await Effect.runPromise(
+    Effect.gen(function* imageFailures() {
+      const args = {
+        questions,
+        state: {
+          files: ["a.txt"],
+          images: [{ path: "a.png" }, { path: "bad.png" }],
+          type: "evidence",
+        },
+      };
+      const failed = yield* classify(options, args, toolContext(), () =>
+        Effect.fail(
+          new ClassificationError("EVIDENCE_ERROR", "Invalid image container.")
+        )
+      );
+      expect(failed).toMatchObject({
+        error: { attempts: 0, code: "EVIDENCE_ERROR" },
+        ok: false,
+      });
+      const large = yield* classify(options, args, toolContext(), () =>
+        Effect.succeed([resolvedPng()])
+      );
+      expect(large).toMatchObject({
+        error: { attempts: 0, code: "INVALID_INPUT" },
+        ok: false,
+      });
+      expect(calls).toHaveLength(0);
+    }).pipe(
+      Effect.provide(
+        Layer.merge(
+          decisionLayer(adapter),
+          evidenceLayer(() => Effect.succeed("x".repeat(MAX_BYTES - 1)))
+        )
+      )
+    )
+  );
 });
 
 test("missing question content returns invalid input rather than an internal error", async () => {

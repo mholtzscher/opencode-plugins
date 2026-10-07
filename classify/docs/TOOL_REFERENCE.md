@@ -20,7 +20,13 @@ Never supply both `questions` and `classifier`. All branches reject extra fields
 
 `state` and question `instructions` accept nonblank strings, nonempty JSON objects, or nonempty JSON arrays. Nested JSON permits null, booleans, and finite numbers. State also accepts the explicit [evidence wrapper](./EVIDENCE.md). Each call evaluates 1–64 independent questions against one shared state. Question IDs are response keys, not model instructions, and match `^[A-Za-z][A-Za-z0-9_-]{0,63}$`. Use another call when a judgment depends on prior answers.
 
-Options and inputs have bounded JSON traversal, at most 32 levels deep. The serialized System One request and streamed response body are each limited to 1 MiB. Provider limits may be tighter.
+Options and inputs have bounded JSON traversal, at most 32 levels deep. Public tool arguments, resolved non-image state plus questions, text-only encoded requests, and streamed responses retain their 1 MiB limits. Only OpenAI Decisions requests containing resolved images use a 13 MiB encoded-body limit. Provider limits may be tighter.
+
+### Image evidence input
+
+Use `state: { "type": "evidence", "images": [{ "path": "a.png" }] }` for image-only evidence, or combine `images` with `text`, `files`, `code`, and `diffs`. Each image reference is a strict object with only a nonblank local `path`, without null characters. No shorthand strings, URLs, inline bytes, or caller-supplied MIME types are accepted. Objects with an `images` key but no evidence marker remain literal JSON.
+
+The array accepts 1–4 references. Image 1 is the first reference; duplicates count. Static PNG, JPEG, and WebP are detected from bytes and bounded at 4 MiB each and 8 MiB total. Files resolve from the invoking session directory under native `read` permissions, exactly as text evidence does. `files` still means UTF-8 text. See [image evidence](./EVIDENCE.md#images) for validation, timeout/cleanup details, and history implications. Image inputs do not change question types or result envelopes.
 
 ## Questions and measurements
 
@@ -107,7 +113,7 @@ Invoke it with only the name:
 
 Configured state accepts text, a nonempty object/array, or evidence. Supplying caller state when a preset exists returns `INVALID_INPUT`, even if the values match; there is no merge or override. Classifiers without preset state require caller state. Configured questions are sent unchanged, and the tool description identifies each name's state mode.
 
-Static content is an immutable configuration snapshot. Evidence references are validated at setup, then resolved freshly on every invocation relative to the session's directory, under the same permissions and limits as caller-supplied evidence. Evidence contents are not cached. The unavailable OpenAI adapter skips resolution.
+Static content is an immutable configuration snapshot. Evidence references, including preset `images`, are validated at setup, then resolved freshly on every invocation relative to the session's directory, under the same permissions and limits as caller-supplied evidence. Evidence contents are not cached. Unsupported backend capabilities fail preflight before resolution.
 
 ## Output envelopes
 
@@ -188,20 +194,24 @@ Only explicit HTTP **429 and 529** responses automatically retry. Delays are 500
 
 | Code | Meaning |
 | --- | --- |
-| `INVALID_INPUT`, `UNSUPPORTED_TYPE` | Invalid arguments or unsupported type. Unknown classifiers and wrong named-state modes are reported at `/classifier` or `/state`. No HTTP. |
-| `EVIDENCE_ERROR` | File/code/Git evidence failed, access was denied, or a required native tool is unavailable. No HTTP. |
+| `INVALID_INPUT` | Invalid arguments, image-reference shape, or encoded-request overflow. Unknown classifiers and wrong named-state modes are reported at `/classifier` or `/state`. No HTTP. |
+| `UNSUPPORTED_TYPE` | The selected backend does not support a requested question type. No evidence, credential, or HTTP reads. |
+| `UNSUPPORTED_INPUT` | Valid image evidence on a backend other than OpenAI Decisions. Zero attempts; no evidence, credential, or HTTP reads. |
+| `EVIDENCE_ERROR` | File/code/Git/image evidence failed, access was denied, or a required native tool is unavailable. Image failures include unsupported or malformed containers, byte overflow, and file mutation. No HTTP. |
 | `MISSING_CREDENTIALS` | Set the configured server-side variable or supply a valid key file. No HTTP. |
 | `AUTH_FAILED` | HTTP 401/403. No retry. |
 | `RATE_LIMITED` | HTTP 429 after permitted attempts. Retryable. |
 | `PROVIDER_UNAVAILABLE` | HTTP 529 or other 5xx is retryable, but other 5xx do not automatically retry. |
 | `REQUEST_REJECTED` | Other unsuccessful status, including 422. No retry. |
-| `NETWORK_ERROR`, `TIMEOUT` | Connection failure or invocation deadline. Retryable but never automatically retried. |
+| `NETWORK_ERROR`, `TIMEOUT` | Connection failure or deadline. Image resolution has a fixed 30-second deadline including permission waits; its timeout has zero attempts. Provider transport uses the configured deadline. Retryable but never automatically retried. |
 | `INVALID_RESPONSE`, `INPUT_TRUNCATED` | Invalid/oversized JSON, native contract violation, or explicit upstream truncation marker. No retry. |
 | `INTERNAL_ERROR` | Unexpected local failure, sanitized. |
 
 Errors use locally constructed messages and may include HTTP `status`. Raw upstream bodies and arbitrary thrown messages are never included. Input validation includes a JSON Pointer `path` and expected constraint where available (for example, `/questions/severity/criteria`). Messages do not echo submitted values, and arbitrary choice labels are excluded from paths. An empty pointer refers to the input root.
 
 Failures include `attempts`, `durationMs`, and a safe final-attempt `requestID` when available. `retryAfterMs` preserves a valid provider `Retry-After` in milliseconds, not the plugin's backoff. It accepts seconds or a standard HTTP date, clamping past dates to zero. `retryable` means a caller could retry later, not that doing so is free or idempotent. A timed-out request may already have incurred cost, and successful-attempt usage can omit failed-attempt costs.
+
+Image bytes and data URLs never appear in the Classify result or error envelope. Image-reference paths are not sent to OpenAI; unrelated text/file/code/diff paths retain their existing behavior. Native `read` can retain previews in ordinary OpenCode history. `UNSUPPORTED_INPUT` is an additive public error code; consumers with exhaustive error-code switches must handle it separately from `UNSUPPORTED_TYPE`.
 
 ## Output schema and parser
 

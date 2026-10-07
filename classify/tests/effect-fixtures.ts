@@ -5,6 +5,7 @@ import { buildInputSchema } from "../classification-schemas.js";
 import { Classification, classificationLayer } from "../classification.js";
 import type { ClassifierDefinition, ClassifyOptions } from "../config.js";
 import { EvidenceAccess } from "../evidence.js";
+import { ImageEvidence } from "../image-evidence.js";
 import { decodeResponse } from "../protocols/response.js";
 import type { NativeDecoder } from "../protocols/response.js";
 import { DecisionBackend } from "../providers/backend.js";
@@ -19,16 +20,25 @@ import { parseInput } from "../validation/input.js";
 // SAFETY: Service tests only forward this context to the injected evidence service.
 export const toolContext = (): Tool.Context => ({}) as Tool.Context;
 
+export const imageLayer = (
+  resolve: Parameters<typeof ImageEvidence.of>[0]["resolve"] = () =>
+    Effect.die(new Error("Unexpected image resolution"))
+) => Layer.succeed(ImageEvidence, ImageEvidence.of({ resolve }));
+
 export const classify = (
   options: ClassifyOptions,
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Tests exercise invalid input through the classification service.
   value: unknown,
-  context: Tool.Context
+  context: Tool.Context,
+  resolveImages?: Parameters<typeof ImageEvidence.of>[0]["resolve"]
 ) =>
   Effect.gen(function* invokeClassification() {
     const classification = yield* Classification;
     return yield* classification.classify(value, context);
-  }).pipe(Effect.provide(classificationLayer(options)));
+  }).pipe(
+    Effect.provide(classificationLayer(options)),
+    Effect.provide(imageLayer(resolveImages))
+  );
 
 export const evidenceLayer = (
   resolve: Parameters<typeof EvidenceAccess.of>[0]["resolve"] = () =>

@@ -200,11 +200,36 @@ References resolve freshly on the server, relative to the invoking session's dir
 
 File objects accept a 1-based `offset` and a line-count `limit`; the example selects lines 120 through 179. Omit both to read the whole file. Partial reads support sources larger than 1 MiB while keeping selected evidence within the request budget.
 
-The [evidence guide](./docs/EVIDENCE.md) covers file and diff limits, Tree-sitter code selections, and the `classify_grammar` discovery tool.
+`files` accepts UTF-8 text, not images. For local image evidence, select an `openai-decisions` backend and use explicit `images` references:
+
+```json
+{
+  "state": {
+    "type": "evidence",
+    "text": "Compare image 1 with image 2.",
+    "images": [
+      { "path": "screenshots/before.png" },
+      { "path": "screenshots/after.png" }
+    ]
+  },
+  "questions": {
+    "fixed": {
+      "type": "noul",
+      "instructions": "Is the overlapping text in image 1 absent from image 2?"
+    }
+  }
+}
+```
+
+Image-only evidence is also valid. Array order defines image 1, image 2, and so on; duplicate references remain separate. PNG, JPEG, and static WebP are supported, with up to four images, 4 MiB per image, and 8 MiB total raw bytes. Formats are checked from bytes, not extensions. Images use the same native `read` permissions as text evidence. Other backends reject images with `UNSUPPORTED_INPUT` before reading evidence or credentials. No URLs, inline image bytes, animation, resizing, or automatic chat-attachment collection are supported.
+
+The [evidence guide](./docs/EVIDENCE.md) covers image and text budgets, file and diff limits, Tree-sitter code selections, and the `classify_grammar` discovery tool.
 
 ## Data and actions
 
 Classification sends supplied or explicitly resolved state to the selected backend. Search sends bounded prefixes from files discovered under the supplied paths. Both send questions and the configured model and may incur API charges. The plugin does not gather conversation history, fetch embedded URLs, or execute decisions. Normal OpenCode history may retain tool inputs, outputs, and native evidence previews. Backend selections are persisted, but there is no additional classification cache, telemetry, history database, or audit store.
+
+Explicit image bytes go to OpenAI as inline data URLs. The plugin does not send image-reference paths to the provider; existing file/code/diff references and paths written into text retain their old behavior. Image bytes and data URLs do not appear in Classify output, logs, progress metadata, or plugin storage. This does not remove normal OpenCode history: public tool inputs contain paths, and native `read` may retain image previews. Check [the live smoke procedure](./docs/SMOKE_TESTING.md#image-evidence-on-a-real-host) before relying on a runtime's preview behavior.
 
 Credentials come from a server-side environment variable or private key file and are resolved at invocation time. Key contents and file-read errors never appear in tool output. High confidence does not authorize another tool; normal OpenCode permissions govern subsequent actions.
 
@@ -214,7 +239,7 @@ Credentials come from a server-side environment variable or private key file and
 | --- | --- |
 | [Configuration](./docs/CONFIGURATION.md) | Provider profiles, credentials, local servers, option limits, session selection |
 | [Tool reference](./docs/TOOL_REFERENCE.md) | Input and output contracts, named classifiers, errors, parser, RPC |
-| [Evidence](./docs/EVIDENCE.md) | Files, Git diffs, Tree-sitter queries, permissions, size limits |
+| [Evidence](./docs/EVIDENCE.md) | Images, UTF-8 files, Git diffs, Tree-sitter queries, permissions, size limits |
 | [Search](./docs/SEARCH.md) | File ranking, configurable work budgets, partial results, coverage |
 | [Development](./docs/DEVELOPMENT.md) | Architecture, adding providers, automated verification |
 | [Smoke testing](./docs/SMOKE_TESTING.md) | Disposable fixtures, live checks, verification history |

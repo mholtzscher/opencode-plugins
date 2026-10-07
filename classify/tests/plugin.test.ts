@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CommandDefinition } from "@opencode/plugin/effect/command";
@@ -25,10 +25,244 @@ import type { ClassifyBackends } from "../rpc.js";
 import { isBoundedJsonValue } from "../validation/json.js";
 import { parseInputSync, toolContext } from "./effect-fixtures.js";
 import { input, questions, response } from "./fixtures.js";
+import { jpegBytes, pngBytes, webpBytes } from "./image-fixtures.js";
 import { createPluginFixture } from "./plugin-fixtures.js";
 
 const { dispose, register, scopes } = createPluginFixture();
 afterEach(dispose);
+
+const expectedImageInput = (bytes: Buffer, mime: string) => [
+  {
+    content: [
+      {
+        text: JSON.stringify({
+          evidence: {},
+          images: [{ index: 1 }, { index: 2 }],
+        }),
+        type: "input_text",
+      },
+      {
+        image_url: `data:${mime};base64,${bytes.toString("base64")}`,
+        type: "input_image",
+      },
+      {
+        image_url: `data:image/webp;base64,${webpBytes.toString("base64")}`,
+        type: "input_image",
+      },
+    ],
+    role: "user",
+  },
+];
+
+test("registered image tool uses native permission context, retries frozen bytes, and refreshes named presets", async () => {
+  const directory = await mkdtemp("/tmp/opencode/classify-plugin-images-");
+  const originalFetch = globalThis.fetch;
+  const bodies: string[] = [];
+  const reads: { args: unknown; context: Tool.Context }[] = [];
+  const commands: CommandDefinition[] = [];
+  const context = {
+    ...toolContext(),
+    sessionID: Session.ID.make("ses_image-test"),
+  };
+  const imagePath = path.join(directory, "a.bin");
+  const sessionRequests: Tool.Context["sessionID"][] = [];
+  const logs: unknown[] = [];
+  const logger = Logger.layer([
+    Logger.make(({ message }) => {
+      logs.push(message);
+    }),
+  ]);
+  const keyPath = path.join(directory, "key");
+  let denied = false;
+  globalThis.fetch = Object.assign(
+    async (resource: RequestInfo | URL, init?: RequestInit) => {
+      const request = new Request(resource, init);
+      expect(request.url).toBe("https://api.openai.com/v1/decisions");
+      expect(request.headers.get("authorization")).toBe("Bearer synthetic-key");
+      bodies.push(await request.text());
+      if (bodies.length === 1) {
+        await writeFile(imagePath, jpegBytes);
+        return new Response("unretained failure", { status: 429 });
+      }
+      return Response.json({
+        answers: [{ name: "visible", probability: 0.7, type: "predicate" }],
+        model: "gpt-6-luna",
+        usage: { input_tokens: 1, output_tokens: 0 },
+      });
+    },
+    { preconnect: originalFetch.preconnect }
+  );
+  try {
+    await Promise.all([
+      writeFile(imagePath, pngBytes),
+      writeFile(keyPath, "synthetic-key"),
+      writeFile(path.join(directory, "b.bin"), webpBytes),
+      writeFile(path.join(directory, "context.txt"), "synthetic context"),
+    ]);
+    await symlink("a.bin", path.join(directory, "alias.png"));
+    const q = {
+      visible: { instructions: "Is image 1 visible?", type: "noul" },
+    };
+    const [tool] = await register(
+      {
+        backends: {
+          hosted: { apiKeyFile: keyPath, provider: "openai-decisions" },
+          local: { provider: "ollama" },
+        },
+        classifiers: {
+          visual: {
+            description: "Visual preset",
+            questions: q,
+            state: {
+              images: [{ path: "a.bin" }, { path: "b.bin" }],
+              type: "evidence",
+            },
+          },
+        },
+        defaultBackend: "hosted",
+        maxRetries: 1,
+      },
+      {
+        commands,
+        directory: "/not-the-invoking-session-directory",
+        sessionDirectory: directory,
+        sessionRequests,
+        tools: [
+          {
+            description: "Native read",
+            execute: (args, forwarded) => {
+              reads.push({ args, context: forwarded });
+              return denied
+                ? Effect.fail(
+                    new Tool.Error({
+                      message:
+                        "PRIVATE_PERMISSION_DETAIL data:image/png;base64,PRIVATE",
+                    })
+                  )
+                : Effect.succeed({ content: "Ignored image preview" });
+            },
+            input: Schema.Unknown,
+            name: "read",
+          },
+        ],
+      }
+    );
+    const first = await Effect.runPromise(
+      tool.execute({ classifier: "visual" }, context)
+    );
+    expect(first.output).toHaveProperty("result.attempts", 2);
+    expect(first.output).toHaveProperty("result.backend", "hosted");
+    expect(first.output).toHaveProperty("result.classifier", "visual");
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toBe(bodies[0]);
+    expect(reads).toHaveLength(2);
+    expect(reads.every((read) => read.context === context)).toBe(true);
+    expect(sessionRequests.length).toBeGreaterThan(0);
+    expect(
+      sessionRequests.every((sessionID) => sessionID === context.sessionID)
+    ).toBe(true);
+    expect(reads.map((read) => read.args)).toEqual(
+      ["a.bin", "b.bin"].map((name) => ({
+        limit: 1,
+        path: path.join(directory, name),
+      }))
+    );
+    expect(JSON.parse(bodies[0]).input).toEqual(
+      expectedImageInput(pngBytes, "image/png")
+    );
+    expect(bodies[0]).not.toContain(directory);
+    expect(bodies[0]).not.toContain("a.bin");
+    const fresh = await Effect.runPromise(
+      tool.execute({ classifier: "visual" }, context)
+    );
+    expect(fresh.output).toHaveProperty("ok", true);
+    expect(JSON.parse(bodies[2]).input).toEqual(
+      expectedImageInput(jpegBytes, "image/jpeg")
+    );
+    expect(reads).toHaveLength(4);
+    const mixed = await Effect.runPromise(
+      tool.execute(
+        {
+          questions: q,
+          state: {
+            files: ["context.txt"],
+            images: [{ path: "a.bin" }],
+            text: "Compare",
+            type: "evidence",
+          },
+        },
+        context
+      )
+    );
+    expect(mixed.output).toHaveProperty("ok", true);
+    expect(JSON.parse(JSON.parse(bodies[3]).input[0].content[0].text)).toEqual({
+      evidence: {
+        files: [{ content: "synthetic context", path: "context.txt" }],
+        text: "Compare",
+      },
+      images: [{ index: 1 }],
+    });
+    denied = true;
+    for (const image of ["a.bin", "alias.png"]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Verify native permission denial for both canonical and alias references.
+      const failure = await Effect.runPromise(
+        tool
+          .execute(
+            {
+              questions: q,
+              state: { images: [{ path: image }], type: "evidence" },
+            },
+            context
+          )
+          .pipe(Effect.provide(logger))
+      );
+      expect(failure.output).toMatchObject({
+        error: { attempts: 0, code: "EVIDENCE_ERROR" },
+        ok: false,
+      });
+      expect(JSON.stringify(failure)).not.toContain("PRIVATE");
+      expect(JSON.stringify(failure)).not.toContain("data:image");
+    }
+    expect(bodies).toHaveLength(4);
+    expect(logs).toEqual([]);
+    denied = false;
+    await writeFile(path.join(directory, "bad.png"), "GIF89a");
+    const atomic = await Effect.runPromise(
+      tool.execute(
+        {
+          questions: q,
+          state: {
+            images: [{ path: "a.bin" }, { path: "bad.png" }],
+            type: "evidence",
+          },
+        },
+        context
+      )
+    );
+    expect(atomic.output).toHaveProperty("error.code", "EVIDENCE_ERROR");
+    expect(bodies).toHaveLength(4);
+    const before = reads.length;
+    await Effect.runPromise(
+      commands[0].execute({
+        delivery: "steer",
+        prompt: { text: "local" },
+        sessionID: context.sessionID,
+      })
+    );
+    const unsupported = await Effect.runPromise(
+      tool.execute({ classifier: "visual" }, context)
+    );
+    expect(unsupported.output).toMatchObject({
+      error: { attempts: 0, backend: "local", code: "UNSUPPORTED_INPUT" },
+      ok: false,
+    });
+    expect(reads).toHaveLength(before);
+    expect(bodies).toHaveLength(4);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(directory, { force: true, recursive: true });
+  }
+});
 test("real entry registers the classify namespace with concrete operation schemas", async () => {
   const namespaces: Tool.Namespace[] = [];
   const tools = await register(
