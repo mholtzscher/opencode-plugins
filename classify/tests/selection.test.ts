@@ -104,13 +104,15 @@ test("selection persists, synchronizes across instances, isolates sessions and r
     backend: "hosted",
     overridden: false,
   });
-  for (const backend of ["missing", "constructor", "reserved"]) {
+  for (const backend of ["missing", "constructor"]) {
     expect(() => Effect.runSync(first.set("a", backend))).toThrow();
     expect(Effect.runSync(first.get("a"))).toHaveProperty("backend", "hosted");
   }
   expect(
     first.list().find((profile) => profile.id === "reserved")
-  ).toHaveProperty("available", false);
+  ).toHaveProperty("available", true);
+  Effect.runSync(first.set("a", "reserved"));
+  expect(Effect.runSync(second.get("a"))).toHaveProperty("backend", "reserved");
   expect(JSON.stringify(first.list())).not.toContain("apiKey");
 });
 
@@ -203,7 +205,7 @@ test("selection translates storage defects into tagged failures without hiding p
     {
       ...options,
       backends: new Proxy(options.backends, {
-        get: () => {
+        getOwnPropertyDescriptor: () => {
           throw bug;
         },
       }),

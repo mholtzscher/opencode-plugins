@@ -55,7 +55,7 @@ export const createSelection = (
   const list = () =>
     Object.entries(options.backends).map(([id, backend]): BackendProfile => {
       const profile = {
-        available: backend.provider !== "openai-decisions",
+        available: true,
         id,
         provider: backend.provider,
       };
@@ -95,9 +95,6 @@ export const createSelection = (
   ) {
     const selected = backend ?? options.defaultBackend;
     yield* validate(selected);
-    if (options.backends[selected].provider === "openai-decisions") {
-      return yield* Effect.fail(new SelectionError("unsupported_backend"));
-    }
     const write =
       backend === undefined
         ? storage.remove(selectionKey(sessionID))

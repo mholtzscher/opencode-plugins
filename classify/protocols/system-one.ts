@@ -6,20 +6,25 @@ import { Credentials } from "../credentials.js";
 import { createPreflight, DecisionBackend } from "../providers/backend.js";
 import { makeDecisionRequest } from "../transport.js";
 import type { TransportResult } from "../transport.js";
-import type { DecisionRequest } from "../types.js";
+import type { DecisionRequest, JsonValue } from "../types.js";
 import { requireBoundedJson } from "../validation/json.js";
 import { decodeResponse } from "./response.js";
 import type { NativeDecoder } from "./response.js";
 
 export interface SystemOneDefinition<Backend extends BackendOptions> {
   decode: NativeDecoder;
+  encode?: (model: string, request: DecisionRequest) => JsonValue;
   endpoint: (backend: Backend) => string;
   readonly requestIDHeader?: string;
 }
 
 const encodeRequest = Effect.fn("SystemOne.encodeRequest")(
-  function* encodeRequest(model: string, request: DecisionRequest) {
-    const payload = {
+  function* encodeRequest(
+    model: string,
+    request: DecisionRequest,
+    encode?: (model: string, request: DecisionRequest) => JsonValue
+  ) {
+    const payload = encode?.(model, request) ?? {
       model,
       questions: request.questions,
       state: request.state,
@@ -66,7 +71,11 @@ export const systemOneLayer = <
       const decide = Effect.fn("SystemOne.decide")(function* decide(
         request: DecisionRequest
       ) {
-        const body = yield* encodeRequest(backend.model, request);
+        const body = yield* encodeRequest(
+          backend.model,
+          request,
+          definition.encode
+        );
         const key = yield* credentials.resolve(backend);
         const response = yield* sendRequest({
           body,

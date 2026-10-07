@@ -99,9 +99,9 @@ test("defaults are explicit, independent and immutable", () => {
     model: "english",
     provider: "laya",
   });
-  expect(
-    Effect.runSync(loadOptions(examples[4])).backends.default.model
-  ).toBeUndefined();
+  expect(Effect.runSync(loadOptions(examples[4])).backends.default.model).toBe(
+    "gpt-6-luna"
+  );
 });
 test("search settings default independently and reject unlimited or invalid budgets", () => {
   const base = {

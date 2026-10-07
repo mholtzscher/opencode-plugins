@@ -218,10 +218,15 @@ test("presets use stored state and questions and reject overrides before dispatc
   );
 });
 
-test("preset evidence preserves the unavailable-provider gate", async () => {
+test("preset evidence is resolved before OpenAI credential lookup", async () => {
   const options = Effect.runSync(
     loadOptions({
-      backends: { default: { provider: "openai-decisions" } },
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+          provider: "openai-decisions",
+        },
+      },
       classifiers: {
         review: {
           description: "Review",
@@ -248,8 +253,8 @@ test("preset evidence preserves the unavailable-provider gate", async () => {
       )
     )
   );
-  expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
-  expect(reads).toBe(0);
+  expect(output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
+  expect(reads).toBe(1);
 });
 
 test("capabilities and missing keys fail before dispatch", async () => {
@@ -524,8 +529,18 @@ for (const phase of ["preflight", "decide"] as const) {
   });
 }
 
-test("OpenAI gate wins over capability checks without credentials or network", async () => {
-  const options = Effect.runSync(loadOptions(examples[4]));
+test("OpenAI reports missing credentials without a network call", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: {
+        default: {
+          apiKeyEnv: "CLASSIFY_MISSING_OPENAI_KEY",
+          provider: "openai-decisions",
+        },
+      },
+      defaultBackend: "default",
+    })
+  );
   const output = await Effect.runPromise(
     Effect.gen(function* output() {
       return yield* classify(options, input, toolContext());
@@ -541,10 +556,8 @@ test("OpenAI gate wins over capability checks without credentials or network", a
   expect(output).toMatchObject({
     error: {
       attempts: 0,
-      code: "PROVIDER_UNAVAILABLE",
+      code: "MISSING_CREDENTIALS",
       durationMs: expect.any(Number),
-      message:
-        "OpenAI Decisions is unavailable until its documented API adapter is implemented. Configure TypeSafe or Laya instead.",
       provider: "openai-decisions",
       retryable: false,
     },
@@ -552,7 +565,7 @@ test("OpenAI gate wins over capability checks without credentials or network", a
   });
 });
 
-test("OpenAI factory and invocation perform zero environment reads and HTTP calls", async () => {
+test("OpenAI resolves its environment key only at invocation and skips HTTP when absent", async () => {
   const options = Effect.runSync(
     loadOptions({
       backends: {
@@ -592,12 +605,12 @@ test("OpenAI factory and invocation perform zero environment reads and HTTP call
         )
       )
     );
-    expect(output).toHaveProperty("error.code", "PROVIDER_UNAVAILABLE");
+    expect(output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
   } finally {
     process.env = originalEnv;
     globalThis.fetch = originalFetch;
   }
-  expect(reads).toEqual([]);
+  expect(reads.length).toBeGreaterThan(0);
   expect(calls).toBe(0);
 });
 
