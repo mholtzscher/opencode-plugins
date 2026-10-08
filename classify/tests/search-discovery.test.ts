@@ -24,6 +24,7 @@ afterEach(() =>
   )
 );
 const fixture = async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-search-discovery-");
   directories.push(directory);
   return directory;

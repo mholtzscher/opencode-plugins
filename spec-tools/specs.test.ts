@@ -12,6 +12,7 @@ afterEach(async () => {
   );
 });
 const makeDirectory = async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/spec-path-test-");
   directories.push(directory);
   await mkdir(`${directory}/specs`);
