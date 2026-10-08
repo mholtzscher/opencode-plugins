@@ -9,7 +9,7 @@ import type tuiPlugin from "../tui.js";
 type TuiPlugin = typeof tuiPlugin;
 type TuiContext = Parameters<TuiPlugin["setup"]>[0];
 interface AppSlot {
-  append: "app" | "prompt.footer.status";
+  append: "app" | "sidebar.content";
   render: (props?: { sessionID?: string }) => null;
 }
 interface PickerDialog {
@@ -125,7 +125,7 @@ test("TUI registers its picker only when the app slot mounts under the keymap pr
   const cleanup = await plugin.setup(fixture as unknown as TuiContext);
   expect(layers).toHaveLength(0);
   expect(slots).toHaveLength(2);
-  expect(slots[0].append).toBe("prompt.footer.status");
+  expect(slots[0].append).toBe("sidebar.content");
   expect(slots[1].append).toBe("app");
   mounted = true;
   expect(slots[1].render()).toBeNull();

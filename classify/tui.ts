@@ -101,7 +101,7 @@ export default Plugin.define({
   id: "classify",
   setup(context) {
     const removeStatus = context.ui.slot({
-      append: "prompt.footer.status",
+      append: "sidebar.content",
       render: (props) =>
         createComponent(BackendStatus, {
           context,
