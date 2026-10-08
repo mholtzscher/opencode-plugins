@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.2.0...classify-v1.3.0) (2026-10-08)
+
+
+### Features
+
+* **classify:** support local image evidence with OpenAI Decisions ([#13](https://github.com/mholtzscher/opencode-plugins/issues/13)) ([9aae17f](https://github.com/mholtzscher/opencode-plugins/commit/9aae17f6c6e491b4fd8e589015a132bc73cb3587))
+
 ## [1.2.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.1.0...classify-v1.2.0) (2026-10-07)
 
 
