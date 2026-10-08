@@ -32,7 +32,7 @@ interface PluginRuntime {
 }
 
 /** Each test file owns its registrations and explicitly installs dispose as its cleanup hook. */
-export const createPluginFixture = () => {
+export const createPluginFixture = (setup = plugin.effect) => {
   const scopes: Scope.Closeable[] = [];
   const dispose = () =>
     Effect.runPromise(
@@ -140,7 +140,7 @@ export const createPluginFixture = () => {
     const context = contextFixture as unknown as PluginContext;
     const scope = await Effect.runPromise(Scope.make());
     scopes.push(scope);
-    await Effect.runPromise(plugin.effect(context).pipe(Scope.provide(scope)));
+    await Effect.runPromise(setup(context).pipe(Scope.provide(scope)));
     return tools;
   };
   return { dispose, register, scopes };

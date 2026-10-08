@@ -264,7 +264,7 @@ test("registered image tool uses native permission context, retries frozen bytes
     await rm(directory, { force: true, recursive: true });
   }
 });
-test("real entry registers the classify namespace with concrete operation schemas", async () => {
+test("real entry registers only decide with concrete operation schemas", async () => {
   const namespaces: Tool.Namespace[] = [];
   const tools = await register(
     {
@@ -280,17 +280,13 @@ test("real entry registers the classify namespace with concrete operation schema
     { directory: "/tmp/opencode", namespaces, tools: [] }
   );
   expect(namespaces).toMatchObject([{ name: "classify" }]);
-  expect(tools.map((registered) => registered.name)).toEqual([
-    "decide",
-    "grammar",
-    "search",
-  ]);
+  expect(tools.map((registered) => registered.name)).toEqual(["decide"]);
   const [tool] = tools;
   expect(plugin.id).toBe("classify");
   expect(tool.name).toBe("decide");
   expect(
     tools.map((item) => `${item.options?.namespace}_${item.name}`)
-  ).toEqual(["classify_decide", "classify_grammar", "classify_search"]);
+  ).toEqual(["classify_decide"]);
   expect(tool.description).toContain("triage: Assess incidents");
   if (!Schema.isSchema(tool.input)) {
     throw new TypeError("Registered tool input must be a native codec");
@@ -307,28 +303,9 @@ test("real entry registers the classify namespace with concrete operation schema
   expect(JSON.stringify(document)).toContain('"classifier"');
   expect(tool.output).toBeDefined();
   expect(tools.every((item) => item.options?.codemode)).toBe(true);
-  expect(Schema.isSchema(tools[2].input)).toBe(true);
   const result = await Effect.runPromise(tool.execute(input, toolContext()));
   expect(result.output).toHaveProperty("error.code", "MISSING_CREDENTIALS");
   expect(result.content).toBeUndefined();
-  const grammar = await Effect.runPromise(
-    tools[1].execute(
-      { node: "method_declaration", path: "/not-a-real-file.go" },
-      toolContext()
-    )
-  );
-  expect(grammar.output).toMatchObject({
-    definitions: [
-      {
-        fields: {
-          name: { types: [{ named: true, type: "field_identifier" }] },
-        },
-        queryable: true,
-        type: "method_declaration",
-      },
-    ],
-    language: "go",
-  });
 });
 
 test("real entry executes OpenAI Decisions with native answer translation", async () => {
@@ -701,8 +678,6 @@ test("tool teaches self-contained requests, result interpretation, and Code Mode
   const parsed = parseInputSync(raw);
   expect(Object.values(parsed.questions ?? {}).map((q) => q.type)).toEqual([
     "noul",
-    "choice",
-    "score",
   ]);
   const output = await Effect.runPromise(tool.execute(parsed, toolContext()));
   expect(output.output).toMatchObject({

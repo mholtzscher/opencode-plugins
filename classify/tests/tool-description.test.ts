@@ -13,6 +13,7 @@ test("ad hoc description retains tool semantics without advertising classifiers"
   expect(description).toContain("Returns structured output");
   expect(description).not.toContain("JSON.parse");
   expect(description).not.toContain("Configured classifiers:");
+  expect(description).not.toContain("classifier");
 });
 test("named description advertises caller and preset state without changing definitions", () => {
   const classifiers = {
@@ -35,7 +36,7 @@ test("named description advertises caller and preset state without changing defi
   expect(JSON.stringify(classifiers)).toBe(snapshot);
   expect(buildToolDescription(classifiers)).toBe(description);
 });
-test("description includes a valid mixed-type tool example", () => {
+test("description includes a valid structured-state example", () => {
   const prefix = "Example input: ";
   const example = buildToolDescription({})
     .split("\n")
@@ -46,5 +47,9 @@ test("description includes a valid mixed-type tool example", () => {
   const parsed = parseInputSync(JSON.parse(example.slice(prefix.length)));
   expect(
     Object.values(parsed.questions ?? {}).map((question) => question.type)
-  ).toEqual(["noul", "choice", "score"]);
+  ).toEqual(["noul"]);
+  expect(parsed.state).toEqual({
+    claim: "All items passed.",
+    observations: ["A passed.", "B failed."],
+  });
 });

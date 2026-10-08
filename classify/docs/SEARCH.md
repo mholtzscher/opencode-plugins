@@ -2,7 +2,9 @@
 
 [Back to README](../README.md) · [Configuration](./CONFIGURATION.md)
 
-`classify_search` ranks files for a natural-language query. It returns source references rather than source text. The operation belongs to the native `classify` namespace alongside `decide` and `grammar`. In Code Mode, discover the namespace and use the returned signatures.
+**Temporarily disabled:** `classify_search` is not registered or discoverable while its value is being evaluated. The implementation and tests remain in the repository. The contract below documents that retained implementation; configuring `options.search` does not enable the tool.
+
+`classify_search` ranks files for a natural-language query and returns source references rather than source text.
 
 ## Arguments
 
