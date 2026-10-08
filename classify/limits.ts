@@ -1,4 +1,9 @@
 export const MAX_BYTES = 1024 * 1024;
+export const MAX_IMAGES = 4;
+export const MAX_IMAGE_BYTES = 4 * MAX_BYTES;
+export const MAX_TOTAL_IMAGE_BYTES = 8 * MAX_BYTES;
+export const MAX_IMAGE_REQUEST_BYTES = 13 * MAX_BYTES;
+export const IMAGE_RESOLUTION_TIMEOUT_MS = 30_000;
 export const MAX_JSON_DEPTH = 32;
 export const MAX_QUESTIONS = 64;
 export const MIN_CHOICES = 2;

@@ -9,6 +9,7 @@ import type { BackendOptions, ClassifyOptions } from "./config.js";
 import { CredentialsLive } from "./credentials.js";
 import { EvidenceAccessLive } from "./evidence.js";
 import { HttpClientLive } from "./http-client.js";
+import { ImageEvidenceLive } from "./image-evidence.js";
 import { openCodeAccessLayer } from "./opencode-access.js";
 import { providerLayer } from "./providers/registry.js";
 import { SearchFilesLive } from "./search-discovery.js";
@@ -37,7 +38,8 @@ export const classifyLayer = (
     Layer.provide(Layer.merge(access, processLayer))
   );
   const discovery = SearchFilesLive.pipe(Layer.provide(access));
-  const dependencies = Layer.merge(decision, evidence);
+  const images = ImageEvidenceLive.pipe(Layer.provide(access));
+  const dependencies = Layer.mergeAll(decision, evidence, images);
   const classification = classificationLayer(options).pipe(
     Layer.provide(dependencies)
   );

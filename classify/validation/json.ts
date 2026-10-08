@@ -114,10 +114,11 @@ export const isBoundedJsonValue = (
 
 /** Fails with the generic input error when a value exceeds the JSON request bounds. */
 export const requireBoundedJson = <A>(
-  value: A
+  value: A,
+  limits: JsonLimits = DEFAULT_LIMITS
 ): Effect.Effect<void, ClassificationError> =>
   // oxlint-disable-next-line anti-slop/no-known-value-widening -- Typed payloads still need the runtime size and depth bound.
-  isBoundedJsonValue(value)
+  isBoundedJsonValue(value, limits)
     ? Effect.void
     : Effect.fail(
         new ClassificationError(

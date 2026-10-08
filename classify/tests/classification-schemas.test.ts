@@ -11,6 +11,7 @@ import {
 import { OptionsSchema, loadOptions } from "../config.js";
 import { MAX_BYTES } from "../limits.js";
 import { classifyOutputSchema, parseClassifyOutput } from "../output.js";
+import type { Content } from "../types.js";
 import { adHocInputJsonSchema, parseInputSync } from "./effect-fixtures.js";
 import { input, normalizedResponse } from "./fixtures.js";
 
@@ -21,6 +22,58 @@ const output = () => ({
     durationMs: 0.5,
     provider: "typesafe" as const,
   },
+});
+
+test("image evidence is strict, bounded, local-only, and does not reinterpret literal JSON", () => {
+  const codec = buildInputSchema({});
+  const states: Content[] = [
+    { images: [{ path: "a.png" }], type: "evidence" as const },
+    {
+      files: ["a.ts"],
+      images: [{ path: "/tmp/opencode/photo.bin" }, { path: "a.png" }],
+      text: "Compare",
+      type: "evidence" as const,
+    },
+    { images: [{ path: "https://example.com/a.png" }] },
+  ];
+  for (const state of states) {
+    expect(
+      Schema.decodeUnknownSync(codec)({ questions: input.questions, state })
+    ).toEqual({ questions: input.questions, state });
+  }
+  for (const images of [
+    [],
+    Array.from({ length: 5 }, () => ({ path: "a.png" })),
+    ["a.png"],
+    ["https://example.com/a.png"],
+    [{ url: "https://example.com/a.png" }],
+    [{ path: "https://example.com/a.png" }],
+    [{ path: " //example.com/a.png" }],
+    [{ path: "file:///a.png" }],
+    [{ path: "data:image/png;base64,AAAA" }],
+    [{ dataURL: "data:image/gif;base64,AAAA" }],
+    [{ mime: "image/png", path: "a.png" }],
+    [{ bytes: "AAAA", path: "a.png" }],
+    [{ path: null }],
+    [{ path: "\0" }],
+    [{ path: " " }],
+  ]) {
+    expect(() =>
+      Schema.decodeUnknownSync(codec)({
+        questions: input.questions,
+        state: { images, type: "evidence" },
+      })
+    ).toThrow();
+  }
+  expect(
+    Schema.decodeUnknownSync(codec)({
+      questions: input.questions,
+      state: {
+        images: Array.from({ length: 4 }, () => ({ path: "a.gif" })),
+        type: "evidence",
+      },
+    })
+  ).toBeDefined();
 });
 
 // The rc.112 importer cannot represent `not`. Project out that one constraint

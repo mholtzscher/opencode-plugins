@@ -46,7 +46,7 @@ test("null-prototype evidence retains evidence validation", () => {
   const invalidState = { type: "evidence" };
   Object.setPrototypeOf(invalidState, null);
   expect(() => parseInputSync({ questions, state: invalidState })).toThrow(
-    "Evidence requires text, files, diffs, or code."
+    "Evidence requires text, files, diffs, code, or images."
   );
 });
 test("invalid selectors, content, fields and native criteria fail", () => {

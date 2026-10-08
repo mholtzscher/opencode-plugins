@@ -41,7 +41,7 @@ To use a key file instead of a provider's default environment variable:
 - Selecting a file disables the default environment source, with no fallback. Files are read at each invocation, never during setup, so rotation needs no reload.
 - Missing, unreadable, empty, oversized, or malformed files return sanitized `MISSING_CREDENTIALS` before HTTP.
 
-All implemented providers support both credential sources. The unavailable OpenAI adapter accepts the options but never reads credentials.
+All implemented providers support both credential sources. Capability preflight runs before credential reads.
 
 ## Providers
 
@@ -150,7 +150,13 @@ Defaults are model `gpt-6-luna` and credential variable `OPENAI_API_KEY`. You ca
 
 The [Decisions API](https://developers.openai.com/api/docs/guides/decisions) is in public beta and currently supports only `gpt-6-luna`. The plugin sends bearer-authenticated requests to `https://api.openai.com/v1/decisions`, never Chat Completions or Responses. A configured `model` is passed unchanged; unsupported models produce `REQUEST_REJECTED`, with no fallback.
 
-The adapter maps `noul` to a native `predicate`, choice criteria to `choices`, and score criteria to ordered `levels`. Strings remain text; structured state, instructions, and descriptions are JSON-serialized. Optional yes/no criteria are appended to predicate instructions. Score levels use their zero-based indices as wire labels; returned indices and labels are validated before restoring the original structured legend. Native probabilities, confidence, fractional scores, and reported token usage remain unchanged. Refusals fail the entire call with sanitized `INVALID_RESPONSE`, without partial answers. This plugin still accepts text/JSON evidence only; it does not add image inputs or fetch embedded URLs.
+The adapter maps `noul` to a native `predicate`, choice criteria to `choices`, and score criteria to ordered `levels`. Strings remain text; structured state, instructions, and descriptions are JSON-serialized. Optional yes/no criteria are appended to predicate instructions. Score levels use their zero-based indices as wire labels; returned indices and labels are validated before restoring the original structured legend. Native probabilities, confidence, fractional scores, and reported token usage remain unchanged. Refusals fail the entire call with sanitized `INVALID_RESPONSE`, without partial answers.
+
+OpenAI Decisions is the only image-capable backend in this plugin. Supply explicit [local image evidence](./EVIDENCE.md#images), including image-only or named preset evidence. The adapter sends inline base64 data URLs in ordered user-message image parts. Text-only calls retain string input. Hosted URLs, `file_id`, caller-supplied inline bytes, GIF/animation, resizing, OCR preprocessing, automatic conversation attachments, and image search are not supported. Other profiles return `UNSUPPORTED_INPUT` before any evidence or credential reads, with no failover.
+
+Image limits are fixed, not profile options: four references, 4 MiB per image, 8 MiB aggregate raw bytes, and 13 MiB for the complete encoded image request. Public input, resolved non-image state/questions, text-only requests, and responses retain 1 MiB bounds. The image resolver has its own 30-second deadline including permission waits; `timeoutMs` applies to provider transport. Pending descriptor operations and cleanup can extend the image deadline. Increasing `timeoutMs` does not increase image budgets or the image-resolution deadline.
+
+Image-reference paths stay local to resolution; file/code/diff paths and paths supplied in text keep their old behavior. Native `read` permissions and external-directory approvals still apply. Classify stores no images, but ordinary OpenCode history may retain paths and native previews. Explicit image calls send image bytes to OpenAI and may incur charges. Verify the pinned runtime using the opt-in [smoke procedure](./SMOKE_TESTING.md#image-evidence-on-a-real-host).
 
 ## Local-server origins
 

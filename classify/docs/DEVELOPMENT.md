@@ -14,6 +14,8 @@ The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the
 | [`tool-description.ts`](../tool-description.ts) | Agent-facing usage, answer semantics, and named-classifier guidance |
 | [`router.ts`](../router.ts), [`selection.ts`](../selection.ts) | Shared backend selection for classification and search; persist session overrides |
 | [`classification.ts`](../classification.ts) | Validate input, resolve named classifiers, preflight, resolve evidence, and dispatch |
+| [`evidence.ts`](../evidence.ts), [`bounded-file.ts`](../bounded-file.ts) | Text/JSON evidence service and bounded regular-file reads shared with image resolution |
+| [`image-evidence.ts`](../image-evidence.ts), [`image-format.ts`](../image-format.ts) | Separate image service, native authorization, descriptor checks, sequential byte budgets, and bounded static-container validation |
 | [`search.ts`](../search.ts), [`search-discovery.ts`](../search-discovery.ts) | Bounded directory discovery, prefix filtering, per-file classification, coverage, and deadlines |
 | [`search-tool.ts`](../search-tool.ts), [`search-schemas.ts`](../search-schemas.ts), [`search-config.ts`](../search-config.ts) | Search registration, contracts, and optional budgets |
 | [`outcome.ts`](../outcome.ts) | Shared public error boundary: preserve interruption and log unexpected defects before sanitizing output |
@@ -39,7 +41,21 @@ The tool description includes a mixed-type example, structured-output and `ok` h
 3. For System One-compatible APIs, implement `SystemOneDefinition` with an endpoint, response decoder, and optional request-ID header, reusing shared layer construction. Other protocols can supply their own layer without changing the classifier program.
 4. Add configuration rejection, HTTP contract, malformed-response, and output-parser tests.
 
-Each backend exposes `provider`, `preflight(questions)`, and `decide(request)`. Both methods return Effects with typed failures. Layer construction and preflight must remain free of credential, evidence, and network reads. Preflight owns capability checks and runs before evidence resolution. OpenAI Decisions supplies a custom encoder and decoder while reusing the existing credentials, bounded transport, retry, deadline, cancellation, and answer-validation code.
+Each backend exposes `provider`, `preflight(questions, requirements?)`, and `decide(request)`. Both methods return Effects with typed failures. Layer construction and preflight must remain free of credential, evidence, and network reads. Preflight owns capability checks and runs before evidence resolution. The optional `{ images: boolean }` requirement preserves text-only search callers. `createPreflight` defaults to no image support; only OpenAI Decisions opts in through `SystemOneDefinition.supportsImages`. Direct `decide` calls also reject unsupported images with `UNSUPPORTED_INPUT` rather than silently dropping them. Keep `UNSUPPORTED_TYPE` for question types.
+
+OpenAI Decisions supplies a custom encoder and decoder while reusing credentials, bounded transport, retry, deadline, cancellation, and answer validation. No image support is inferred from a model name or local endpoint.
+
+### Image-evidence implementation
+
+`EvidenceAccess.resolve` still returns text/JSON `Content` and is shared with search. `ImageEvidence.resolve` returns internal `ResolvedImage` records containing verified MIME, byte length, and data URL, never a source path. `layers.ts` provides the separate live service with `OpenCodeAccess` for invoking-session directory lookup and native `read` authorization. Public input accepts only strict `{ path }` references, not resolved records.
+
+Classification parses input and resolves named state before capability preflight. It strips `images` before text resolution, skips `EvidenceAccess` for image-only state, resolves images, and wraps text state with the ordinal manifest `{ evidence: resolvedState, images: [{ index: 1 }, ...] }`. Questions and that non-image state retain their combined 1 MiB budget. Old calls omit `images` from `DecisionRequest` and retain their old state and wire shapes.
+
+The resolver reads sequentially with four-reference, 4 MiB per-image, and 8 MiB aggregate bounds. It checks regular-file descriptor/path identity around native authorization and reading. Static PNG/JPEG/WebP checks inspect bounded container structure without decoding pixels. The fixed 30-second image deadline includes permission waits. Scoped release waits for pending descriptor operations before closure, so cleanup can extend the nominal deadline. Interruption propagates instead of becoming an error envelope.
+
+For image calls, the Decisions encoder emits one user message with `input_text` followed by ordered `input_image` data URLs. Image-reference paths are absent; unrelated text/file/code/diff paths remain unchanged. `protocols/system-one.ts` selects the 13 MiB body limit only when the definition supports images and the request has images. `requireBoundedJson` retains depth/security checks with explicit encoder bounds; actual serialized UTF-8 bytes are checked before credentials or HTTP. Transport uses the same request-specific bound. Global public/text defaults and response bounds remain 1 MiB. Retries reuse the encoded body without resolving files again.
+
+Never publish image bytes or data URLs in tool output, logs, progress metadata, or plugin storage. Native `read` history/previews are a separate runtime concern covered by the manual smoke procedure. There are no new plugin options, dependencies, persistent image state, TUI/RPC contracts, or image-search behavior.
 
 ### Code-evidence implementation
 
@@ -64,6 +80,16 @@ bun run check
 ```
 
 Typecheck covers both server and TUI entries, nested providers, and tests. Tests use recording adapters, injected fetch, and local HTTP fixtures; they verify contracts and transport, not model accuracy.
+
+Focused image checks from `classify/`:
+
+```sh
+bun test tests/classification-schemas.test.ts tests/classification.test.ts
+bun test tests/image-format.test.ts tests/image-evidence.test.ts tests/bounded-file.test.ts
+bun test tests/openai-decisions.test.ts tests/plugin.test.ts
+```
+
+Run the full suite even when these pass. Recording tests must prove byte-for-byte data-URL transmission, stable retry bodies after source mutation, zero evidence/credential/HTTP reads on capability rejection, atomic batch failure, and handle cleanup on interruption/timeout. Boundary checks retain old JSON security and text budgets. Real-host image permission/preview behavior and billable V1–V9 checks remain opt-in; automated fixtures do not establish live visual accuracy.
 
 `tests/plugin-fixtures.ts` provides registration fixtures with per-test-file scope ownership and explicit cleanup. `tests/plugin.test.ts` covers registration, backend controls, evidence, and lifecycle behavior. `tests/search-plugin.test.ts` covers search through the registered tool, native permissions, and a recording HTTP backend. Classification unit tests live in `tests/classification.test.ts` and `tests/classification-schemas.test.ts`.
 

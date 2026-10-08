@@ -10,6 +10,7 @@ import {
   MAX_EVIDENCE_DIFFS,
   MAX_EVIDENCE_PATHS,
   MAX_JSON_DEPTH,
+  MAX_IMAGES,
   MAX_LABEL_LENGTH,
   MAX_QUESTIONS,
   MAX_SCORE_LEVELS,
@@ -183,6 +184,20 @@ const PathsSchema = Schema.Array(PathSchema)
 const PositiveLineSchema = Schema.Int.check(
   Schema.isBetween({ maximum: Number.MAX_SAFE_INTEGER, minimum: 1 })
 );
+export const EvidenceImageSchema = Schema.Struct({
+  path: PathSchema.check(
+    Schema.makeFilter(
+      (value) => !/^(?:[a-z][a-z0-9+.-]*:|\/\/)/iu.test(value.trim()),
+      {
+        message:
+          "Images require local literal file paths, not URLs or inline data.",
+      }
+    )
+  ).annotate({
+    description:
+      "Local image path relative to the invoking session directory. PNG, JPEG, or static WebP only. No URLs or inline bytes.",
+  }),
+}).annotate(strict);
 export const EvidenceFileSchema = Schema.Union([
   PathSchema,
   Schema.Struct({
@@ -237,23 +252,33 @@ export const EvidenceSchema = Schema.Struct({
       .pipe(Schema.mutable)
       .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_PATHS))
   ),
+  images: Schema.optionalKey(
+    Schema.Array(EvidenceImageSchema)
+      .pipe(Schema.mutable)
+      .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_IMAGES))
+      .annotate({
+        description:
+          "1–4 ordered local images. Image 1 is the first reference. Duplicates count. Each image is at most 4 MiB; total raw bytes at most 8 MiB. Only OpenAI Decisions supports images.",
+      })
+  ),
   text: Schema.optional(ContentSchema),
   type: Schema.Literal("evidence"),
 })
   .check(
     Schema.makeFilter(
       (value) =>
-        ["text", "files", "diffs", "code"].some((key) =>
+        ["text", "files", "diffs", "code", "images"].some((key) =>
           Object.hasOwn(value, key)
         ),
       {
-        message: "Evidence requires text, files, diffs, or code.",
+        message: "Evidence requires text, files, diffs, code, or images.",
         toJsonSchema: () => ({
           anyOf: [
             { required: ["text"] },
             { required: ["files"] },
             { required: ["diffs"] },
             { required: ["code"] },
+            { required: ["images"] },
           ],
         }),
       }

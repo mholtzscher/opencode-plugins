@@ -1,16 +1,24 @@
 import { expect, test } from "bun:test";
 
-import { Effect, Layer, Redacted } from "effect";
+import { Deferred, Effect, Fiber, Layer, Predicate, Redacted } from "effect";
+import { TestClock } from "effect/testing";
 import { HttpClient, HttpClientResponse } from "effect/unstable/http";
 import type { HttpClientRequest } from "effect/unstable/http";
 
 import { loadOptions } from "../config.js";
 import { Credentials } from "../credentials.js";
+import {
+  MAX_BYTES,
+  MAX_IMAGE_REQUEST_BYTES,
+  MAX_JSON_DEPTH,
+} from "../limits.js";
 import { parseClassifyOutput } from "../output.js";
 import { decodeResponse } from "../protocols/response.js";
+import { DecisionBackend } from "../providers/backend.js";
 import { openaiDecisions } from "../providers/openai-decisions.js";
 import { providerLayer } from "../providers/registry.js";
-import type { JsonValue } from "../types.js";
+import type { DecisionRequest, JsonValue } from "../types.js";
+import { requireBoundedJson } from "../validation/json.js";
 import {
   classify,
   evidenceLayer,
@@ -18,6 +26,7 @@ import {
   toolContext,
 } from "./effect-fixtures.js";
 import { input, normalizedResponse } from "./fixtures.js";
+import { jpegBytes, pngAtSize, pngBytes } from "./image-fixtures.js";
 
 interface NativeFixture {
   answers: Record<string, JsonValue>[];
@@ -51,6 +60,367 @@ const nativeResponse = (): NativeFixture => ({
   ],
   model: "gpt-6-luna",
   usage: { input_tokens: 312, output_tokens: 0, total_tokens: 312 },
+});
+
+const resolvedImage = (
+  bytes: Buffer,
+  mime: "image/png" | "image/jpeg" = "image/png"
+) => ({
+  byteLength: bytes.length,
+  dataURL: `data:${mime};base64,${bytes.toString("base64")}`,
+  mime,
+});
+const requestText = (request: HttpClientRequest.HttpClientRequest) => {
+  if (request.body._tag !== "Uint8Array") {
+    throw new Error("Expected serialized JSON bytes");
+  }
+  return new TextDecoder().decode(request.body.body);
+};
+
+test("image wire parts contain exact ordered bytes and text, with the existing questions and answers", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
+  );
+  const images = [
+    resolvedImage(pngBytes),
+    resolvedImage(jpegBytes, "image/jpeg"),
+    resolvedImage(pngBytes),
+  ];
+  const state = {
+    evidence: {
+      code: [{ content: "Code" }],
+      diffs: [{ content: "Diff" }],
+      files: [{ content: "File" }],
+      text: "Compare",
+    },
+    images: [{ index: 1 }, { index: 2 }, { index: 3 }],
+  };
+  const bodies: string[] = [];
+  const io = Layer.merge(
+    Layer.succeed(Credentials, {
+      resolve: () => Effect.succeed(Redacted.make("synthetic")),
+    }),
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.sync(() => {
+          bodies.push(requestText(request));
+          return HttpClientResponse.fromWeb(
+            request,
+            Response.json(nativeResponse())
+          );
+        })
+      )
+    )
+  );
+  const output = await Effect.runPromise(
+    Effect.gen(function* sendImages() {
+      return yield* (yield* DecisionBackend).decide({
+        images,
+        questions: input.questions,
+        state,
+      });
+    }).pipe(
+      Effect.provide(
+        providerLayer(options, options.backends.default).pipe(Layer.provide(io))
+      )
+    )
+  );
+  expect(output.answers).toEqual(normalizedResponse().answers);
+  const payload = JSON.parse(bodies[0]);
+  expect(payload.input).toEqual([
+    {
+      content: [
+        { text: JSON.stringify(state), type: "input_text" },
+        ...images.map((image) => ({
+          image_url: image.dataURL,
+          type: "input_image",
+        })),
+      ],
+      role: "user",
+    },
+  ]);
+  for (const [index, part] of payload.input[0].content.slice(1).entries()) {
+    expect(Buffer.from(part.image_url.split(",")[1], "base64")).toEqual(
+      index === 1 ? jpegBytes : pngBytes
+    );
+  }
+  const expected = openaiDecisions.encode?.("gpt-6-luna", input);
+  if (!Predicate.isObject(expected)) {
+    throw new TypeError("Expected encoded request object");
+  }
+  expect(payload.questions).toEqual(expected.questions);
+});
+
+test("only image requests use the larger body budget, including exact serialized UTF-8 boundaries", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
+  );
+  let keys = 0;
+  const bodies: string[] = [];
+  const io = Layer.merge(
+    Layer.succeed(Credentials, {
+      resolve: () =>
+        Effect.sync(() => {
+          keys += 1;
+          return Redacted.make("synthetic");
+        }),
+    }),
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.sync(() => {
+          bodies.push(requestText(request));
+          return HttpClientResponse.fromWeb(
+            request,
+            Response.json(nativeResponse())
+          );
+        })
+      )
+    )
+  );
+  const image = resolvedImage(pngAtSize(MAX_BYTES));
+  await Effect.runPromise(
+    Effect.gen(function* imageBudgets() {
+      const backend = yield* DecisionBackend;
+      yield* backend.decide({ ...input, images: [image] });
+      expect(Buffer.byteLength(bodies[0])).toBeGreaterThan(MAX_BYTES);
+      expect(Buffer.byteLength(bodies[0])).toBeLessThan(
+        MAX_IMAGE_REQUEST_BYTES
+      );
+      expect(
+        Buffer.from(
+          JSON.parse(bodies[0]).input[0].content[1].image_url.split(",")[1],
+          "base64"
+        ).equals(pngAtSize(MAX_BYTES))
+      ).toBe(true);
+
+      // Internal resolved-image fixtures exercise the encoder's independent ceiling. Public file budgets are tested separately.
+      const boundary: DecisionRequest = {
+        images: [{ ...image, dataURL: "" }],
+        questions: input.questions,
+        state: "x",
+      };
+      const overhead = Buffer.byteLength(
+        JSON.stringify(openaiDecisions.encode?.("gpt-6-luna", boundary))
+      );
+      const exact: DecisionRequest = {
+        ...boundary,
+        images: [
+          {
+            ...image,
+            dataURL:
+              "é".repeat(Math.floor((MAX_IMAGE_REQUEST_BYTES - overhead) / 2)) +
+              "x".repeat((MAX_IMAGE_REQUEST_BYTES - overhead) % 2),
+          },
+        ],
+      };
+      yield* backend.decide(exact);
+      expect(Buffer.byteLength(bodies[1])).toBe(MAX_IMAGE_REQUEST_BYTES);
+      const tooLarge = yield* backend
+        .decide({
+          ...exact,
+          images: [{ ...image, dataURL: `${exact.images?.[0].dataURL}x` }],
+        })
+        .pipe(Effect.result);
+      expect(tooLarge).toHaveProperty("failure.failure.code", "INVALID_INPUT");
+      expect(keys).toBe(2);
+      expect(bodies).toHaveLength(2);
+      const text = yield* backend
+        .decide({ questions: input.questions, state: "x".repeat(MAX_BYTES) })
+        .pipe(Effect.result);
+      expect(text).toHaveProperty("failure.failure.code", "INVALID_INPUT");
+      const largeState = yield* backend
+        .decide({
+          images: [image],
+          questions: input.questions,
+          state: "x".repeat(MAX_BYTES),
+        })
+        .pipe(Effect.result);
+      expect(largeState).toHaveProperty(
+        "failure.failure.code",
+        "INVALID_INPUT"
+      );
+      expect(keys).toBe(2);
+    }).pipe(
+      Effect.provide(
+        providerLayer(options, options.backends.default).pipe(Layer.provide(io))
+      )
+    )
+  );
+});
+
+test("explicit JSON budgets preserve depth, cycle, prototype and accessor checks without widening defaults", () => {
+  expect(() =>
+    Effect.runSync(requireBoundedJson("x".repeat(MAX_BYTES)))
+  ).toThrow();
+  expect(() =>
+    Effect.runSync(
+      requireBoundedJson("x".repeat(MAX_BYTES), {
+        maxBytes: MAX_IMAGE_REQUEST_BYTES,
+        maxDepth: MAX_JSON_DEPTH,
+      })
+    )
+  ).not.toThrow();
+  let reads = 0;
+  const accessor = Object.defineProperty({}, "private", {
+    enumerable: true,
+    get: () => {
+      reads += 1;
+      return "SECRET";
+    },
+  });
+  interface CyclicFixture {
+    self?: CyclicFixture;
+  }
+  const cyclic: CyclicFixture = {};
+  cyclic.self = cyclic;
+  let deep: JsonValue = "x";
+  for (let index = 0; index <= MAX_JSON_DEPTH; index += 1) {
+    deep = [deep];
+  }
+  for (const value of [
+    accessor,
+    cyclic,
+    Object.create({ inherited: "SECRET" }),
+    deep,
+  ]) {
+    expect(() =>
+      Effect.runSync(
+        requireBoundedJson(value, {
+          maxBytes: MAX_IMAGE_REQUEST_BYTES,
+          maxDepth: MAX_JSON_DEPTH,
+        })
+      )
+    ).toThrow();
+  }
+  expect(reads).toBe(0);
+});
+
+test("image responses retain the 1 MiB bound and refusals keep existing atomic error accounting", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+    })
+  );
+  const refused = nativeResponse();
+  refused.answers[2] = { name: "urgent", type: "refusal" };
+  for (const value of [
+    { ...nativeResponse(), padding: "x".repeat(MAX_BYTES) },
+    refused,
+  ]) {
+    let sends = 0;
+    const io = Layer.merge(
+      Layer.succeed(Credentials, {
+        resolve: () => Effect.succeed(Redacted.make("synthetic")),
+      }),
+      Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) =>
+          Effect.sync(() => {
+            sends += 1;
+            return HttpClientResponse.fromWeb(request, Response.json(value));
+          })
+        )
+      )
+    );
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Each independently invalid image response must abort with one dispatch.
+    const result = await Effect.runPromise(
+      Effect.gen(function* invalidImageResponse() {
+        return yield* (yield* DecisionBackend)
+          .decide({ ...input, images: [resolvedImage(pngBytes)] })
+          .pipe(Effect.result);
+      }).pipe(
+        Effect.provide(
+          providerLayer(options, options.backends.default).pipe(
+            Layer.provide(io)
+          )
+        )
+      )
+    );
+    expect(result).toMatchObject({
+      failure: { failure: { attempts: 1, code: "INVALID_RESPONSE" } },
+    });
+    expect(sends).toBe(1);
+    expect(JSON.stringify(result)).not.toContain("data:image");
+  }
+});
+
+test("image retries reuse the identical encoded body and credential resolution", async () => {
+  const options = Effect.runSync(
+    loadOptions({
+      backends: { default: { provider: "openai-decisions" } },
+      defaultBackend: "default",
+      maxRetries: 1,
+    })
+  );
+  const image = resolvedImage(pngBytes);
+  const bodies: string[] = [];
+  let keys = 0;
+  await Effect.runPromise(
+    Effect.gen(function* retryImages() {
+      const started = yield* Deferred.make<boolean>();
+      const io = Layer.merge(
+        Layer.succeed(Credentials, {
+          resolve: () =>
+            Effect.sync(() => {
+              keys += 1;
+              return Redacted.make("synthetic");
+            }),
+        }),
+        Layer.succeed(
+          HttpClient.HttpClient,
+          HttpClient.make((request) =>
+            Effect.gen(function* retryResponse() {
+              bodies.push(requestText(request));
+              if (bodies.length === 1) {
+                image.dataURL = resolvedImage(jpegBytes, "image/jpeg").dataURL;
+                yield* Deferred.succeed(started, true);
+                return HttpClientResponse.fromWeb(
+                  request,
+                  new Response("", { status: 429 })
+                );
+              }
+              return HttpClientResponse.fromWeb(
+                request,
+                Response.json(nativeResponse())
+              );
+            })
+          )
+        )
+      );
+      const fiber = yield* Effect.gen(function* sendRetry() {
+        return yield* (yield* DecisionBackend).decide({
+          ...input,
+          images: [image],
+        });
+      }).pipe(
+        Effect.provide(
+          providerLayer(options, options.backends.default).pipe(
+            Layer.provide(io)
+          )
+        ),
+        Effect.forkChild
+      );
+      yield* Deferred.await(started);
+      yield* TestClock.adjust("2 seconds");
+      const result = yield* Fiber.join(fiber);
+      expect(result.attempts).toBe(2);
+      expect(keys).toBe(1);
+      expect(bodies).toHaveLength(2);
+      expect(bodies[1]).toBe(bodies[0]);
+      expect(JSON.parse(bodies[1]).input[0].content[1].image_url).toBe(
+        resolvedImage(pngBytes).dataURL
+      );
+    }).pipe(Effect.provide(TestClock.layer()))
+  );
 });
 
 test("OpenAI translates the public tool contract and preserves native measurements", async () => {

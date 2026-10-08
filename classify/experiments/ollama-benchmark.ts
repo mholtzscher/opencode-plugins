@@ -12,6 +12,7 @@ import { loadOptions } from "../config.js";
 import { CredentialsLive } from "../credentials.js";
 import { EvidenceAccess } from "../evidence.js";
 import { HttpClientLive } from "../http-client.js";
+import { ImageEvidence } from "../image-evidence.js";
 import { providerLayer } from "../providers/registry.js";
 import {
   benchmarkInput,
@@ -129,7 +130,7 @@ const makeCaller = (options: BenchmarkOptions, model: string) => {
       timeoutMs: options.timeoutMs,
     })
   );
-  const dependencies = Layer.merge(
+  const dependencies = Layer.mergeAll(
     providerLayer(config, config.backends.bench).pipe(
       Layer.provide(Layer.merge(CredentialsLive, HttpClientLive))
     ),
@@ -139,7 +140,11 @@ const makeCaller = (options: BenchmarkOptions, model: string) => {
         resolve: () =>
           Effect.die(new Error("Benchmark must not resolve evidence.")),
       })
-    )
+    ),
+    Layer.succeed(ImageEvidence, {
+      resolve: () =>
+        Effect.die(new Error("Benchmark must not resolve images.")),
+    })
   );
   return (input: ReturnType<typeof benchmarkInput>) =>
     Effect.runPromise(

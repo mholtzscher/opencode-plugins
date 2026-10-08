@@ -173,7 +173,20 @@ export const openaiDecisions: SystemOneDefinition<
 > = {
   decode,
   encode: (model, request) => ({
-    input: text(request.state),
+    input: request.images?.length
+      ? [
+          {
+            content: [
+              { text: text(request.state), type: "input_text" },
+              ...request.images.map((image) => ({
+                image_url: image.dataURL,
+                type: "input_image",
+              })),
+            ],
+            role: "user",
+          },
+        ]
+      : text(request.state),
     model,
     questions: Object.entries(request.questions).map(([name, question]) =>
       encodeQuestion(name, question)
@@ -181,4 +194,5 @@ export const openaiDecisions: SystemOneDefinition<
   }),
   endpoint: () => "https://api.openai.com/v1/decisions",
   requestIDHeader: "x-request-id",
+  supportsImages: true,
 };

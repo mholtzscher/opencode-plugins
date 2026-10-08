@@ -26,6 +26,12 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 export type Content = typeof ContentSchema.Type;
 export type EvidenceState = typeof EvidenceSchema.Type;
+export type EvidenceImage = NonNullable<EvidenceState["images"]>[number];
+export interface ResolvedImage {
+  readonly mime: "image/png" | "image/jpeg" | "image/webp";
+  readonly byteLength: number;
+  readonly dataURL: string;
+}
 export type EvidenceFile = NonNullable<EvidenceState["files"]>[number];
 export type EvidenceDiff = NonNullable<EvidenceState["diffs"]>[number];
 export type EvidenceCode = NonNullable<EvidenceState["code"]>[number];
@@ -40,6 +46,7 @@ export type ClassifyInput =
       questions?: never;
     });
 export interface DecisionRequest {
+  images?: readonly ResolvedImage[];
   questions: Questions;
   state: Content;
 }

@@ -4,6 +4,7 @@ import { Clock, Context, Effect, Layer, Result } from "effect";
 import type { ClassifyOptions } from "./config.js";
 import type { ClassificationError } from "./errors.js";
 import { EvidenceAccess } from "./evidence.js";
+import { ImageEvidence } from "./image-evidence.js";
 import { captureOutcome } from "./outcome.js";
 import { DecisionBackend } from "./providers/backend.js";
 import type {
@@ -16,6 +17,7 @@ import type {
   Questions,
 } from "./types.js";
 import { isEvidence, parseInput } from "./validation/input.js";
+import { requireBoundedJson } from "./validation/json.js";
 
 interface ResolvedRequest {
   questions: Questions;
@@ -79,6 +81,7 @@ const makeClassification = (options: ClassifyOptions) =>
   Effect.gen(function* makeClassificationService() {
     const backend = yield* DecisionBackend;
     const evidence = yield* EvidenceAccess;
+    const imageEvidence = yield* ImageEvidence;
 
     const resolveState = Effect.fn("resolveState")(function* resolveState(
       source: Content | EvidenceState,
@@ -88,8 +91,7 @@ const makeClassification = (options: ClassifyOptions) =>
         return source;
       }
       if (!(source.files || source.diffs || source.code)) {
-        // SAFETY: State validation requires text when an evidence wrapper has no IO sources.
-        return { text: source.text as Content };
+        return source.text === undefined ? {} : { text: source.text };
       }
       return yield* evidence.resolve(source, context);
     });
@@ -102,9 +104,26 @@ const makeClassification = (options: ClassifyOptions) =>
       ): Effect.fn.Return<ClassificationResponse, ClassificationError> {
         const input = yield* parseInput(value, options.classifiers);
         const { questions, state: source } = resolveRequest(input, options);
-        yield* backend.preflight(questions);
-        const state = yield* resolveState(source, context);
-        const response = yield* backend.decide({ questions, state });
+        const imageReferences = isEvidence(source) ? source.images : undefined;
+        yield* backend.preflight(questions, {
+          images: imageReferences !== undefined,
+        });
+        const textSource = isEvidence(source)
+          ? (({ images: _images, ...rest }) => rest)(source)
+          : source;
+        const resolved = yield* resolveState(textSource, context);
+        let response: ClassificationResponse;
+        if (imageReferences === undefined) {
+          response = yield* backend.decide({ questions, state: resolved });
+        } else {
+          const images = yield* imageEvidence.resolve(imageReferences, context);
+          const state = {
+            evidence: resolved,
+            images: images.map((_image, index) => ({ index: index + 1 })),
+          };
+          yield* requireBoundedJson({ questions, state });
+          response = yield* backend.decide({ images, questions, state });
+        }
         return input.classifier === undefined
           ? response
           : { ...response, classifier: input.classifier };
