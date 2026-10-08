@@ -14,6 +14,7 @@ const { dispose, register } = createPluginFixture();
 afterEach(dispose);
 
 test("search sends only bounded prefixes, checks native reads, and captures one backend for every file", async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-plugin-search-");
   const requests: unknown[] = [];
   const reads: unknown[] = [];
@@ -159,6 +160,7 @@ test("search sends only bounded prefixes, checks native reads, and captures one 
 });
 
 test("search deadline interrupts directory permission waits and retains discovery coverage", async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-search-deadline-");
   try {
     await writeFile(path.join(directory, "a.ts"), "source");

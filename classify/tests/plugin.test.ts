@@ -55,6 +55,7 @@ const expectedImageInput = (bytes: Buffer, mime: string) => [
 ];
 
 test("registered image tool uses native permission context, retries frozen bytes, and refreshes named presets", async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-plugin-images-");
   const originalFetch = globalThis.fetch;
   const bodies: string[] = [];

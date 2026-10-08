@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import {
+  mkdir,
   mkdtemp,
   readdir,
   readlink,
@@ -32,6 +33,7 @@ afterEach(async () => {
   );
 });
 const fixture = async () => {
+  await mkdir("/tmp/opencode", { recursive: true });
   const directory = await mkdtemp("/tmp/opencode/classify-images-");
   directories.push(directory);
   return directory;
