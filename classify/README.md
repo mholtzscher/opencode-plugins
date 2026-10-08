@@ -121,7 +121,7 @@ Use the server slash command in the TUI, desktop, or web client:
 /classify-backend reset       Clear the override and use the configured default
 ```
 
-In the TUI command palette, choose **Classify: Select backend**. Choosing the row marked `(default)` clears the override. The bottom status row shows `classify: <profile>` for the active session.
+In the TUI command palette, choose **Classify: Select backend**. Choosing the row marked `(default)` clears the override. The sidebar's **Classify** section shows the active session's full profile name, wrapping long names without crowding the prompt footer. The indicator is visible only when the sidebar is open.
 
 Selections persist per session and are shared by connected clients. New sessions, including child sessions, start with the configured default. Switching affects subsequent calls; in-flight calls and retries keep their original backend. There is no automatic failover. See [selection behavior and recovery](./docs/CONFIGURATION.md#session-selection) for details.
 
