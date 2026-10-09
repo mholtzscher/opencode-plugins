@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.4.0...classify-v1.5.0) (2026-10-09)
+
+
+### Features
+
+* **dev:** enable local plugins with global configuration ([#19](https://github.com/mholtzscher/opencode-plugins/issues/19)) ([5786db0](https://github.com/mholtzscher/opencode-plugins/commit/5786db014635888588b7f6ae5b4de6002c5004e6))
+
 ## [1.4.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.3.0...classify-v1.4.0) (2026-10-09)
 
 
