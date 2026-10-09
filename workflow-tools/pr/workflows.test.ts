@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 
 import { Deferred, Effect, Fiber, Layer } from "effect";
 
-import type { CheckSnapshot } from "./checks.js";
+import type { CheckSnapshot } from "./check-classification.js";
+import { buildCheckInvestigationPrompt } from "./check-prompts.js";
 import { GithubError, LogStorageError } from "./errors.js";
 import { Github } from "./github.js";
 import type { ExecuteOptions } from "./github.js";
 import { LogStorage } from "./log-storage.js";
-import { buildCheckInvestigationPrompt } from "./prompts.js";
 import { Workflows, WorkflowsLive } from "./workflows.js";
 
 const CWD = "/session/worktree";
@@ -110,12 +110,12 @@ describe("retained Effect PR workflows", () => {
   test("publish needs no GitHub metadata, rewrite does", async () => {
     const fake = harness(repoReply);
     const prompt = await run(fake, (workflows) =>
-      workflows.pullRequest("branch-name", CWD, "publish")
+      workflows.preparePublication("branch-name", CWD)
     );
     expect(prompt).toContain("branch-name");
     expect(fake.calls).toEqual([]);
     const rewritten = await run(fake, (workflows) =>
-      workflows.pullRequest("keep scope narrow", CWD, "rewrite")
+      workflows.prepareMetadataRewrite("keep scope narrow", CWD)
     );
     expect(rewritten).toContain("Rewrite both title");
     expect(rewritten).toContain("keep scope narrow");
@@ -127,7 +127,10 @@ describe("retained Effect PR workflows", () => {
     await Promise.all(
       (["publish", "rewrite"] as const).map(async (mode) => {
         const error = await run(fake, (workflows) =>
-          workflows.pullRequest("--describe", CWD, mode).pipe(
+          (mode === "publish"
+            ? workflows.preparePublication("--describe", CWD)
+            : workflows.prepareMetadataRewrite("--describe", CWD)
+          ).pipe(
             Effect.flip,
             Effect.map((failure) => failure._tag)
           )
@@ -143,7 +146,7 @@ describe("retained Effect PR workflows", () => {
       const fake = harness(() => reply(text));
       expect(
         await run(fake, (workflows) =>
-          workflows.pullRequest("", CWD, "rewrite").pipe(
+          workflows.prepareMetadataRewrite("", CWD).pipe(
             Effect.flip,
             Effect.map((error) => error._tag)
           )
@@ -166,7 +169,9 @@ describe("retained Effect PR workflows", () => {
         ])
       );
     });
-    const prompt = await run(fake, (workflows) => workflows.comments(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareFeedbackReview(CWD)
+    );
     for (const text of [
       "Thread ID: `thread-1`",
       "Comment ID: `42`",
@@ -205,9 +210,9 @@ describe("retained Effect PR workflows", () => {
           )
         : repoReply(args, options)
     );
-    expect(await run(fake, (workflows) => workflows.comments(CWD))).toBe(
-      "No unresolved inline review threads found"
-    );
+    expect(
+      await run(fake, (workflows) => workflows.prepareFeedbackReview(CWD))
+    ).toBe("No unresolved inline review threads found");
   });
   test("truncated feedback and inaccessible fields keep explicit limitations", async () => {
     const fake = harness((args, options) => {
@@ -236,7 +241,9 @@ describe("retained Effect PR workflows", () => {
         ])
       );
     });
-    const prompt = await run(fake, (workflows) => workflows.comments(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareFeedbackReview(CWD)
+    );
     expect(prompt).toContain("[comment body truncated]");
     expect(prompt).toContain("[PR comment context truncated");
     expect(prompt).toContain("unknown author");
@@ -244,7 +251,9 @@ describe("retained Effect PR workflows", () => {
   });
   test("fix retains metadata lookup and requires whole-report agreement, delivery before writes", async () => {
     const fake = harness(repoReply);
-    const prompt = await run(fake, (workflows) => workflows.fixComments(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareFeedbackFix(CWD)
+    );
     expect(fake.calls).toHaveLength(2);
     expect(fake.calls.some((call) => call.args[0] === "api")).toBe(false);
     for (const text of [
@@ -346,7 +355,9 @@ describe("immediate checks and retained Actions evidence", () => {
         }
         return repoReply(args, options);
       });
-      const prompt = await run(fake, (workflows) => workflows.actions(CWD));
+      const prompt = await run(fake, (workflows) =>
+        workflows.prepareCheckInvestigation(CWD)
+      );
       expect(prompt.length).toBeLessThan(60_000);
       expect(prompt).toContain(PR.url);
       expect(prompt).toContain('"repository": "owner/repo"');
@@ -369,7 +380,9 @@ describe("immediate checks and retained Actions evidence", () => {
       }
       return repoReply(args, options);
     });
-    const prompt = await run(fake, (workflows) => workflows.actions(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareCheckInvestigation(CWD)
+    );
     expect(prompt).toContain('"bucket": "pass"');
     expect(prompt).toContain('"bucket": "skipping"');
     expect(prompt).toContain("Skipped checks are not passes");
@@ -418,7 +431,9 @@ describe("immediate checks and retained Actions evidence", () => {
         new GithubError({ message: "run unavailable", operation: "run view" })
       );
     });
-    const prompt = await run(fake, (workflows) => workflows.actions(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareCheckInvestigation(CWD)
+    );
     for (const text of [
       "pending",
       "required",
@@ -482,7 +497,9 @@ describe("immediate checks and retained Actions evidence", () => {
           new LogStorageError({ cause: "disk full", message: "disk full" })
         )
     );
-    const prompt = await run(fake, (workflows) => workflows.actions(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareCheckInvestigation(CWD)
+    );
     expect(prompt).toContain("gh returned invalid JSON for workflow run");
     expect(prompt).toContain("Failed-step log lookup failed\ndisk full");
   });
@@ -502,7 +519,9 @@ describe("immediate checks and retained Actions evidence", () => {
         ? reply(JSON.stringify([check("fail")]))
         : repoReply(args, options);
     });
-    const prompt = await run(fake, (workflows) => workflows.actions(CWD));
+    const prompt = await run(fake, (workflows) =>
+      workflows.prepareCheckInvestigation(CWD)
+    );
     expect(prompt).toContain("changed during evidence collection");
     expect(prompt).toContain('"requirement": "unknown"');
   });
@@ -526,7 +545,7 @@ describe("immediate checks and retained Actions evidence", () => {
           );
         });
         const fiber = yield* Effect.gen(function* runActions() {
-          return yield* (yield* Workflows).actions(CWD);
+          return yield* (yield* Workflows).prepareCheckInvestigation(CWD);
         }).pipe(Effect.provide(fake.layer), Effect.forkChild);
         yield* Deferred.await(started);
         yield* Fiber.interrupt(fiber);

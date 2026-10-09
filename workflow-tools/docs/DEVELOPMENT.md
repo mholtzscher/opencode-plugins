@@ -30,13 +30,17 @@ Thin `index.ts` registers both command families under `workflow-tools`. **Each r
 | `specs/paths.ts` | Session-relative resolver using Effect FileSystem and Path |
 | `specs/prompts.ts` | Planning, single-PR implementation, approved refinement |
 | `pr/commands.ts` | Five registrations, early validation and scoped PR service layers |
-| `pr/workflows.ts` | Metadata/paginated threads, publication modes, feedback/check orchestration; returns text, owns no sessions/runtime |
-| `pr/pr.ts` | Typed publish/rewrite/watch parsing and publication/metadata/observer prompts |
-| `pr/checks.ts` | Concrete-target all/required snapshots, classification, empty/error results and head stability |
-| `pr/prompts.ts` | Pure feedback/fix/check formatting and untrusted-data boundaries |
+| `pr/workflows.ts` | Explicit `prepare*` methods for publication, metadata rewrite, feedback review/fix and check investigation; returns text, owns no sessions/runtime |
+| `pr/arguments.ts` | Publish/rewrite/watch parsing and no-argument validation |
+| `pr/publication-prompts.ts`, `pr/metadata-prompts.ts`, `pr/watcher-prompts.ts` | Publication, shared metadata policy and read-only observer instructions |
+| `pr/feedback-prompts.ts`, `pr/check-prompts.ts`, `pr/evidence-format.ts` | Pure instruction/evidence formatting, clipping and untrusted-data delimiters |
+| `pr/review-threads.ts` | GraphQL query, pagination decoding and unresolved-thread filtering |
+| `pr/checks.ts` | Concrete-target all/required reads, empty/error decoding and identity rereads |
+| `pr/check-classification.ts` | Pure snapshot classification: stable identity, consistent rollups and duplicate ambiguity |
 | `pr/schemas.ts`, `pr/errors.ts` | External schemas, decoding and typed infrastructure failures |
 | `pr/github.ts` | Scoped native ChildProcessSpawner with bounded output, accepted exits and timeouts |
-| `pr/actions.ts`, `pr/log-storage.ts` | Bounded Actions summaries/annotations/log context and full failed-step evidence storage |
+| `pr/actions.ts`, `pr/actions-log.ts`, `pr/log-storage.ts` | Named job/run/annotation/log collectors with explicit partial-failure handling and concurrency limits; pure log excerpts and full failed-step evidence storage |
+| `command-execution.ts` | Shared preparation/admission cancellation boundary; preserves invocation attachments, session and delivery |
 | `interruption.ts` | Scoped preparation/admission racing against matching session events |
 
 The resolver uses Effect `Path` and `FileSystem.stat` with `NodeServices.layer` acquired at registration. Stat follows symlinks: direct entries resolving to regular files are accepted, including targets outside `specs/`, while the normalized path retains the link name. Missing directory/entry, dangling link, or non-file target maps to `not-found`; permission/other I/O maps to `filesystem` with causes. SDK errors retain their channel. No custom filesystem adapter or race-proof filesystem sandbox is introduced; actual file reads remain subject to host permissions.
@@ -51,11 +55,14 @@ Tests use explicit fake Effect layers, TestClock for timeouts and Deferred/Queue
 
 | Tests | Boundary |
 | --- | --- |
-| `index.test.ts` | Exact eight names/server export, retired-name absence, no annotation forwarding, session location, both delivery modes/attachments, multiline ideas, invalid-input zero reads/admissions |
+| `index.test.ts` | Exact eight names/server export, retired-name absence and no startup dependencies |
+| `command-execution.test.ts`, `specs/commands.test.ts`, `pr/commands.test.ts` | Shared admission/delivery and SDK failures; command-specific session paths and preparation reads; invalid-input zero reads/admissions |
 | `specs/arguments.test.ts`, `specs/paths.test.ts` | Quotes/concatenation/terminator/retired flags; symlink acceptance (relative/absolute targets inside/outside specs); unsafe, missing, non-file, dangling/directory-link and deterministic permission/I/O errors; fixtures under `/tmp/opencode` |
-| `specs/prompts.test.ts`, `pr/pr.test.ts`, `pr/workflows.test.ts` | Planning phases, implementation evidence, refinement approval/reconciliation, scoped create/update publication, metadata preservation/verification, observer policy, whole-report approved fix delivery before GitHub writes |
-| `pr/checks.test.ts`, `pr/workflows.test.ts` | Immediate target-specific all/required reads `[0,1,8]`, pending plus failures, empty stderr/errors, required-query failure, duplicate joins, changed head, skipped/unreported gates |
-| `pr/github.test.ts`, `interruption.test.ts`, `index.test.ts` | Process/JSON/output limits/timeouts, pagination/partial Actions evidence, filtered cancellation and cleanup/no late admission |
+| `specs/prompts.test.ts`, `pr/arguments.test.ts`, `pr/publication-prompts.test.ts`, `pr/metadata-prompts.test.ts`, `pr/workflows.test.ts` | Planning phases, implementation evidence, refinement approval/reconciliation, scoped create/update publication, metadata preservation/verification, observer policy, whole-report approved fix delivery before GitHub writes |
+| `pr/checks.test.ts`, `pr/check-classification.test.ts`, `pr/workflows.test.ts` | Immediate target-specific all/required reads `[0,1,8]`, pending plus failures, empty stderr/errors, required-query failure, duplicate joins, changed identity, skipped/unreported gates; pure classification without input mutation |
+| `pr/github.test.ts`, `interruption.test.ts`, `commands-cancellation.test.ts` | Process/JSON/output limits/timeouts, filtered cancellation and cleanup/no late admission |
+
+`test-support/host.ts` supplies the scoped fake host, session/spec fixtures and subprocess responses for registration and command-boundary tests. Existing contract assertions are retained across the split suites.
 
 Offline tests prove service behavior and prompt policy, not live agent compliance or external integration.
 

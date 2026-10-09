@@ -1,30 +1,19 @@
 import type { Plugin } from "@opencode/plugin/effect";
-import { Context, Effect, Layer, Stream } from "effect";
+import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect";
 
-import { interruptOn } from "../interruption.js";
-import { GithubError } from "./errors.js";
+import { prepareAndAdmit } from "../command-execution.js";
+import {
+  parsePullRequestCommandArguments,
+  requireNoArguments,
+} from "./arguments.js";
 import { GithubLive } from "./github.js";
 import { LogStorageLive } from "./log-storage.js";
-import { parsePullRequestCommandArguments } from "./pr.js";
 import { Workflows, WorkflowsLive } from "./workflows.js";
 
 const workflowsLayer = WorkflowsLive.pipe(
   Layer.provide(Layer.merge(GithubLive, LogStorageLive))
 );
-
-const noArguments = (
-  command: string,
-  args: string
-): Effect.Effect<void, GithubError> =>
-  args.trim()
-    ? Effect.fail(
-        new GithubError({
-          message: `Usage: /${command} (no arguments)`,
-          operation: `${command} arguments`,
-        })
-      )
-    : Effect.void;
 
 export const registerPrCommands = (
   ctx: Plugin.Context
@@ -39,7 +28,7 @@ export const registerPrCommands = (
             "Commit scoped changes and create or update a PR; starts bounded background investigation by default (--no-watch opts out)",
           name: "pr-publish",
           run: (args: string, cwd: string) =>
-            workflows.pullRequest(args, cwd, "publish"),
+            workflows.preparePublication(args, cwd),
           validate: (args: string) =>
             parsePullRequestCommandArguments(args, "publish"),
         },
@@ -48,7 +37,7 @@ export const registerPrCommands = (
             "Rewrite and verify the current PR title and structured body without code delivery or monitoring",
           name: "pr-rewrite",
           run: (args: string, cwd: string) =>
-            workflows.pullRequest(args, cwd, "rewrite"),
+            workflows.prepareMetadataRewrite(args, cwd),
           validate: (args: string) =>
             parsePullRequestCommandArguments(args, "rewrite"),
         },
@@ -56,53 +45,42 @@ export const registerPrCommands = (
           description:
             "Read-only triage of unresolved inline PR threads; agree verdicts before /pr-fix",
           name: "pr-feedback",
-          run: (_args: string, cwd: string) => workflows.comments(cwd),
-          validate: (args: string) => noArguments("pr-feedback", args),
+          run: (_args: string, cwd: string) =>
+            workflows.prepareFeedbackReview(cwd),
+          validate: (args: string) => requireNoArguments("pr-feedback", args),
         },
         {
           description:
             "Validate and publish the whole agreed feedback report, then react/resolve settled threads and start background investigation",
           name: "pr-fix",
-          run: (_args: string, cwd: string) => workflows.fixComments(cwd),
-          validate: (args: string) => noArguments("pr-fix", args),
+          run: (_args: string, cwd: string) =>
+            workflows.prepareFeedbackFix(cwd),
+          validate: (args: string) => requireNoArguments("pr-fix", args),
         },
         {
           description:
             "Inspect an immediate required/advisory/unknown check snapshot and investigate completed failures without waiting or editing",
           name: "pr-checks",
-          run: (_args: string, cwd: string) => workflows.actions(cwd),
-          validate: (args: string) => noArguments("pr-checks", args),
+          run: (_args: string, cwd: string) =>
+            workflows.prepareCheckInvestigation(cwd),
+          validate: (args: string) => requireNoArguments("pr-checks", args),
         },
       ];
       for (const command of commands) {
         editor.add({
           description: command.description,
           execute: Effect.fn(`WorkflowCommand.${command.name}`)(
-            function* executeCommand({ sessionID, prompt, delivery }) {
+            function* executeCommand(invocation) {
+              const { sessionID, prompt } = invocation;
               yield* command.validate(prompt.text);
-              const work = Effect.gen(function* commandWork() {
+              const preparation = Effect.gen(function* prepareCommand() {
                 const session = yield* ctx.session.get({ sessionID });
-                const text = yield* command.run(
+                return yield* command.run(
                   prompt.text,
                   session.location.directory
                 );
-                yield* ctx.session.prompt({
-                  ...prompt,
-                  delivery,
-                  sessionID,
-                  text,
-                });
               });
-              const interrupted = ctx.event
-                .subscribe()
-                .pipe(
-                  Stream.map(
-                    (event) =>
-                      event.type === "session.execution.interrupted" &&
-                      event.data.sessionID === sessionID
-                  )
-                );
-              yield* interruptOn(work, interrupted);
+              yield* prepareAndAdmit(ctx, invocation, preparation);
             }
           ),
           name: command.name,
