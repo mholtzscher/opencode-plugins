@@ -69,6 +69,14 @@ const pending = {
   workflow: "Build",
 };
 const response = (args: readonly string[]) => {
+  if (
+    args[0] === "pr" &&
+    args[1] === "view" &&
+    args.includes("--repo") &&
+    args[2]?.startsWith("--")
+  ) {
+    throw new Error("argument required when using --repo");
+  }
   if (args[0] === "repo") {
     return JSON.stringify({ nameWithOwner: "owner/repo" });
   }
@@ -321,6 +329,18 @@ const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
 });
 
 describe("combined server host", () => {
+  test("gh fixture rejects repository-scoped PR view without a selector", () => {
+    expect(() =>
+      response([
+        "pr",
+        "view",
+        "--repo",
+        "owner/repo",
+        "--json",
+        "number,url,headRefOid",
+      ])
+    ).toThrow("argument required when using --repo");
+  });
   test("registers exactly eight commands with only a server export and no startup dependencies", async () => {
     await Effect.runPromise(
       Effect.scoped(
@@ -630,6 +650,12 @@ describe("combined server host", () => {
           ).toBe(true);
           host.processes.length = 0;
           yield* host.run("pr-checks");
+          expect(host.processes[1]?.args).toEqual([
+            "pr",
+            "view",
+            "--json",
+            "number,url,headRefOid",
+          ]);
           const checkReads = host.processes.filter(
             (process) => process.args[1] === "checks"
           );

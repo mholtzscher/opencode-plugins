@@ -50,6 +50,14 @@ const harness = (fixture: Fixture = {}) => {
           });
         }
         if (args[1] === "view") {
+          if (args.includes("--repo") && args[2]?.startsWith("--")) {
+            return Effect.fail(
+              new GithubError({
+                message: "argument required when using --repo",
+                operation: "gh pr view",
+              })
+            );
+          }
           views += 1;
           return Effect.succeed({
             stderr: "",
@@ -96,6 +104,12 @@ describe("concrete-target immediate check snapshots", () => {
       "advisory",
     ]);
     expect(snapshot.requiredKnowledge).toBe("reported");
+    expect(fake.calls[1]?.args).toEqual([
+      "pr",
+      "view",
+      "--json",
+      "number,url,headRefOid",
+    ]);
     const reads = fake.calls.filter((call) => call.args[1] === "checks");
     expect(reads).toHaveLength(2);
     expect(reads[0].args.slice(0, 6)).toEqual([
@@ -251,6 +265,44 @@ describe("concrete-target immediate check snapshots", () => {
       "advisory",
     ]);
   });
+  test.each(["new check", "changed link", "empty all"])(
+    "same-head non-atomic reads invalidate classification: %s",
+    async (scenario) => {
+      const original = check("required");
+      const missing =
+        scenario === "changed link"
+          ? { ...original, link: "https://checks/new-run" }
+          : check("new-required", "pending");
+      const fake = harness({
+        all: reply(
+          scenario === "empty all" ? [] : [original, check("advisory")]
+        ),
+        required: reply(
+          scenario === "new check" ? [original, missing] : [missing]
+        ),
+      });
+      const snapshot = await Effect.runPromise(fake.effect);
+      expect(snapshot.headSha).toBe(snapshot.observedHeadSha);
+      expect(snapshot.requiredKnowledge).toBe("unavailable");
+      expect(snapshot.checks.map(({ requirement }) => requirement)).toEqual(
+        scenario === "empty all" ? [] : ["unknown", "unknown"]
+      );
+      const limitations = snapshot.limitations.join(" ");
+      expect(limitations).toContain("Unstable snapshot");
+      expect(limitations).toContain("non-atomic");
+      expect(limitations).toContain("Rerun /pr-checks");
+      expect(limitations).toContain("untrusted evidence");
+      expect(limitations).toContain(
+        JSON.stringify([
+          missing.name,
+          missing.workflow,
+          missing.event,
+          missing.link,
+        ])
+      );
+      expect(fake.calls).toHaveLength(5);
+    }
+  );
   test.each(["all", "required"])(
     "duplicate %s keys are unknown, not invented required/advisory",
     async (side) => {

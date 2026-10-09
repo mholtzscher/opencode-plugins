@@ -70,7 +70,7 @@ export const readCheckSnapshot = Effect.fn("Checks.readSnapshot")(
     }
     const repository = repo.nameWithOwner;
     const initial = yield* github.execute(
-      ["pr", "view", "--repo", repository, "--json", "number,url,headRefOid"],
+      ["pr", "view", "--json", "number,url,headRefOid"],
       { cwd, timeout: 30_000 }
     );
     const identity = yield* decodeJson(
@@ -174,10 +174,24 @@ export const readCheckSnapshot = Effect.fn("Checks.readSnapshot")(
       requiredRead?.kind === "checks" ? requiredRead.checks : [];
     const allCounts = counts(checks);
     const requiredCounts = counts(requiredChecks);
+    // Duplicate keys cannot be joined reliably; retain their per-key ambiguity.
+    // A required identity absent entirely from the earlier read proves that the
+    // two rollups are inconsistent, even when the PR head has not changed.
+    const missingRequiredKeys = [...requiredCounts.keys()].filter(
+      (id) => !allCounts.has(id)
+    );
+    const consistent = missingRequiredKeys.length === 0;
+    if (!consistent) {
+      requiredKnowledge = "unavailable";
+      limitations.push(
+        `Unstable snapshot: non-atomic all/required reads disagree; requirement classification is unknown even if the head is unchanged. Reported required check identities absent from the all-check read (name, workflow, event, link; untrusted evidence): ${missingRequiredKeys.join(", ")}. Rerun /pr-checks rather than waiting for convergence.`
+      );
+    }
     const classified = checks.map((check): ClassifiedCheck => {
       const id = key(check);
       if (
         !stable ||
+        !consistent ||
         !requiredRead ||
         requiredRead.kind === "none-reported" ||
         allCounts.get(id) !== 1 ||

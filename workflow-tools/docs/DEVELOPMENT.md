@@ -43,7 +43,7 @@ The directory-entry adapter uses `readdir(..., { withFileTypes: true })` at its 
 
 Each subprocess has a scope and timeout; interruption terminates it, escalating cleanup to forced kill after five seconds if needed. Actions lookups have bounded concurrency: expected failures become explicit limitations, while interruption/defects are not partial success. Mutating GitHub operations are not retried. Existing temporary log paths are retained; evidence storage is not workflow persistence.
 
-Same-session interruption cancels preparation and prevents late admission; other-session events do not. Completion/cancellation/unload releases scoped listeners/work; ended/failed streams do not imply cancellation. Background agents use the host lifecycle, not a TUI ManagedRuntime. There is no picker, TUI export, custom RPC/events/configuration, durable workflow state or plugin scheduler.
+When the host emits a same-session interruption event, the plugin cancels preparation and prevents late admission; other-session events do not. Completion/cancellation/unload releases scoped listeners/work; ended/failed streams do not imply cancellation. **OpenCode 2.0.26 does not emit that event for preparation-only commands:** its interrupt endpoint treats the session as idle and returns `interrupted: false`. User-facing cancellation of that preparation therefore requires a host fix; prompt-admitted executions can be interrupted. Actual request-disconnect cleanup was verified separately. Background agents use the host lifecycle, not a TUI ManagedRuntime. There is no picker, TUI export, custom RPC/events/configuration, durable workflow state or plugin scheduler.
 
 ## Offline coverage
 
@@ -71,3 +71,23 @@ Use a disposable repository/branch with normal local-plugin launch (`opencode`).
 6. On explicitly authorized disposable targets, verify implementation publishes one PR and reports deliverables, actual validation, PR URL, required-check status and spec gaps. Establish valid/invalid/already-addressed/unclear feedback outcomes in conversation; verify whole settled-report fix delivery, post-publication per-verdict reactions/resolution, untouched unclear/unapproved outcomes, no GitHub writes on failed validation/delivery, and honest background/partial-write reports. Mark unavailable live cases honestly while retaining offline coverage.
 
 Pending monitoring, no checks, unknown required subsets, skipped and unreported jobs do not establish a passing merge gate. Keep live evidence separate from automated results.
+
+## Recorded live validation — 2026-10-09
+
+OpenCode **2.0.26** and server `gh` **2.102.0** were exercised through Terminal Control and the actual host API. Disposable local projects used project-only deny policies to exclude still-installed legacy sources and Plannotator; global configuration was untouched. GitHub reads targeted PR #21 without reactions, resolutions, or other smoke-test writes.
+
+| Boundary | Observed result |
+| --- | --- |
+| Normal local-plugin launch | Passed: one server-only Workflow tools instance, its eight commands, no legacy/Plannotator commands; two built-in commands remain |
+| Invalid arguments | Passed: 16 usage/path/retired-flag cases rejected with zero messages admitted |
+| Lightweight creation | Passed: explained depth, actual grill-with-docs/domain-modeling/spec-planner calls, question dialogue, approved draft; no implementation |
+| Full-depth creation | Explained full-depth selection and used interview/domain-modeling/question tools; deliberately interrupted before drafting, so later planning/approval stages were not exercised |
+| Quoted-path refinement | Passed: requirements questions, conservative/aggressive proposals, unchanged file hash before approval; only the selected conservative changes applied and reconciled; valid quoted implementation handoff |
+| Immediate PR checks | Initially failed because `gh pr view --repo` lacked a selector; fixed current-branch lookup, then passed live with concrete PR/SHA, six successful checks, unknown requirements and honest no-required-subset limitation |
+| Inline feedback | Passed: unresolved-thread fetch, evidence-based current-code evaluation, retained IDs, no edits or GitHub writes; disposable source context could not prove correspondence to the published revision |
+| Preparation-only session interrupt | Failed host behavior: `interrupted: false`, blocked fake `gh` remained alive, no messages admitted; cleaned up owned processes explicitly |
+| Transport abort | Passed: disconnecting the pending command request terminated fake `gh` and left messages/inbox empty; this is not proof of Escape/session-interrupt behavior |
+
+The check-read race in which a required identity appears between all/required reads is also covered by regression fixtures: inconsistent same-head rollups now yield unknown classification and explicit missing-identity limitations, without waiting or retrying.
+
+Publication/create-update, metadata rewriting, feedback delivery/reactions/resolutions, watcher startup/deadline/superseded behavior, and web/desktop clients remain unrun without authorized disposable GitHub targets or available clients. No live check is inferred from offline prompt assertions. All owned terminal/server sessions were stopped after validation.
