@@ -105,6 +105,8 @@ The plugin also bundles the discoverable `classify-decide` skill. Ask to use it 
 
 Bundled references cover retrieval filtering and reranking, entity matching, hierarchical classification, candidate-span extraction, verification cascades, and document structure recovery. Each contains its own workflow, example payloads, and result-handling guidance; no external cookbook is needed.
 
+Coding references add 28 workflows across change assessment, architecture, tests and verification, debugging, maintenance, and agent investigation. Examples cover semantic diffs, compatibility and migration risk, test quality and mutation triage, review finding triage, agent progress, and selective follow-up. The agent reference also describes a caller-managed semantic event stream. These are on-demand recipes; the plugin does not register automation hooks, run reviewers, persist events, or execute their decisions.
+
 ## Switch backends in a session
 
 Configure multiple profiles under `options.backends` and name the default with `options.defaultBackend`. This example is the **options object**, not a complete OpenCode config:

@@ -1,6 +1,6 @@
 ---
 name: classify-decide
-description: Use Classify for caller-defined judgments, including hierarchical classification, rubric scoring, candidate comparison, retrieval filtering, entity matching, source-value selection, output verification, and document structure recovery.
+description: Use Classify for caller-defined judgments, including code-change assessment, architecture and test review, debugging, maintenance, agent workflow routing, hierarchical classification, rubric scoring, retrieval filtering, entity matching, source-value selection, output verification, and document structure recovery.
 ---
 
 # Classify judgments
@@ -36,6 +36,19 @@ Read the matching bundled reference when it helps the task. Each contains the wo
 | Select an exact value from candidate source spans | [Value extraction](references/value-extraction.md) |
 | Verify generated fields and escalate uncertain or flawed outputs | [Verification cascades](references/verification-cascades.md) |
 | Recover boundaries and markup while preserving source wording | [Structure recovery](references/structure-recovery.md) |
+
+### Coding workflows
+
+Use the matching reference to turn a development event into a bounded judgment and a caller-managed follow-up. These workflows provide examples, not additional registered tools or automatic hooks. Keep model measurements separate from verified facts and actions; retain mandatory checks and normal permissions.
+
+| Need | Reference |
+| --- | --- |
+| Detect semantic changes, assess risk or PR scope, verify refactor intent, inspect complexity or upgrades, check documentation impact, or classify release notes | [Change assessment](references/change-assessment.md) |
+| Inspect abstraction boundaries, assess API compatibility, or index semantic code roles | [Architecture workflows](references/architecture-workflows.md) |
+| Evaluate test assertions, triage surviving mutants, check requirement evidence, or prioritize tests | [Test and verification workflows](references/test-verification-workflows.md) |
+| Classify test failures, prioritize relevant errors, or investigate incident-related changes | [Debugging workflows](references/debugging-workflows.md) |
+| Inspect migration risks, feature flag lifecycle, or environment configuration | [Maintenance workflows](references/maintenance-workflows.md) |
+| Rank context, detect agent loops, route task effort or reviewers, triage review findings, choose verification workflows, inspect operation scope, or attach judgments to development events | [Agent workflows](references/agent-workflows.md) |
 
 ## Supply enough context
 
