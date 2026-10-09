@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v1.0.0...workflow-tools-v1.0.0) (2026-10-09)
+
+
+### Features
+
+* **workflow-tools:** merge spec and PR workflows ([#21](https://github.com/mholtzscher/opencode-plugins/issues/21)) ([9594cea](https://github.com/mholtzscher/opencode-plugins/commit/9594cea7fb10c27bc60544ef4b4e90631f6278da))
+* **workflow-tools:** publish package to npm ([2838ab7](https://github.com/mholtzscher/opencode-plugins/commit/2838ab7b1c04ebf15094791015db6a5e92adc9b5))
+
 ## 1.0.0
 
 Initial Workflow tools component, replacing the separate specification and GitHub plugins with eight server commands. Includes proposal-first refinement, single-PR implementation, create/update publication, title/body rewriting, approved feedback delivery, bounded background investigation, and immediate check snapshots.
