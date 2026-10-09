@@ -11,7 +11,7 @@
 
 ## Local runtime and plugin gotchas
 
-- `mise run opencode` launches the local plugins with isolated `XDG_CONFIG_HOME` under `.opencode-dev/` and `--standalone`. Root `opencode.jsonc` loads all six plugins; classify defaults to local Ollama and includes operator-specific hosted credential paths. The task does not start inference servers. See `classify/README.md` before configuring providers and `classify/docs/SMOKE_TESTING.md` before live checks.
+- For launching local plugins with global settings or diagnosing duplicate plugin IDs, read `README.md#local-plugins-versus-global-installs`; root `opencode.jsonc` blocks installed package sources with project-local policies. Launch with plain `opencode`. See `classify/README.md` before configuring providers and `classify/docs/SMOKE_TESTING.md` before live checks.
 - `marketplace` is a prototype. Its catalog is `marketplace/marketplace.json`; install/update/uninstall only change durable TUI state, not OpenCode resources. Read `marketplace/README.md` before changing those actions.
 - GitHub server commands require authenticated `gh` on the server. The TUI-only `/pr-review` requires `gh` on the TUI host and `/plannotator-review`.
 - `spec-tools` registers server commands, not TUI pickers. Existing-spec arguments resolve to direct files under the invoking session's `specs/` directory on the server; nested paths and symlinks are rejected. Read `spec-tools/README.md` for workflow dependencies, especially server-side `/plannotator-annotate`.

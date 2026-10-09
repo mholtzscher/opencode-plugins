@@ -51,4 +51,34 @@
       },
     },
   ],
+  "experimental": {
+    "policies": [
+      // Exclude installed sources here so the local copies can use the same IDs.
+      {
+        "action": "integration.use",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:cache-metrics",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:quota-usage",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:github-tools",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:spec-tools",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
+        "resource": "plugin:@mholtzscher/opencode-classify",
+        "effect": "deny",
+      },
+    ],
+  },
 }

@@ -113,7 +113,7 @@ From this repository's root, with mise 2026.9.18 or later:
 
 ```sh
 mise daemons start laya
-mise run opencode
+opencode
 ```
 
 Configure a Laya profile before launching OpenCode; starting the daemon does not change the selected backend. The root `mise.toml` uses Pitchfork to supervise Laya 0.3.22 on `http://127.0.0.1:8000`. First start uses uv to install `laya[serve]` in a cached Python 3.12 environment and downloads the English checkpoint from Hugging Face. PyTorch's backend is selected automatically. Startup allows up to 20 minutes for installation and model loading. No API key is configured; the listener is loopback-only.
@@ -177,4 +177,4 @@ Use [`/classify-backend` or the TUI picker](../README.md#switch-backends-in-a-se
 
 The root [`opencode.jsonc`](../../opencode.jsonc) defaults to `ollama-nimble` and also configures `ollama-clef-flash`, `cloudflare-clef`, `cloudflare-clef-flash`, and `typesafe-jev-latest`. Hosted profiles contain operator-specific account and server-local key-file settings; replace them for another operator. Shared settings use `timeoutMs: 120000` and `maxRetries: 0`.
 
-`mise run opencode` launches OpenCode with this configuration but does not start inference servers. Pull the selected Ollama model and start Ollama separately. To use Laya, add a Laya profile and start its server separately.
+`opencode` launches OpenCode with this configuration but does not start inference servers. See the root [local-plugin setup](../../README.md#local-plugins-versus-global-installs) for overriding global package installs. Pull the selected Ollama model and start Ollama separately. To use Laya, add a Laya profile and start its server separately.

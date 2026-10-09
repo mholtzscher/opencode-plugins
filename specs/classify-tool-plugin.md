@@ -821,7 +821,7 @@ Start a separately managed Laya 0.3.22 server:
 LAYA_HOST=127.0.0.1 LAYA_PORT=8000 LAYA_MODELS=english uv tool run --python 3.12 --torch-backend=auto --from 'laya[serve]==0.3.22' laya-serve
 ```
 
-The first run installs dependencies and downloads weights. Set `LAYA_HOST=127.0.0.1` explicitly because Laya otherwise binds to all interfaces. For authenticated local use, set `LAYA_API_KEY` when starting Laya and configure the plugin's `apiKeyEnv` to name the server-side variable holding the same key. The repository also offers opt-in `mise daemons start laya` with mise 2026.9.18 or later; `mise run opencode` does not start Laya or change the root TypeSafe backend.
+The first run installs dependencies and downloads weights. Set `LAYA_HOST=127.0.0.1` explicitly because Laya otherwise binds to all interfaces. For authenticated local use, set `LAYA_API_KEY` when starting Laya and configure the plugin's `apiKeyEnv` to name the server-side variable holding the same key. The repository also offers opt-in `mise daemons start laya` with mise 2026.9.18 or later; launching `opencode` does not start Laya or change the selected backend.
 
 `model` selects `english`, `multilingual`, or `typed-decisions` per request. `LAYA_MODELS` controls preloading, not which checkpoints clients can select. Unknown model names fall back to Laya's automatic routing, so check configured names carefully. The response's model string does not identify immutable weights. Inspect `GET /health` for loaded checkpoints, revisions, and actual devices when verifying a local deployment.
 
