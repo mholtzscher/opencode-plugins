@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.3.0...classify-v1.4.0) (2026-10-09)
+
+
+### Features
+
+* **classify:** bundle decision skill and coding workflows ([#18](https://github.com/mholtzscher/opencode-plugins/issues/18)) ([511e851](https://github.com/mholtzscher/opencode-plugins/commit/511e85180a01a07026266332cf0f7b5cd49e7fa5))
+
+
+### Bug Fixes
+
+* **classify:** move backend status into the sidebar ([#17](https://github.com/mholtzscher/opencode-plugins/issues/17)) ([0e7090c](https://github.com/mholtzscher/opencode-plugins/commit/0e7090c26bd1356fad9f952b1c2f49dbb5edbef2))
+* **tests:** create temporary directories without ci setup ([#15](https://github.com/mholtzscher/opencode-plugins/issues/15)) ([4f4c785](https://github.com/mholtzscher/opencode-plugins/commit/4f4c7855cd2f751397f70366f63275ea9bf5aa3a))
+
 ## [1.3.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.2.0...classify-v1.3.0) (2026-10-08)
 
 
