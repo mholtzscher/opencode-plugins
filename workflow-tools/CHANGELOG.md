@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v1.0.0...workflow-tools-v1.0.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **workflow-tools:** allow subsequent npm releases ([#24](https://github.com/mholtzscher/opencode-plugins/issues/24)) ([981bb89](https://github.com/mholtzscher/opencode-plugins/commit/981bb89c4f023cfc09d90981505e25a190c88d98))
+
 ## [1.0.0](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v1.0.0...workflow-tools-v1.0.0) (2026-10-09)
 
 
