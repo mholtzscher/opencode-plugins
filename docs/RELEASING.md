@@ -1,6 +1,6 @@
 # Releasing plugins
 
-[`release-please-config.json`](../release-please-config.json) tracks all six plugin directories independently. [`.release-please-manifest.json`](../.release-please-manifest.json) starts from their current package versions. The initial `bootstrap-sha` marks the commit before release automation was added, so the first automated release considers only newer changes.
+[`release-please-config.json`](../release-please-config.json) tracks all five plugin directories independently. [`.release-please-manifest.json`](../.release-please-manifest.json) starts from their current package versions. The initial `bootstrap-sha` marks the commit before release automation was added, so the first automated release considers only newer changes.
 
 On pushes to `main`, [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens or updates a combined release PR. It updates each changed plugin's `package.json` and `CHANGELOG.md`. Merging the PR creates component tags such as `classify-v1.1.0` and matching GitHub releases.
 
@@ -10,9 +10,13 @@ Use Conventional Commits. `feat(classify): ...` bumps Classify's minor version; 
 
 In repository Settings, Actions, General, enable **Allow GitHub Actions to create and approve pull requests**. The workflow uses `GITHUB_TOKEN`, so no GitHub personal access token is needed.
 
-The `check` workflow runs lint, typechecks all six plugins, and runs the five plugin test suites on PRs and pushes to `main`.
+The `check` workflow runs lint, typechecks all five plugins, and runs the four plugin test suites on PRs and pushes to `main`; Marketplace has no test suite. External live smoke checks are separate from CI.
 
 GitHub does not start other workflows for PRs or releases created using `GITHUB_TOKEN`. The npm publish job therefore runs in the same workflow as Release Please. Before merging a bot-created release PR, run its checks explicitly with `gh workflow run check.yml --ref <release-pr-branch>` and verify that run succeeds.
+
+## First Workflow tools release
+
+Workflow tools replaces the two legacy release components with its own new `workflow-tools` component, package/manifest seed `1.0.0`, and **component-local** `release-as: 1.0.0`. Inspect the generated release PR to confirm the initial version; remove this one-time override after the release. It remains private and Git-installable, with no npm publication or TUI export. Preserve historical legacy tags/releases; their changelog material belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not earlier Workflow tools releases.
 
 ## First Classify publish
 
