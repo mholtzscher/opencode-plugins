@@ -1,9 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import type { Plugin } from "@opencode/plugin/effect";
-import { Effect, Layer, Stream } from "effect";
+import { Effect, Layer } from "effect";
 import type { Scope } from "effect";
 
-import { interruptOn } from "../interruption.js";
+import { prepareAndAdmit } from "../command-execution.js";
 import { parseSpecArguments } from "./arguments.js";
 import { SpecCommandError } from "./errors.js";
 import { resolveSpecPath } from "./paths.js";
@@ -39,26 +39,23 @@ export const registerSpecCommands = Effect.fn("registerSpecCommands")(
       for (const command of commands) {
         editor.add({
           ...command,
-          execute: Effect.fn(`SpecCommand.${command.name}`)(function* execute({
-            sessionID,
-            prompt,
-            delivery,
-          }) {
-            const work = Effect.gen(function* work() {
-              let text: string;
-              if (command.name === "spec-create") {
-                const idea = prompt.text.trim();
-                if (!idea) {
-                  return yield* Effect.fail(
-                    new SpecCommandError({
-                      command: command.name,
-                      message: "Usage: /spec-create <idea>",
-                      reason: "usage",
-                    })
-                  );
+          execute: Effect.fn(`SpecCommand.${command.name}`)(
+            function* execute(invocation) {
+              const { sessionID, prompt } = invocation;
+              const preparation = Effect.gen(function* prepareSpecCommand() {
+                if (command.name === "spec-create") {
+                  const idea = prompt.text.trim();
+                  if (!idea) {
+                    return yield* Effect.fail(
+                      new SpecCommandError({
+                        command: command.name,
+                        message: "Usage: /spec-create <idea>",
+                        reason: "usage",
+                      })
+                    );
+                  }
+                  return buildCreateSpecPrompt(idea);
                 }
-                text = buildCreateSpecPrompt(idea);
-              } else {
                 const request = yield* parseSpecArguments(
                   command.name,
                   prompt.text
@@ -69,31 +66,15 @@ export const registerSpecCommands = Effect.fn("registerSpecCommands")(
                   request.reference,
                   request.command
                 );
-                text =
-                  command.name === "spec-implement"
-                    ? buildImplementationPrompt(specPath)
-                    : buildRefinementPrompt(specPath);
-              }
-              yield* ctx.session.prompt({
-                ...prompt,
-                delivery,
-                sessionID,
-                text,
+                return command.name === "spec-implement"
+                  ? buildImplementationPrompt(specPath)
+                  : buildRefinementPrompt(specPath);
               });
-            });
-            const interrupted = ctx.event
-              .subscribe()
-              .pipe(
-                Stream.map(
-                  (event) =>
-                    event.type === "session.execution.interrupted" &&
-                    event.data.sessionID === sessionID
-                )
+              yield* prepareAndAdmit(ctx, invocation, preparation).pipe(
+                Effect.provide(services)
               );
-            yield* interruptOn(work, interrupted).pipe(
-              Effect.provide(services)
-            );
-          }),
+            }
+          ),
         });
       }
     });

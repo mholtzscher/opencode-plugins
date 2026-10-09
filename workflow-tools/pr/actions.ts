@@ -1,27 +1,20 @@
 import { Effect, Schema } from "effect";
 
+import { stripAnsi, summarizeFailedLog } from "./actions-log.js";
 import type {
   GithubDecodeError,
   GithubError,
   LogStorageError,
 } from "./errors.js";
+import { truncate } from "./evidence-format.js";
 import type { Github } from "./github.js";
 import type { LogStorage } from "./log-storage.js";
-import { truncate } from "./prompts.js";
 import { decodeJson } from "./schemas.js";
 
 const GITHUB_ACTIONS_URL =
   /https?:\/\/github\.com\/(?<owner>[^\s/]+)\/(?<repo>[^\s/]+)\/actions\/runs\/(?<runId>\d+)(?:\/attempts\/(?<attempt>\d+))?(?:\/job\/(?<jobId>\d+))?(?:[^\s<>)\]]*)?/giu;
 const CHECK_RUN_URL_PATTERN = /\/check-runs\/(?<checkRunId>\d+)$/u;
-const ERROR_LINE_PATTERN =
-  /(?<prefix>^|[\s›])(?<marker>✘|error|failed|failure|exception|traceback|panic|fatal|GH\d{3}|exit code|remote:|rejected|denied|timed out|segmentation fault|core dumped)/iu;
-const LINE_BREAK_PATTERN = /\r?\n/u;
 const SAFE_FILENAME_PATTERN = /[^a-z0-9_.-]/giu;
-const ANSI_ESCAPE = "\u001B";
-const ANSI_ESCAPE_PATTERN = new RegExp(
-  `${ANSI_ESCAPE}\\[[0-9;?]*[ -/]*[@-~]`,
-  "gu"
-);
 const FAILED_STEP_CONCLUSIONS = new Set([
   "failure",
   "cancelled",
@@ -118,71 +111,7 @@ const uniqueActionsUrls = (text: string): ActionsUrl[] => {
   return urls;
 };
 
-const stripAnsi = (text: string): string =>
-  text.replaceAll(ANSI_ESCAPE_PATTERN, "").replaceAll("\uFEFF", "");
-
-const mergeWindows = (windows: [number, number][]): [number, number][] => {
-  const merged: [number, number][] = [];
-  for (const window of windows.toSorted((a, b) => a[0] - b[0])) {
-    const previous = merged.at(-1);
-    if (!previous || window[0] > previous[1] + 2) {
-      merged.push([window[0], window[1]]);
-    } else {
-      previous[1] = Math.max(previous[1], window[1]);
-    }
-  }
-  return merged;
-};
-
-const summarizeFailedLog = (rawLog: string): string => {
-  const lines = stripAnsi(rawLog)
-    .split(LINE_BREAK_PATTERN)
-    .map((line) => {
-      const parts = line.split("\t");
-      return parts.length >= 3
-        ? `${parts[1]} | ${parts.slice(2).join("\t")}`
-        : line;
-    })
-    .filter((line) => line.trim().length > 0);
-  if (lines.length === 0) {
-    return "No failed-step logs returned by gh.";
-  }
-  const windows: [number, number][] = [];
-  for (const [index, line] of lines.entries()) {
-    const separator = line.indexOf(" | ");
-    const message = separator === -1 ? line : line.slice(separator + 3);
-    if (ERROR_LINE_PATTERN.test(message)) {
-      windows.push([
-        Math.max(0, index - 8),
-        Math.min(lines.length, index + 15),
-      ]);
-    }
-  }
-  const errors = mergeWindows(windows);
-  const sections = [`Full failed-step log lines: ${lines.length}`];
-  if (errors.length > 0) {
-    sections.push("### Error-focused excerpts");
-    for (const [start, end] of mergeWindows([
-      ...errors.slice(0, 3),
-      ...errors.slice(-3),
-    ])) {
-      sections.push(
-        `--- lines ${start + 1}-${end} ---\n${lines.slice(start, end).join("\n")}`
-      );
-    }
-  } else {
-    sections.push(
-      "No obvious error markers found; including tail of failed-step log."
-    );
-  }
-  const tailStart = Math.max(0, lines.length - (errors.length > 0 ? 120 : 180));
-  sections.push(
-    `### Tail (${lines.length - tailStart} lines)\n${lines.slice(tailStart).join("\n")}`
-  );
-  return truncate(sections.join("\n\n"), 22_000);
-};
-
-const interesting = (step: {
+const isFailedOrIncomplete = (step: {
   readonly conclusion?: string | null;
   readonly status: string;
 }): boolean =>
@@ -197,6 +126,175 @@ const sectionFallback = (heading: string) =>
   Effect.catch((error: GithubError | GithubDecodeError | LogStorageError) =>
     Effect.succeed([`## ${heading} lookup failed\n${error.message}`])
   );
+
+interface ActionsTarget {
+  readonly url: ActionsUrl;
+  readonly repository: string;
+  readonly cwd: string;
+}
+
+const collectAnnotations = Effect.fn("Actions.annotations")(
+  function* collectAnnotations(
+    github: Github["Service"],
+    target: ActionsTarget,
+    checkRunUrl: string | null | undefined
+  ) {
+    const id = checkRunUrl
+      ? CHECK_RUN_URL_PATTERN.exec(checkRunUrl)?.groups?.checkRunId
+      : undefined;
+    if (!id) {
+      return [];
+    }
+    const result = yield* github.execute(
+      [
+        "api",
+        `repos/${target.repository}/check-runs/${id}/annotations`,
+        "--paginate",
+        "--slurp",
+      ],
+      { cwd: target.cwd }
+    );
+    const pages = yield* decodeJson(
+      Schema.Array(Schema.Array(Annotation)),
+      result.stdout,
+      "check annotations"
+    );
+    const rows = pages.flat();
+    return rows.length > 0 ? [`## Check annotations\n${json(rows)}`] : [];
+  }
+);
+
+const collectJobEvidence = Effect.fn("Actions.jobEvidence")(
+  function* collectJobEvidence(
+    github: Github["Service"],
+    target: ActionsTarget
+  ) {
+    if (!target.url.jobId) {
+      return [];
+    }
+    const result = yield* github.execute(
+      ["api", `repos/${target.repository}/actions/jobs/${target.url.jobId}`],
+      { cwd: target.cwd }
+    );
+    const { steps, ...summary } = yield* decodeJson(
+      Job,
+      result.stdout,
+      "action job"
+    );
+    const annotations = yield* collectAnnotations(
+      github,
+      target,
+      summary.check_run_url
+    ).pipe(sectionFallback("Check annotations"));
+    const failed = steps.filter(isFailedOrIncomplete);
+    return [
+      `## Job summary\n${json(summary)}`,
+      `## Failed or incomplete steps\n${failed.length > 0 ? json(failed) : "None reported by the jobs API."}`,
+      ...annotations,
+    ];
+  }
+);
+
+const collectRunEvidence = Effect.fn("Actions.runEvidence")(
+  function* collectRunEvidence(
+    github: Github["Service"],
+    target: ActionsTarget
+  ) {
+    const { url, repository, cwd } = target;
+    const args = [
+      "run",
+      "view",
+      url.runId,
+      "--repo",
+      repository,
+      "--json",
+      "attempt,conclusion,createdAt,databaseId,displayTitle,event,headBranch,headSha,jobs,name,number,startedAt,status,updatedAt,url,workflowDatabaseId,workflowName",
+    ];
+    if (url.attempt) {
+      args.push("--attempt", url.attempt);
+    }
+    const result = yield* github.execute(args, { cwd });
+    const { jobs, ...summary } = yield* decodeJson(
+      Run,
+      result.stdout,
+      "workflow run"
+    );
+    const failed = jobs.filter(isFailedOrIncomplete);
+    return [
+      `## Workflow run summary\n${json(summary)}`,
+      ...(url.jobId
+        ? []
+        : [
+            `## Failed or incomplete jobs\n${failed.length > 0 ? json(failed) : "None reported by gh run view."}`,
+          ]),
+    ];
+  }
+);
+
+const collectFailedLogEvidence = Effect.fn("Actions.failedLogEvidence")(
+  function* collectFailedLogEvidence(
+    github: Github["Service"],
+    logs: LogStorage["Service"],
+    target: ActionsTarget
+  ) {
+    const { url, repository, cwd } = target;
+    const args = [
+      "run",
+      "view",
+      url.runId,
+      "--repo",
+      repository,
+      "--log-failed",
+    ];
+    if (url.attempt) {
+      args.push("--attempt", url.attempt);
+    }
+    if (url.jobId) {
+      args.push("--job", url.jobId);
+    }
+    const result = yield* github.execute(args, { cwd });
+    const safeRepo = `${url.owner}-${url.repo}`.replaceAll(
+      SAFE_FILENAME_PATTERN,
+      "-"
+    );
+    const file = yield* logs.save(
+      `${safeRepo}-${url.runId}${url.jobId ? `-${url.jobId}` : ""}.log`,
+      stripAnsi(result.stdout)
+    );
+    return [
+      `## Failed step logs\nFull failed-step log saved at: ${file}\n\n${summarizeFailedLog(result.stdout)}`,
+    ];
+  }
+);
+
+const collectTargetContext = Effect.fn("Actions.targetContext")(
+  function* collectTargetContext(
+    github: Github["Service"],
+    logs: LogStorage["Service"],
+    target: ActionsTarget
+  ) {
+    // Each typed lookup failure remains visible; defects and interruption propagate.
+    const sections = yield* Effect.all(
+      [
+        collectJobEvidence(github, target).pipe(sectionFallback("Job API")),
+        collectRunEvidence(github, target).pipe(sectionFallback("Run summary")),
+        collectFailedLogEvidence(github, logs, target).pipe(
+          sectionFallback("Failed-step log")
+        ),
+      ],
+      { concurrency: 3 }
+    );
+    const { url, repository } = target;
+    return truncate(
+      [
+        `## GitHub Actions URL\n${url.url}`,
+        `Repository: ${repository}\nRun ID: ${url.runId}${url.attempt ? `\nAttempt: ${url.attempt}` : ""}${url.jobId ? `\nJob ID: ${url.jobId}` : ""}`,
+        ...sections.flat(),
+      ].join("\n\n"),
+      30_000
+    );
+  }
+);
 
 export const collectGitHubActionsUrlContexts = Effect.fn(
   "Actions.collectContexts"
@@ -213,124 +311,12 @@ export const collectGitHubActionsUrlContexts = Effect.fn(
 
   const contexts = yield* Effect.forEach(
     urls,
-    (url) => {
-      const repo = `${url.owner}/${url.repo}`;
-      const annotations = Effect.fn("Actions.annotations")(
-        function* annotations(checkRunUrl: string | null | undefined) {
-          const id = checkRunUrl
-            ? CHECK_RUN_URL_PATTERN.exec(checkRunUrl)?.groups?.checkRunId
-            : undefined;
-          if (!id) {
-            return [];
-          }
-          const result = yield* github.execute(
-            [
-              "api",
-              `repos/${repo}/check-runs/${id}/annotations`,
-              "--paginate",
-              "--slurp",
-            ],
-            { cwd }
-          );
-          const pages = yield* decodeJson(
-            Schema.Array(Schema.Array(Annotation)),
-            result.stdout,
-            "check annotations"
-          );
-          const rows = pages.flat();
-          return rows.length > 0 ? [`## Check annotations\n${json(rows)}`] : [];
-        }
-      );
-
-      const job = Effect.gen(function* jobSections() {
-        if (!url.jobId) {
-          return [];
-        }
-        const result = yield* github.execute(
-          ["api", `repos/${repo}/actions/jobs/${url.jobId}`],
-          { cwd }
-        );
-        const { steps, ...summary } = yield* decodeJson(
-          Job,
-          result.stdout,
-          "action job"
-        );
-        const annotationSections = yield* annotations(
-          summary.check_run_url
-        ).pipe(sectionFallback("Check annotations"));
-        const failed = steps.filter(interesting);
-        return [
-          `## Job summary\n${json(summary)}`,
-          `## Failed or incomplete steps\n${failed.length > 0 ? json(failed) : "None reported by the jobs API."}`,
-          ...annotationSections,
-        ];
-      }).pipe(sectionFallback("Job API"));
-
-      const run = Effect.gen(function* runSections() {
-        const args = [
-          "run",
-          "view",
-          url.runId,
-          "--repo",
-          repo,
-          "--json",
-          "attempt,conclusion,createdAt,databaseId,displayTitle,event,headBranch,headSha,jobs,name,number,startedAt,status,updatedAt,url,workflowDatabaseId,workflowName",
-        ];
-        if (url.attempt) {
-          args.push("--attempt", url.attempt);
-        }
-        const result = yield* github.execute(args, { cwd });
-        const { jobs, ...summary } = yield* decodeJson(
-          Run,
-          result.stdout,
-          "workflow run"
-        );
-        const failed = jobs.filter(interesting);
-        return [
-          `## Workflow run summary\n${json(summary)}`,
-          ...(url.jobId
-            ? []
-            : [
-                `## Failed or incomplete jobs\n${failed.length > 0 ? json(failed) : "None reported by gh run view."}`,
-              ]),
-        ];
-      }).pipe(sectionFallback("Run summary"));
-
-      const log = Effect.gen(function* logSections() {
-        const args = ["run", "view", url.runId, "--repo", repo, "--log-failed"];
-        if (url.attempt) {
-          args.push("--attempt", url.attempt);
-        }
-        if (url.jobId) {
-          args.push("--job", url.jobId);
-        }
-        const result = yield* github.execute(args, { cwd });
-        const safeRepo = `${url.owner}-${url.repo}`.replaceAll(
-          SAFE_FILENAME_PATTERN,
-          "-"
-        );
-        const file = yield* logs.save(
-          `${safeRepo}-${url.runId}${url.jobId ? `-${url.jobId}` : ""}.log`,
-          stripAnsi(result.stdout)
-        );
-        return [
-          `## Failed step logs\nFull failed-step log saved at: ${file}\n\n${summarizeFailedLog(result.stdout)}`,
-        ];
-      }).pipe(sectionFallback("Failed-step log"));
-
-      return Effect.all([job, run, log], { concurrency: 3 }).pipe(
-        Effect.map((sections) =>
-          truncate(
-            [
-              `## GitHub Actions URL\n${url.url}`,
-              `Repository: ${repo}\nRun ID: ${url.runId}${url.attempt ? `\nAttempt: ${url.attempt}` : ""}${url.jobId ? `\nJob ID: ${url.jobId}` : ""}`,
-              ...sections.flat(),
-            ].join("\n\n"),
-            30_000
-          )
-        )
-      );
-    },
+    (url) =>
+      collectTargetContext(github, logs, {
+        cwd,
+        repository: `${url.owner}/${url.repo}`,
+        url,
+      }),
     { concurrency: 3 }
   );
   return contexts.join("\n\n---\n\n");

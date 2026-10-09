@@ -1,29 +1,25 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer } from "effect";
 
 import { collectGitHubActionsUrlContexts } from "./actions.js";
+import { parsePullRequestCommandArguments } from "./arguments.js";
+import { buildCheckInvestigationPrompt } from "./check-prompts.js";
 import { readCheckSnapshot } from "./checks.js";
 import { GithubError } from "./errors.js";
 import type { GithubDecodeError, LogStorageError } from "./errors.js";
+import {
+  buildFeedbackFixPrompt,
+  buildFeedbackReviewPrompt,
+} from "./feedback-prompts.js";
 import { Github } from "./github.js";
 import { LogStorage } from "./log-storage.js";
-import {
-  buildPrDescribePrompt,
-  buildPullRequestPrompt,
-  parsePullRequestCommandArguments,
-} from "./pr.js";
-import type { PullRequestMode } from "./pr.js";
-import {
-  buildCheckInvestigationPrompt,
-  buildPrCommentsFixPrompt,
-  buildPrCommentsPrompt,
-  REVIEW_THREADS_QUERY,
-} from "./prompts.js";
+import { buildMetadataRewritePrompt } from "./metadata-prompts.js";
+import { buildPublicationPrompt } from "./publication-prompts.js";
+import { readUnresolvedReviewThreads } from "./review-threads.js";
 import {
   decodeJson,
   PrCheckIdentity,
   PrMetadata,
   RepoView,
-  ReviewThreadsPage,
 } from "./schemas.js";
 
 export type WorkflowError = GithubError | GithubDecodeError | LogStorageError;
@@ -32,14 +28,23 @@ export type WorkflowError = GithubError | GithubDecodeError | LogStorageError;
 export class Workflows extends Context.Service<
   Workflows,
   {
-    readonly pullRequest: (
+    readonly preparePublication: (
       args: string,
-      cwd: string,
-      mode: PullRequestMode
+      cwd: string
     ) => Effect.Effect<string, WorkflowError>;
-    readonly comments: (cwd: string) => Effect.Effect<string, WorkflowError>;
-    readonly fixComments: (cwd: string) => Effect.Effect<string, WorkflowError>;
-    readonly actions: (cwd: string) => Effect.Effect<string, WorkflowError>;
+    readonly prepareMetadataRewrite: (
+      args: string,
+      cwd: string
+    ) => Effect.Effect<string, WorkflowError>;
+    readonly prepareFeedbackReview: (
+      cwd: string
+    ) => Effect.Effect<string, WorkflowError>;
+    readonly prepareFeedbackFix: (
+      cwd: string
+    ) => Effect.Effect<string, WorkflowError>;
+    readonly prepareCheckInvestigation: (
+      cwd: string
+    ) => Effect.Effect<string, WorkflowError>;
   }
 >()("workflow-tools/Workflows") {}
 
@@ -48,92 +53,81 @@ export const WorkflowsLive = Layer.effect(
   Effect.gen(function* workflowsLayer() {
     const github = yield* Github;
     const logs = yield* LogStorage;
-    const metadata = Effect.fn("Workflows.metadata")(function* metadata(
-      cwd: string
-    ) {
-      const result = yield* github.execute(
-        ["pr", "view", "--json", "number,title,url,headRefName,baseRefName"],
-        { cwd, timeout: 30_000 }
-      );
-      return yield* decodeJson(PrMetadata, result.stdout, "pull request");
-    });
-    const repository = Effect.fn("Workflows.repository")(function* repository(
-      cwd: string
-    ) {
-      const [repoResult, pr] = yield* Effect.all(
-        [
-          github.execute(["repo", "view", "--json", "nameWithOwner"], {
-            cwd,
-            timeout: 30_000,
-          }),
-          metadata(cwd),
-        ],
-        { concurrency: 2 }
-      );
-      const repo = yield* decodeJson(RepoView, repoResult.stdout, "repository");
-      const [owner, name, extra] = repo.nameWithOwner.split("/");
-      if (!owner || !name || extra !== undefined) {
-        return yield* Effect.fail(
-          new GithubError({
-            message: "gh returned invalid repository name",
-            operation: "repository",
-          })
+    const readMetadata = Effect.fn("Workflows.readMetadata")(
+      function* readMetadata(cwd: string) {
+        const result = yield* github.execute(
+          ["pr", "view", "--json", "number,title,url,headRefName,baseRefName"],
+          { cwd, timeout: 30_000 }
         );
+        return yield* decodeJson(PrMetadata, result.stdout, "pull request");
       }
-      return { name, owner, pr };
-    });
-    const pullRequest = Effect.fn("Workflows.pullRequest")(
-      function* pullRequest(args: string, cwd: string, mode: PullRequestMode) {
-        const parsed = yield* parsePullRequestCommandArguments(args, mode);
-        if (mode === "publish") {
-          return buildPullRequestPrompt(parsed);
+    );
+    const readRepository = Effect.fn("Workflows.readRepository")(
+      function* readRepository(cwd: string) {
+        const [repoResult, pr] = yield* Effect.all(
+          [
+            github.execute(["repo", "view", "--json", "nameWithOwner"], {
+              cwd,
+              timeout: 30_000,
+            }),
+            readMetadata(cwd),
+          ],
+          { concurrency: 2 }
+        );
+        const repo = yield* decodeJson(
+          RepoView,
+          repoResult.stdout,
+          "repository"
+        );
+        const [owner, name, extra] = repo.nameWithOwner.split("/");
+        if (!owner || !name || extra !== undefined) {
+          return yield* Effect.fail(
+            new GithubError({
+              message: "gh returned invalid repository name",
+              operation: "repository",
+            })
+          );
         }
-        const pr = yield* metadata(cwd);
-        return buildPrDescribePrompt(pr, parsed.request);
+        return { name, owner, pr };
       }
     );
-    const comments = Effect.fn("Workflows.comments")(function* comments(
-      cwd: string
-    ) {
-      const { owner, name, pr } = yield* repository(cwd);
-      const result = yield* github.execute(
-        [
-          "api",
-          "graphql",
-          "--paginate",
-          "--slurp",
-          "-F",
-          `owner=${owner}`,
-          "-F",
-          `name=${name}`,
-          "-F",
-          `number=${pr.number}`,
-          "-f",
-          `query=${REVIEW_THREADS_QUERY}`,
-        ],
-        { cwd }
-      );
-      const pages = yield* decodeJson(
-        Schema.Array(ReviewThreadsPage),
-        result.stdout,
-        "review threads"
-      );
-      const threads = pages
-        .flatMap((page) => page.data.repository.pullRequest.reviewThreads.nodes)
-        .filter((thread) => !thread.isResolved);
-      return threads.length === 0
-        ? "No unresolved inline review threads found"
-        : buildPrCommentsPrompt(pr, threads);
+    const preparePublication = Effect.fn("Workflows.preparePublication")(
+      function* preparePublication(args: string, _cwd: string) {
+        const parsed = yield* parsePullRequestCommandArguments(args, "publish");
+        return buildPublicationPrompt(parsed);
+      }
+    );
+    const prepareMetadataRewrite = Effect.fn(
+      "Workflows.prepareMetadataRewrite"
+    )(function* prepareMetadataRewrite(args: string, cwd: string) {
+      const parsed = yield* parsePullRequestCommandArguments(args, "rewrite");
+      const pr = yield* readMetadata(cwd);
+      return buildMetadataRewritePrompt(pr, parsed.request);
     });
-    const fixComments = Effect.fn("Workflows.fixComments")(
-      function* fixComments(cwd: string) {
-        const { owner, name, pr } = yield* repository(cwd);
-        return buildPrCommentsFixPrompt(owner, name, pr);
+    const prepareFeedbackReview = Effect.fn("Workflows.prepareFeedbackReview")(
+      function* prepareFeedbackReview(cwd: string) {
+        const { owner, name, pr } = yield* readRepository(cwd);
+        const threads = yield* readUnresolvedReviewThreads(
+          github,
+          owner,
+          name,
+          pr.number,
+          cwd
+        );
+        return threads.length === 0
+          ? "No unresolved inline review threads found"
+          : buildFeedbackReviewPrompt(pr, threads);
       }
     );
-    const actions = Effect.fn("Workflows.actions")(function* actions(
-      cwd: string
-    ) {
+    const prepareFeedbackFix = Effect.fn("Workflows.prepareFeedbackFix")(
+      function* prepareFeedbackFix(cwd: string) {
+        const { owner, name, pr } = yield* readRepository(cwd);
+        return buildFeedbackFixPrompt(owner, name, pr);
+      }
+    );
+    const prepareCheckInvestigation = Effect.fn(
+      "Workflows.prepareCheckInvestigation"
+    )(function* prepareCheckInvestigation(cwd: string) {
       let snapshot = yield* readCheckSnapshot(cwd).pipe(
         Effect.provideService(Github, github)
       );
@@ -189,6 +183,12 @@ export const WorkflowsLive = Layer.effect(
       }
       return buildCheckInvestigationPrompt(snapshot, context);
     });
-    return Workflows.of({ actions, comments, fixComments, pullRequest });
+    return Workflows.of({
+      prepareCheckInvestigation,
+      prepareFeedbackFix,
+      prepareFeedbackReview,
+      prepareMetadataRewrite,
+      preparePublication,
+    });
   })
 );
