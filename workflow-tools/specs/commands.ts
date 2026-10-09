@@ -6,7 +6,7 @@ import type { Scope } from "effect";
 import { interruptOn } from "../interruption.js";
 import { parseSpecArguments } from "./arguments.js";
 import { SpecCommandError } from "./errors.js";
-import { resolveSpecPath, SpecFileSystemLive } from "./paths.js";
+import { resolveSpecPath } from "./paths.js";
 import {
   buildCreateSpecPrompt,
   buildImplementationPrompt,
@@ -17,9 +17,7 @@ export const registerSpecCommands = Effect.fn("registerSpecCommands")(
   function* registerSpecCommands(
     ctx: Plugin.Context
   ): Effect.fn.Return<void, never, Scope.Scope> {
-    const services = yield* Layer.build(
-      SpecFileSystemLive.pipe(Layer.provide(NodeServices.layer))
-    );
+    const services = yield* Layer.build(NodeServices.layer);
     yield* ctx.command.transform((editor) => {
       const commands = [
         {

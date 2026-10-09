@@ -57,7 +57,7 @@ Unquoted spaced filenames previously accepted are now invalid: require exactly o
 /spec-refine -- -draft.md
 ```
 
-`file.md`, `specs/file.md`, `@file.md`, and `@specs/file.md` normalize to `specs/<filename>`. Adjacent quoted/unquoted segments concatenate; unmatched quotes fail. Standalone `--` permits leading-hyphen paths. No shell expansion/substitution/backslash escaping. Absolute/traversal/nested paths, backslashes, NUL, directories, missing files and symlinks are rejected; no extension restriction. Resolution uses the invoking session's server directory, not plugin/TUI location. Create consumes complete multiline idea text, not path grammar.
+`file.md`, `specs/file.md`, `@file.md`, and `@specs/file.md` normalize to `specs/<filename>`. Adjacent quoted/unquoted segments concatenate; unmatched quotes fail. Standalone `--` permits leading-hyphen paths. No shell expansion/substitution/backslash escaping. Absolute/traversal/nested path inputs, backslashes, NUL, directories, and missing files are rejected; no extension restriction. Unlike the legacy resolver, symlinks to regular files are accepted, including targets outside `specs/`; dangling links and links to directories are rejected. Resolution uses the invoking session's server directory, not plugin/TUI location, and preserves the link name in the normalized path. Create consumes complete multiline idea text, not path grammar.
 
 ## Release and rollback
 

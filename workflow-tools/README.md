@@ -37,7 +37,7 @@ Install the [dependencies](./docs/WORKFLOWS.md#dependencies) for the activities 
 /pr-publish --no-watch Emphasize the migration
 ```
 
-Existing specs are direct files in the invoking session's `specs/` directory. Quote paths containing whitespace; nested paths and symlinks are rejected. PR commands target the current repository/PR, not a URL argument. Feedback, fix, and checks accept no arguments.
+Existing specs are direct entries in the invoking session's `specs/` directory, including symlinks to regular files. Quote paths containing whitespace; nested path inputs are rejected. Symlink targets may be outside `specs/`. PR commands target the current repository/PR, not a URL argument. Feedback, fix, and checks accept no arguments.
 
 Handoffs are suggestions, not automatic transitions or saved workflow state. Publication's watcher is a read-only, 30-minute observer of a concrete PR/head SHA; pending monitoring is not green CI. Agent instructions and offline tests do not prove live execution compliance.
 

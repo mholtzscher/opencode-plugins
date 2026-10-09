@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, PlatformError, Result } from "effect";
+import { Effect, FileSystem, Path, PlatformError, Result } from "effect";
 
-import { resolveSpecPath, SpecFileSystemLive } from "./paths.js";
+import { resolveSpecPath } from "./paths.js";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -21,7 +21,7 @@ const makeDirectory = async () => {
   await mkdir(`${directory}/specs`);
   return directory;
 };
-const live = SpecFileSystemLive.pipe(Layer.provide(NodeServices.layer));
+const live = NodeServices.layer;
 const resolve = (directory: string, reference: string) =>
   Effect.runPromise(
     resolveSpecPath(directory, reference, "spec-implement").pipe(
@@ -39,6 +39,24 @@ describe("direct specification files", () => {
     const directory = await makeDirectory();
     await writeFile(`${directory}/specs/my idea.md`, "Spec");
     expect(await resolve(directory, reference)).toBe("specs/my idea.md");
+  });
+
+  test.each(["real.md", "../shared.md"])(
+    "accepts a relative symlink to a regular file at %j and keeps the link path",
+    async (target) => {
+      const directory = await makeDirectory();
+      await writeFile(`${directory}/specs/${target}`, "Spec");
+      await symlink(target, `${directory}/specs/link.md`);
+      expect(await resolve(directory, "@specs/link.md")).toBe("specs/link.md");
+    }
+  );
+
+  test("accepts an absolute symlink target outside specs", async () => {
+    const directory = await makeDirectory();
+    const target = `${directory}/shared.md`;
+    await writeFile(target, "Spec");
+    await symlink(target, `${directory}/specs/link.md`);
+    expect(await resolve(directory, "link.md")).toBe("specs/link.md");
   });
 
   test("uses the supplied session directory, not another plugin directory", async () => {
@@ -81,14 +99,15 @@ describe("direct specification files", () => {
   ])("rejects %j before filesystem reads", async (reference) => {
     let reads = 0;
     const filesystem = FileSystem.makeNoop({
-      readDirectory: () => {
+      stat: () => {
         reads += 1;
-        return Effect.succeed([]);
+        return Effect.die("Invalid paths must not reach stat");
       },
     });
     const result = await Effect.runPromise(
       resolveSpecPath("/session", reference, "spec-refine").pipe(
         Effect.provideService(FileSystem.FileSystem, filesystem),
+        Effect.provide(Path.layer),
         Effect.result
       )
     );
@@ -100,28 +119,29 @@ describe("direct specification files", () => {
     }
   });
 
-  test("rejects directories, missing entries, and both valid and dangling symlinks", async () => {
+  test("rejects directories, missing entries, directory symlinks, and dangling symlinks", async () => {
     const directory = await makeDirectory();
-    await writeFile(`${directory}/specs/real.md`, "Spec");
     await mkdir(`${directory}/specs/folder`);
-    await symlink(`${directory}/specs/real.md`, `${directory}/specs/link.md`);
+    await symlink("folder", `${directory}/specs/directory-link`);
     await symlink(`${directory}/missing.md`, `${directory}/specs/dangling.md`);
     await Promise.all(
-      ["folder", "link.md", "dangling.md", "missing.md"].map(async (name) => {
-        const result = await Effect.runPromise(
-          resolveSpecPath(directory, name, "spec-refine").pipe(
-            Effect.provide(live),
-            Effect.result
-          )
-        );
-        expect(Result.isFailure(result)).toBe(true);
-        if (Result.isFailure(result)) {
-          expect(result.failure.reason).toBe("not-found");
-          expect(result.failure.message).toBe(
-            `Specification not found: specs/${name}`
+      ["folder", "directory-link", "dangling.md", "missing.md"].map(
+        async (name) => {
+          const result = await Effect.runPromise(
+            resolveSpecPath(directory, name, "spec-refine").pipe(
+              Effect.provide(live),
+              Effect.result
+            )
           );
+          expect(Result.isFailure(result)).toBe(true);
+          if (Result.isFailure(result)) {
+            expect(result.failure.reason).toBe("not-found");
+            expect(result.failure.message).toBe(
+              `Specification not found: specs/${name}`
+            );
+          }
         }
-      })
+      )
     );
   });
 
@@ -151,23 +171,24 @@ describe("direct specification files", () => {
     const cause = PlatformError.systemError({
       _tag: tag,
       cause: underlying,
-      method: "readDirectory",
+      method: "stat",
       module: "FileSystem",
     });
     let observed: string | undefined;
     const filesystem = FileSystem.makeNoop({
-      readDirectory: (directory) => {
-        observed = directory;
+      stat: (path) => {
+        observed = path;
         return Effect.fail(cause);
       },
     });
     const result = await Effect.runPromise(
       resolveSpecPath("/session", "@specs/auth.md", "spec-refine").pipe(
         Effect.provideService(FileSystem.FileSystem, filesystem),
+        Effect.provide(Path.layer),
         Effect.result
       )
     );
-    expect(observed).toBe("/session/specs");
+    expect(observed).toBe("/session/specs/auth.md");
     expect(Result.isFailure(result)).toBe(true);
     if (Result.isFailure(result)) {
       expect(result.failure.reason).toBe(

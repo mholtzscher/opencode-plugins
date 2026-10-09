@@ -1,50 +1,18 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-
-import { Effect, FileSystem, Layer, PlatformError } from "effect";
+import { Effect, FileSystem, Path } from "effect";
 
 import type { ExistingSpecCommand } from "./arguments.js";
 import { SpecCommandError } from "./errors.js";
-
-/** Directory entries, unlike the pinned Node filesystem's stat, do not follow links. */
-export const SpecFileSystemLive = Layer.effect(
-  FileSystem.FileSystem,
-  Effect.gen(function* SpecFileSystemLive() {
-    const filesystem = yield* FileSystem.FileSystem;
-    return FileSystem.FileSystem.of({
-      ...filesystem,
-      readDirectory: (directory) =>
-        Effect.tryPromise({
-          catch: (cause) =>
-            PlatformError.systemError({
-              _tag:
-                cause instanceof Error &&
-                "code" in cause &&
-                cause.code === "ENOENT"
-                  ? "NotFound"
-                  : "Unknown",
-              cause,
-              method: "readDirectory",
-              module: "FileSystem",
-              pathOrDescriptor: directory,
-            }),
-          try: async () => {
-            const entries = await readdir(directory, { withFileTypes: true });
-            return entries
-              .filter((entry) => entry.isFile())
-              .map((entry) => entry.name);
-          },
-        }),
-    });
-  })
-);
 
 export const resolveSpecPath = Effect.fn("resolveSpecPath")(
   function* resolveSpecPath(
     cwd: string,
     reference: string,
     command: ExistingSpecCommand
-  ): Effect.fn.Return<string, SpecCommandError, FileSystem.FileSystem> {
+  ): Effect.fn.Return<
+    string,
+    SpecCommandError,
+    FileSystem.FileSystem | Path.Path
+  > {
     const value = reference.startsWith("@") ? reference.slice(1) : reference;
     const name = value.startsWith("specs/") ? value.slice(6) : value;
     if (
@@ -64,25 +32,24 @@ export const resolveSpecPath = Effect.fn("resolveSpecPath")(
       );
     }
     const filesystem = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
     const normalized = `specs/${name}`;
-    const entries = yield* filesystem
-      .readDirectory(path.join(cwd, "specs"))
-      .pipe(
-        Effect.mapError(
-          (cause) =>
-            new SpecCommandError({
-              cause,
-              command,
-              message:
-                cause.reason._tag === "NotFound"
-                  ? `Specification not found: ${normalized}`
-                  : `Unable to read specifications: ${normalized}`,
-              reason:
-                cause.reason._tag === "NotFound" ? "not-found" : "filesystem",
-            })
-        )
-      );
-    if (!entries.includes(name)) {
+    const info = yield* filesystem.stat(path.join(cwd, "specs", name)).pipe(
+      Effect.mapError(
+        (cause) =>
+          new SpecCommandError({
+            cause,
+            command,
+            message:
+              cause.reason._tag === "NotFound"
+                ? `Specification not found: ${normalized}`
+                : `Unable to read specifications: ${normalized}`,
+            reason:
+              cause.reason._tag === "NotFound" ? "not-found" : "filesystem",
+          })
+      )
+    );
+    if (info.type !== "File") {
       return yield* Effect.fail(
         new SpecCommandError({
           command,

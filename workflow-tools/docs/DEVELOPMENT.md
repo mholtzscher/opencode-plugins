@@ -27,7 +27,7 @@ Thin `index.ts` registers both command families under `workflow-tools`. **Each r
 | --- | --- |
 | `specs/commands.ts` | Three registrations, scoped NodeServices/filesystem acquisition and admission |
 | `specs/arguments.ts`, `specs/errors.ts` | Pure strict path grammar and tagged command errors |
-| `specs/paths.ts` | Session-relative resolver and directory-entry filesystem adapter |
+| `specs/paths.ts` | Session-relative resolver using Effect FileSystem and Path |
 | `specs/prompts.ts` | Planning, single-PR implementation, approved refinement |
 | `pr/commands.ts` | Five registrations, early validation and scoped PR service layers |
 | `pr/workflows.ts` | Metadata/paginated threads, publication modes, feedback/check orchestration; returns text, owns no sessions/runtime |
@@ -39,7 +39,7 @@ Thin `index.ts` registers both command families under `workflow-tools`. **Each r
 | `pr/actions.ts`, `pr/log-storage.ts` | Bounded Actions summaries/annotations/log context and full failed-step evidence storage |
 | `interruption.ts` | Scoped preparation/admission racing against matching session events |
 
-The directory-entry adapter uses `readdir(..., { withFileTypes: true })` at its Promise boundary: pinned Node filesystem stat follows symlinks, so entries are filtered to direct regular files instead. Missing directory/entry/non-file/symlink maps to `not-found`; permission/other I/O maps to `filesystem` with causes. SDK errors retain their channel. This preserves semantics, not a race-proof filesystem sandbox.
+The resolver uses Effect `Path` and `FileSystem.stat` with `NodeServices.layer` acquired at registration. Stat follows symlinks: direct entries resolving to regular files are accepted, including targets outside `specs/`, while the normalized path retains the link name. Missing directory/entry, dangling link, or non-file target maps to `not-found`; permission/other I/O maps to `filesystem` with causes. SDK errors retain their channel. No custom filesystem adapter or race-proof filesystem sandbox is introduced; actual file reads remain subject to host permissions.
 
 Each subprocess has a scope and timeout; interruption terminates it, escalating cleanup to forced kill after five seconds if needed. Actions lookups have bounded concurrency: expected failures become explicit limitations, while interruption/defects are not partial success. Mutating GitHub operations are not retried. Existing temporary log paths are retained; evidence storage is not workflow persistence.
 
@@ -52,7 +52,7 @@ Tests use explicit fake Effect layers, TestClock for timeouts and Deferred/Queue
 | Tests | Boundary |
 | --- | --- |
 | `index.test.ts` | Exact eight names/server export, retired-name absence, no annotation forwarding, session location, both delivery modes/attachments, multiline ideas, invalid-input zero reads/admissions |
-| `specs/arguments.test.ts`, `specs/paths.test.ts` | Quotes/concatenation/terminator/retired flags; unsafe, missing, non-file, symlink and deterministic permission/I/O errors; fixtures under `/tmp/opencode` |
+| `specs/arguments.test.ts`, `specs/paths.test.ts` | Quotes/concatenation/terminator/retired flags; symlink acceptance (relative/absolute targets inside/outside specs); unsafe, missing, non-file, dangling/directory-link and deterministic permission/I/O errors; fixtures under `/tmp/opencode` |
 | `specs/prompts.test.ts`, `pr/pr.test.ts`, `pr/workflows.test.ts` | Planning phases, implementation evidence, refinement approval/reconciliation, scoped create/update publication, metadata preservation/verification, observer policy, whole-report approved fix delivery before GitHub writes |
 | `pr/checks.test.ts`, `pr/workflows.test.ts` | Immediate target-specific all/required reads `[0,1,8]`, pending plus failures, empty stderr/errors, required-query failure, duplicate joins, changed head, skipped/unreported gates |
 | `pr/github.test.ts`, `interruption.test.ts`, `index.test.ts` | Process/JSON/output limits/timeouts, pagination/partial Actions evidence, filtered cancellation and cleanup/no late admission |

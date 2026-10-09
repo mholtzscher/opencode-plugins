@@ -33,7 +33,7 @@ Dependencies are requested when needed, not checked on plugin startup. No gh-sta
 /spec-refine -- -draft.md
 ```
 
-A standalone `--` ends option parsing. No mode flags are supported. Unmatched quotes, extra tokens, missing paths, and unknown/retired flags fail before reads/admission. There is no shell expansion, substitution, or backslash escaping. Empty names, `.`, `..`, absolute/traversal/nested paths, literal backslashes, NUL, directories, missing files, and symlinks are rejected; no extension restriction is added. Resolution uses the invoking session, not plugin load location. Directory-entry inspection avoids following links, but is not a race-proof filesystem sandbox.
+A standalone `--` ends option parsing. No mode flags are supported. Unmatched quotes, extra tokens, missing paths, and unknown/retired flags fail before reads/admission. There is no shell expansion, substitution, or backslash escaping. Empty names, `.`, `..`, absolute/traversal/nested path inputs, literal backslashes, NUL, directories, and missing files are rejected; no extension restriction is added. Resolution uses the invoking session, not plugin load location. Symlinks to regular files are accepted, including targets outside `specs/`; dangling links and links to directories are rejected. The normalized path retains the link name. Validation is not a race-proof filesystem sandbox; actual file reads remain subject to host permissions.
 
 ## Spec refinement and implementation
 

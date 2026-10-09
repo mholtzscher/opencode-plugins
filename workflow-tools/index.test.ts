@@ -134,6 +134,12 @@ const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
         `${root}/session/specs/example.md`,
         `${root}/session/specs/link.md`
       );
+      await symlink(
+        "../../plugin/specs/load-only.md",
+        `${root}/session/specs/shared.md`
+      );
+      await symlink("directory.md", `${root}/session/specs/directory-link.md`);
+      await symlink("missing.md", `${root}/session/specs/dangling.md`);
       return root;
     }),
     (root) => Effect.promise(() => rm(root, { force: true, recursive: true }))
@@ -256,14 +262,14 @@ const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
     (service) =>
       originalFilesystemOf({
         ...service,
-        readDirectory: (path, options) =>
+        stat: (path) =>
           Effect.sync(() => {
             filesystemReads.push(path);
           }).pipe(
             Effect.andThen(
               controls.filesystemError
                 ? Effect.fail(controls.filesystemError)
-                : service.readDirectory(path, options)
+                : service.stat(path)
             )
           ),
       })
@@ -503,9 +509,36 @@ describe("combined server host", () => {
               )
             ).toBe(true);
             expect(host.filesystemReads).toEqual([
-              `${host.directory}/session/specs`,
-              `${host.directory}/session/specs`,
+              `${host.directory}/session/specs/${filename}`,
+              `${host.directory}/session/specs/${filename}`,
             ]);
+          })
+        )
+      );
+    }
+  );
+
+  test.each(["link.md", "shared.md"])(
+    "admits a spec symlink %s using its session-relative path",
+    async (filename) => {
+      await Effect.runPromise(
+        Effect.scoped(
+          Effect.gen(function* linkedSpec() {
+            const host = yield* makeHost();
+            for (const name of ["spec-implement", "spec-refine"]) {
+              yield* host.run(name, `@specs/${filename}`);
+            }
+            expect(host.admissions).toHaveLength(2);
+            expect(
+              host.admissions.every((admission) =>
+                admission.text.includes(`@specs/${filename}`)
+              )
+            ).toBe(true);
+            expect(host.filesystemReads).toEqual([
+              `${host.directory}/session/specs/${filename}`,
+              `${host.directory}/session/specs/${filename}`,
+            ]);
+            expect(host.processes).toEqual([]);
           })
         )
       );
@@ -523,7 +556,8 @@ describe("combined server host", () => {
     "bad\0name.md",
     "missing.md",
     "directory.md",
-    "link.md",
+    "directory-link.md",
+    "dangling.md",
     "load-only.md",
   ])(
     "rejects unsafe or unavailable path %s without admission",
@@ -596,7 +630,7 @@ describe("combined server host", () => {
         Effect.gen(function* filesystemFailure() {
           const filesystemError = PlatformError.systemError({
             _tag: "PermissionDenied",
-            method: "readDirectory",
+            method: "stat",
             module: "FileSystem",
             pathOrDescriptor: "/session/specs",
           });
