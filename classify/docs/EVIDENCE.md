@@ -157,7 +157,7 @@ Comments inside a captured node are preserved. Capture preceding documentation, 
 
 ### Discover a grammar
 
-Use `classify_grammar` without reading source or invoking a classification backend:
+The `classify_grammar` tool is temporarily unregistered pending value evaluation. Its implementation remains in the repository and supports the following calls without reading source or invoking a classification backend:
 
 ```json
 { "path": "cache.go" }

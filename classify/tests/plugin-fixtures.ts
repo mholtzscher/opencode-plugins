@@ -3,7 +3,9 @@ import type {
   CommandEditor,
 } from "@opencode/plugin/effect/command";
 import type { RpcHandlers } from "@opencode/plugin/effect/rpc";
+import type { SkillEditor } from "@opencode/plugin/effect/skill";
 import type { ToolEditor } from "@opencode/plugin/effect/tool";
+import type { Skill } from "@opencode/schema/skill";
 import type { Tool } from "@opencode/schema/tool";
 import type { Schema } from "effect";
 import { Effect, Exit, Scope } from "effect";
@@ -29,10 +31,11 @@ interface PluginRuntime {
   ) => Effect.Effect<void, unknown>;
   stored?: Map<string, Schema.Json>;
   namespaces?: Tool.Namespace[];
+  skills?: Skill.Info[];
 }
 
 /** Each test file owns its registrations and explicitly installs dispose as its cleanup hook. */
-export const createPluginFixture = () => {
+export const createPluginFixture = (setup = plugin.effect) => {
   const scopes: Scope.Closeable[] = [];
   const dispose = () =>
     Effect.runPromise(
@@ -101,6 +104,18 @@ export const createPluginFixture = () => {
             runtime?.messages?.push(text);
           }),
       },
+      skill: {
+        // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Host skill registration uses an editor callback.
+        transform: (callback: (editor: Pick<SkillEditor, "add">) => void) =>
+          Effect.sync(() => {
+            // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Invoke the host registration contract.
+            callback({
+              add: (skill) => {
+                runtime?.skills?.push(skill);
+              },
+            });
+          }),
+      },
       storage: {
         get: (key: string) => Effect.sync(() => stored.get(key)),
         remove: (key: string) =>
@@ -140,7 +155,7 @@ export const createPluginFixture = () => {
     const context = contextFixture as unknown as PluginContext;
     const scope = await Effect.runPromise(Scope.make());
     scopes.push(scope);
-    await Effect.runPromise(plugin.effect(context).pipe(Scope.provide(scope)));
+    await Effect.runPromise(setup(context).pipe(Scope.provide(scope)));
     return tools;
   };
   return { dispose, register, scopes };

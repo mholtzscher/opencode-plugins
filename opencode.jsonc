@@ -13,8 +13,13 @@
     {
       "package": "./classify",
       "options": {
-        "defaultBackend": "ollama-nimble",
+        "defaultBackend": "openai-gpt-6-luna",
         "backends": {
+          "openai-gpt-6-luna": {
+            "provider": "openai-decisions",
+            "model": "gpt-6-luna",
+            "apiKeyFile": "/home/michael/.local/share/agenix/hearth-openai-api-key",
+          },
           "ollama-nimble": {
             "provider": "ollama",
             "baseURL": "http://127.0.0.1:11434",

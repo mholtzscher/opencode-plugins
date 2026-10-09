@@ -12,6 +12,7 @@ The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the
 | [`backend-controls.ts`](../backend-controls.ts) | Backend-selection RPC, slash command, session checks, and selection notifications |
 | [`classification-tool.ts`](../classification-tool.ts), [`classification-schemas.ts`](../classification-schemas.ts) | Classification tool construction and input/output codecs |
 | [`tool-description.ts`](../tool-description.ts) | Agent-facing usage, answer semantics, and named-classifier guidance |
+| [`decision-skill.ts`](../decision-skill.ts), [`skills/classify-decide/`](../skills/classify-decide/SKILL.md) | Load bundled skill metadata/body and provide on-demand judgment and evidence examples |
 | [`router.ts`](../router.ts), [`selection.ts`](../selection.ts) | Shared backend selection for classification and search; persist session overrides |
 | [`classification.ts`](../classification.ts) | Validate input, resolve named classifiers, preflight, resolve evidence, and dispatch |
 | [`evidence.ts`](../evidence.ts), [`bounded-file.ts`](../bounded-file.ts) | Text/JSON evidence service and bounded regular-file reads shared with image resolution |
@@ -28,11 +29,15 @@ The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the
 
 The plugin builds backend layers once in its lifetime scope; each invocation supplies its own OpenCode execution context. Bounded JSON security checks run before structural decoding. Request-aware checks validate provider distributions and score legends.
 
-All operations register under the native `classify` namespace. Search shares each backend's classification and evidence services. Its execution, candidate reads, classifications, and pure result formatting are separate functions. Each invocation owns its accounting state. Prefix reads hold a semaphore permit to account for the remaining evidence budget exactly; classifications run up to the configured concurrency.
+Only `decide` currently registers under the native `classify` namespace. Search and grammar discovery registration is commented out in `index.ts` pending value evaluation; both implementations remain. Search shares each backend's classification and evidence services. Its execution, candidate reads, classifications, and pure result formatting are separate functions. Each invocation owns its accounting state. Prefix reads hold a semaphore permit to account for the remaining evidence budget exactly; classifications run up to the configured concurrency.
 
 Discovery owns its mutable traversal inventory and publishes copied snapshots into a caller-owned `Ref`. Finalizers publish progress on interruption so deadline results retain completed traversal counts. Native permission waits count toward the deadline. Descriptor operations finish before cleanup, so filesystem cleanup can extend the nominal deadline. Both public services preserve mixed interruption/cleanup causes rather than converting them to error envelopes.
 
-The tool description includes a mixed-type example, structured-output and `ok` handling, answer semantics, and the self-contained evidence boundary. Schema field descriptions repeat constraints Code Mode's generated TypeScript signature may omit. Agents do not need to read the README to make and interpret a call.
+The tool description leads with open-ended capabilities, includes one structured-state example, and preserves structured-output and `ok` handling, answer semantics, and the self-contained evidence boundary. Preset guidance appears only when classifiers are configured. Operational details and full output envelopes live in the tool reference rather than being repeated in the description. Schema field descriptions cover constraints Code Mode's generated TypeScript signature may omit. Agents do not need to read the README to make and interpret a call.
+
+Setup registers `classify-decide` through `context.skill.transform`. The loader resolves `SKILL.md` relative to the installed module, uses its frontmatter as the metadata source, and registers the body with an absolute path so supporting references resolve from the skill directory. The package includes `skills/`; only skill metadata is advertised before invocation. `tests/decision-skill.test.ts` checks registration from an unrelated session directory and validates linked JSON examples against the current input schema.
+
+Additional workflows live in separate bundled skill references so agents load only the applicable pattern. Each reference is self-contained, with requests matching Classify's contract and instructions for consuming the results. Thresholds remain caller-defined rather than plugin defaults. New JSON examples are covered automatically by the linked-reference validation test.
 
 ### Adding a provider
 
@@ -91,6 +96,6 @@ bun test tests/openai-decisions.test.ts tests/plugin.test.ts
 
 Run the full suite even when these pass. Recording tests must prove byte-for-byte data-URL transmission, stable retry bodies after source mutation, zero evidence/credential/HTTP reads on capability rejection, atomic batch failure, and handle cleanup on interruption/timeout. Boundary checks retain old JSON security and text budgets. Real-host image permission/preview behavior and billable V1–V9 checks remain opt-in; automated fixtures do not establish live visual accuracy.
 
-`tests/plugin-fixtures.ts` provides registration fixtures with per-test-file scope ownership and explicit cleanup. `tests/plugin.test.ts` covers registration, backend controls, evidence, and lifecycle behavior. `tests/search-plugin.test.ts` covers search through the registered tool, native permissions, and a recording HTTP backend. Classification unit tests live in `tests/classification.test.ts` and `tests/classification-schemas.test.ts`.
+`tests/plugin-fixtures.ts` provides registration fixtures with per-test-file scope ownership and explicit cleanup. `tests/plugin.test.ts` covers registration, backend controls, evidence, and lifecycle behavior. `tests/search-plugin.test.ts` uses test-only search registration to cover native permissions and a recording HTTP backend while production registration is disabled. Classification unit tests live in `tests/classification.test.ts` and `tests/classification-schemas.test.ts`.
 
 Use [SMOKE_TESTING.md](./SMOKE_TESTING.md) for disposable fixtures, the live test matrix, expected outcomes, regression checks, verification history, and cleanup. Live checks are opt-in and should record the actual provider, model, host, and client exercised. Threshold tuning and comparative accuracy require representative labeled data.

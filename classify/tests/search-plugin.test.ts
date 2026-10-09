@@ -4,13 +4,44 @@ import path from "node:path";
 
 import { Tool } from "@opencode/schema/tool";
 import { serve } from "bun";
-import { Deferred, Effect, Fiber, Schema } from "effect";
+import { Deferred, Effect, Fiber, Layer, Schema } from "effect";
 import { TestClock } from "effect/testing";
 
+import { loadOptions } from "../config.js";
+import { classifyLayer } from "../layers.js";
+import { routeSearch } from "../router.js";
+import { createSearchTool } from "../search-tool.js";
+import { FileSearch } from "../search.js";
+import { createSelection } from "../selection.js";
 import { toolContext } from "./effect-fixtures.js";
 import { createPluginFixture } from "./plugin-fixtures.js";
 
-const { dispose, register } = createPluginFixture();
+// Exercise the retained search implementation through test-only registration.
+const { dispose, register } = createPluginFixture((context) =>
+  Effect.gen(function* setupSearchFixture() {
+    const options = yield* loadOptions(context.options).pipe(Effect.orDie);
+    const selection = createSelection(options, context.storage);
+    const searches = new Map<string, typeof FileSearch.Service>();
+    for (const [name, backend] of Object.entries(options.backends)) {
+      const services = yield* Layer.build(
+        classifyLayer(options, backend, context)
+      );
+      searches.set(
+        name,
+        yield* FileSearch.pipe(Effect.provideContext(services))
+      );
+    }
+    const searchTool = yield* createSearchTool(options).pipe(
+      Effect.provideService(
+        FileSearch,
+        routeSearch(options, selection, searches)
+      )
+    );
+    yield* context.tool.transform((editor) => {
+      editor.add(searchTool);
+    });
+  })
+);
 afterEach(dispose);
 
 test("search sends only bounded prefixes, checks native reads, and captures one backend for every file", async () => {
@@ -104,7 +135,7 @@ test("search sends only bounded prefixes, checks native reads, and captures one 
       terms: ["retry"],
     };
     const first = await Effect.runPromise(
-      tools[2].execute(searchInput, toolContext())
+      tools[0].execute(searchInput, toolContext())
     );
     expect(first.output).toMatchObject({
       ok: true,
@@ -149,7 +180,7 @@ test("search sends only bounded prefixes, checks native reads, and captures one 
     expect(JSON.stringify(first)).not.toContain("PRIVATE");
     expect(JSON.stringify(first)).not.toContain("RETRY selected");
     const next = await Effect.runPromise(
-      tools[2].execute({ ...searchInput, paths: ["z.ts"] }, toolContext())
+      tools[0].execute({ ...searchInput, paths: ["z.ts"] }, toolContext())
     );
     expect(next.output).toHaveProperty("result.backend", "second");
     expect(requests[2]).toHaveProperty("model", "second-model");
@@ -190,7 +221,7 @@ test("search deadline interrupts directory permission waits and retains discover
     await Effect.runPromise(
       Effect.gen(function* permissionDeadline() {
         const fiber = yield* Effect.forkChild(
-          tools[2].execute(
+          tools[0].execute(
             { paths: ["a.ts", "blocked"], query: "Find source" },
             toolContext()
           )

@@ -26,6 +26,7 @@
     "grammars/",
     "protocols/",
     "providers/",
+    "skills/",
     "validation/",
     "CHANGELOG.md",
     "LICENSE",

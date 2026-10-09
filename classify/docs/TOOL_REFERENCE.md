@@ -2,7 +2,7 @@
 
 [Back to README](../README.md) · [Configuration](./CONFIGURATION.md) · [Evidence](./EVIDENCE.md)
 
-The `classify` namespace contains `decide`, `search`, and `grammar`, with effective IDs `classify_decide`, `classify_search`, and `classify_grammar`. This page describes `decide`. See [search](./SEARCH.md) for file ranking and [evidence](./EVIDENCE.md) for grammar discovery and code extraction.
+The `classify` namespace currently contains only `decide`, with effective ID `classify_decide`. Search and grammar discovery are temporarily unregistered pending value evaluation. Their implementations remain available in the repository. This page describes `decide`; see [evidence](./EVIDENCE.md) for code extraction and [search](./SEARCH.md) for the retained experimental search contract.
 
 The former standalone `classify` operation is now `classify_decide`, with unchanged arguments and output. Update tool-ID references and permission rules that target the old ID. Code Mode callers should discover the namespace and use its returned signatures.
 
