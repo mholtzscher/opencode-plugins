@@ -16,7 +16,7 @@ GitHub does not start other workflows for PRs or releases created using `GITHUB_
 
 ## First Workflow tools release
 
-Workflow tools replaces the two legacy release components with its own new `workflow-tools` component, package/manifest seed `1.0.0`, and **component-local** `release-as: 1.0.0`. Inspect the generated release PR to confirm the initial version; remove this one-time override after the release. It is npm-enabled and Git-installable, with no TUI export. Preserve historical legacy tags/releases; their changelog material belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not earlier Workflow tools releases.
+Workflow tools replaced the two legacy release components with its own new `workflow-tools` component and package/manifest seed `1.0.0`. The initial `workflow-tools-v1.0.0` GitHub release is complete; its **component-local** `release-as: 1.0.0` override is removed so subsequent versions advance normally. It is npm-enabled and Git-installable, with no TUI export. Preserve historical legacy tags/releases; their changelog material belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not earlier Workflow tools releases.
 
 ## First Classify publish
 
@@ -48,7 +48,7 @@ Allow the publisher to publish directly if npm offers a stage-only option. No `N
 
 ## First Workflow tools publish
 
-The package name is `@mholtzscher/opencode-workflow-tools`. npm requires an existing package before a trusted publisher can be attached, so the first publish is manual; subsequent releases use GitHub OIDC.
+The package name is `@mholtzscher/opencode-workflow-tools`. npm requires an existing package before a trusted publisher can be attached. Bootstrap can use a manual publish or staged upload; a staged version is not publicly installable until approved. Subsequent releases use GitHub OIDC.
 
 Merge the publishing setup and initial release PR, confirming that `workflow-tools-v1.0.0` contains the scoped, public package metadata. The initial automated publish cannot succeed before npm bootstrap and trusted-publisher setup. In a separate checkout of that release tag, run from `workflow-tools/` while authenticated as `mholtzscher`:
 
@@ -63,9 +63,9 @@ npm publish --access public
 
 The allowlist ships the TypeScript server entry, production `pr/` and `specs/` modules, documentation, changelog, and MIT license, excluding tests and development fixtures. No compilation or TUI bundle is needed. Effect's shared Node adapter is pinned as a direct dependency so fresh consumers do not rely on the repository's override or lockfile.
 
-On npmjs.com, open this package's settings and add a GitHub Actions trusted publisher using the same fields in the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow filename `release-please.yml`, and no environment. Allow direct publishing; no npm token secret is needed. Remove Workflow tools' one-time `release-as` override after the initial release so later versions advance normally.
+On npmjs.com, open this package's settings and add a GitHub Actions trusted publisher using the same fields in the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow filename `release-please.yml`, and no environment. Allow direct publishing; no npm token secret is needed. Newly created trusted publishers must complete a successful publish within two days or be recreated after expiry.
 
-The manual publish completes npm delivery of `1.0.0`; do not rerun the automated publish for an already-published version, because npm versions are immutable. Future tagged releases use the configured publisher. Until bootstrap is complete, use the Git install target in the plugin README.
+The manual publish completes npm delivery of `1.0.0`; do not rerun the automated publish for an already-published version, because npm versions are immutable. If npm reports that `1.0.0` is already staged, inspect and approve the intended staged artifact rather than retrying publication; see [npm release recovery](../workflow-tools/docs/DEVELOPMENT.md#npm-release-recovery). Future tagged releases use the configured publisher. Until a version is public, use the Git install target in the plugin README.
 
 ## Automated npm releases
 

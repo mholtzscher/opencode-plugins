@@ -18,8 +18,7 @@
       "component": "quota-usage"
     },
     "workflow-tools": {
-      "component": "workflow-tools",
-      "release-as": "1.0.0"
+      "component": "workflow-tools"
     }
   }
 }

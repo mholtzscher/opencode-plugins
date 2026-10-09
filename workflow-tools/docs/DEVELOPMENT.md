@@ -21,6 +21,21 @@ Effect, platform-node, and platform-node-shared are pinned exactly to `4.0.0-rc.
 
 `npm pack --dry-run` should include the TypeScript entry and production modules under `pr/` and `specs/`, documentation, changelog, and MIT license, but no tests, test-support fixtures, lockfile, or development config. OpenCode loads TypeScript directly; no build or install hooks are needed. See [Releasing](https://github.com/mholtzscher/opencode-plugins/blob/main/docs/RELEASING.md) for bootstrap and trusted publishing.
 
+### npm release recovery
+
+The initial `workflow-tools-v1.0.0` GitHub release is complete; the one-time `release-as` override is removed so subsequent `fix(workflow-tools): ...` changes can produce patch releases. Release Please owns version and changelog updates; do not bump `package.json` by hand.
+
+Successful GitHub OIDC authentication does not mean npm publication succeeded. An `E409` error mentioning a previously staged version means that version is reserved but may not be public. Inspect staged versions while signed in to npm:
+
+```sh
+npm stage list @mholtzscher/opencode-workflow-tools --json
+npm stage view <stage-id>
+```
+
+Approve the intended artifact on npmjs.com or with `npm stage approve <stage-id>` (requires 2FA). Do not retry `npm publish` for that same staged version. Verify public availability with `npm view @mholtzscher/opencode-workflow-tools version`.
+
+For future unattended releases, the trusted publisher must allow direct `npm publish`, not just `npm stage publish`. A new patch version avoids the old version's reservation, but does not fix missing publishing permissions. New trusted-publisher configurations also need a successful publish within two days to avoid expiry.
+
 ## Actual architecture and module map
 
 Thin `index.ts` registers both command families under `workflow-tools`. **Each registration family acquires its own service layers internally in plugin scope**, rather than the index constructing layers or a global runtime. Executors parse before reads, use the invoking session directory, and submit exactly one prompt preserving session, files/other fields, and queue/steer delivery.
