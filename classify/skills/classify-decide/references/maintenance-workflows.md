@@ -37,7 +37,11 @@ Inspect SQL plus application expectations and deployment order. Separate data lo
 
 ### Consume the answers
 
-Inspect backup/recovery and expand-contract options for flagged risks. Run migration validation and required review; low measurements do not approve execution.
+Inspect backup/recovery and expand-contract options for flagged risks. Run migration validation and required review.
+
+### Limitations
+
+Low measurements do not approve execution.
 
 ## Feature flag lifecycle detection
 
@@ -73,7 +77,11 @@ Combine code references, environment configuration, ownership, and recent usage.
 
 ### Consume the answers
 
-Confirm with the owner and check every supported environment before removing a retirement candidate. Do not delete rollback paths from a model judgment alone.
+Confirm with the owner and check every supported environment before removing a retirement candidate.
+
+### Limitations
+
+Do not delete rollback paths from a model judgment alone.
 
 ## Configuration anomaly detection
 
@@ -109,4 +117,8 @@ Compare resolved configuration against explicit environment intent. Redact secre
 
 ### Consume the answers
 
-Verify which settings reach the running service and repair a confirmed anomaly. Use deterministic rules when the required setting is exact; use judgments for ambiguous intent across several settings.
+Verify which settings reach the running service and repair a confirmed anomaly.
+
+### Limitations
+
+Use deterministic rules when the required setting is exact; use judgments for ambiguous intent across several settings.

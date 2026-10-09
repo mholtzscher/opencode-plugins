@@ -4,7 +4,7 @@ Use this when a search tool, index, or caller has already produced a bounded sho
 
 Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
 
-## Workflow
+## Evidence needed
 
 ```text
 existing retrieval → shortlist with source IDs
@@ -12,8 +12,6 @@ existing retrieval → shortlist with source IDs
   → separate useful evidence / premise conflicts / unassessed passages
   → rank accepted evidence → downstream answer with source IDs
 ```
-
-## Evidence needed
 
 Ask about the query–passage pair, using the same questions for every candidate. Relevance alone is insufficient: a passage can be on-topic but contain no answer, or contain useful evidence that contradicts the question's premise.
 

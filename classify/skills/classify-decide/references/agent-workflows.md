@@ -43,7 +43,11 @@ Form a shortlist with deterministic search or retrieval, then classify one bound
 
 ### Consume the answers
 
-Prioritize useful items and preserve retrieval IDs and full raw tool output. Do not filter mandatory instructions or critical errors; compare against simple keyword baselines and measure missed evidence.
+Prioritize useful items and preserve retrieval IDs and full raw tool output.
+
+### Limitations
+
+Do not filter mandatory instructions or critical errors; compare against simple keyword baselines and measure missed evidence.
 
 ## Agent progress and loop detection
 
@@ -92,7 +96,11 @@ Use a bounded window of tool calls, exit codes, actual file changes, and failure
 
 ### Consume the answers
 
-For repeating, inspect a different hypothesis; for missing_information, gather specific evidence; for blocked, report the blocker. Bound retries and compare against exact repeated-command heuristics. A failed test alone does not imply lack of progress.
+For repeating, inspect a different hypothesis; for missing_information, gather specific evidence; for blocked, report the blocker. Bound retries and compare against exact repeated-command heuristics.
+
+### Limitations
+
+A failed test alone does not imply lack of progress.
 
 ## Task complexity routing
 
@@ -126,7 +134,11 @@ Supply the task, constraints, and repository facts before estimating reasoning n
 
 ### Consume the answers
 
-Use the tier as an initial recommendation and revise when new evidence appears. Never reduce required checks because the task was labeled straightforward.
+Use the tier as an initial recommendation and revise when new evidence appears.
+
+### Limitations
+
+Never reduce required checks because the task was labeled straightforward.
 
 ## Review finding triage
 
@@ -171,7 +183,11 @@ Include one candidate finding, the relevant code/contract, and known findings fo
 
 ### Consume the answers
 
-Verify actionable bugs against source and consolidate duplicates without losing evidence. Keep all candidates available during evaluation and measure missed real bugs before suppressing findings.
+Verify actionable bugs against source and consolidate duplicates without losing evidence.
+
+### Limitations
+
+Keep all candidates available during evaluation and measure missed real bugs before suppressing findings.
 
 ## Review agent routing
 
@@ -210,7 +226,11 @@ Ask independent questions for each specialty so more than one reviewer can be re
 
 ### Consume the answers
 
-Invoke warranted reviewers only through available authorized mechanisms. Retain mandatory reviews and handle missing context with further inspection rather than treating every low measurement as clearance.
+Invoke warranted reviewers only through available authorized mechanisms.
+
+### Limitations
+
+Retain mandatory reviews and handle missing context with further inspection rather than treating every low measurement as clearance.
 
 ## Development workflow selection
 
@@ -245,7 +265,11 @@ Supply the change and available verification workflows. Separate optional scruti
 
 ### Consume the answers
 
-Add relevant optional checks to the mandatory set. This supports probabilistic development policies by adding scrutiny; it does not authorize skipping required checks or declaring completion.
+Add relevant optional checks to the mandatory set.
+
+### Limitations
+
+This supports probabilistic development policies by adding scrutiny; it does not authorize skipping required checks or declaring completion.
 
 ## Semantic circuit breaker
 
@@ -278,10 +302,42 @@ Before a consequential automated operation, supply the exact planned operation, 
 
 ### Consume the answers
 
-For outside_scope or unknown, correct the plan or seek the required review. Within_scope is advisory and cannot grant permission, approve deployment, or override deterministic safety checks.
+For outside_scope or unknown, correct the plan or seek the required review.
+
+### Limitations
+
+Within_scope is advisory and cannot grant permission, approve deployment, or override deterministic safety checks.
 
 ## Semantic event stream
 
-If the surrounding tool already emits development events, attach a bounded assessment to each relevant event: code edits use change assessment, test failures use debugging, tool results use relevance, and proposed operations use scope review. Keep stable event/item IDs, revision, rubric version, backend, raw measurements, assessment errors, and source references in the caller's event store. Let downstream consumers choose actions independently of the judgments.
+### Evidence needed
+
+Use events already emitted by the surrounding tool. Include the event/item ID, revision, and the evidence needed by its matching recipe: code edits use change assessment, test failures use debugging, tool results use relevance, and proposed operations use scope review.
+
+### Example payload
+
+```json
+{
+  "state": {
+    "event_id": "edit-42",
+    "revision": "working-tree-42",
+    "intent": "Extract a helper without changing rounding.",
+    "before": "return Math.round(price * 100);",
+    "after": "return Math.floor(price * 100);"
+  },
+  "questions": {
+    "behavior_changed": {
+      "type": "noul",
+      "instructions": "Does the supplied edit change observable rounding behavior?"
+    }
+  }
+}
+```
+
+### Consume the answers
+
+Attach the bounded assessment to its event. Keep stable event/item IDs, revision, rubric version, backend, raw measurements, assessment errors, and source references in the caller's event store. Let downstream consumers choose actions independently of the judgments.
+
+### Limitations
 
 Invalidate assessments when evidence or criteria change. Debounce repeated edits, bound concurrency and cost, and avoid treating cached results as fresh evidence. Start in observation-only mode on labeled examples; compare precision, missed issues, latency, invocation rate, and total cost with deterministic baselines. Model confidence is not calibrated correctness. Enable recurring policies only after measuring their consequences. This recipe adds no event store or automatic subscribers to Classify.

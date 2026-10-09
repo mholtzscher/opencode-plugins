@@ -43,7 +43,7 @@ Greedy traversal discards every alternative after each call. If early ambiguity 
 
 One way to compare paths of different depths is the geometric mean of edge probabilities. `exp(mean(log(p)))` computes that heuristic without multiplying many tiny values; exclude zero-probability paths or define their handling explicitly. This is a ranking heuristic, not a calibrated probability that a final leaf is correct. Bound beam width, depth, total requests, and cycles; retain full path IDs when a graph permits multiple parents.
 
-## Fall back to a broader label
+#### Fall back to a broader label
 
 If the caller accepts coarse classifications, a stored leaf-to-parent mapping can produce a broader result without another call:
 
@@ -54,5 +54,7 @@ selected leaf + returned confidence
       → alternatives share an acceptable ancestor: report that ancestor
       → alternatives span unrelated branches: unresolved or classify at a broader level
 ```
+
+### Limitations
 
 Evaluate the specificity policy for the current backend and taxonomy; mapping a mistaken leaf to its parent does not automatically repair it. Preserve the chosen specificity and uncertainty, and avoid presenting a broader label as a more confident model measurement.

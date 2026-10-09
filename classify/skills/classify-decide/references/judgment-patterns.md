@@ -39,7 +39,11 @@ Choose one category for a message, document, event, proposal, or observation. De
 
 ### Consume the answers
 
-Routing returns a label. Any resulting message, assignment, or external action belongs to the surrounding workflow.
+Routing returns a label.
+
+### Limitations
+
+Any resulting message, assignment, or external action belongs to the surrounding workflow.
 
 ## Check independent properties
 
@@ -71,7 +75,11 @@ Use multiple `noul` questions for overlapping topics, requirements, or risks. A 
 
 ### Consume the answers
 
-Each answer is the probability of its proposition, not a boolean. Choose any conversion to a flag according to the user's error tolerance rather than applying a universal threshold.
+Each answer is the probability of its proposition, not a boolean. Choose any conversion to a flag according to the user's error tolerance.
+
+### Limitations
+
+Do not apply a universal threshold.
 
 ## Assess support, contradiction, or missing evidence
 
@@ -104,7 +112,11 @@ Use this for factual claims, summaries, hypothesis checks, or requirement covera
 
 ### Consume the answers
 
-For long material, attach source slices with enough surrounding context to distinguish omission from contradiction. A label directs investigation; substantiate a reported defect with the actual source.
+Substantiate a reported defect with the actual source.
+
+### Limitations
+
+A label directs investigation. For long material, attach source slices with enough surrounding context to distinguish omission from contradiction.
 
 ## Score against observable anchors
 
@@ -139,7 +151,11 @@ Use rubric scoring for qualities such as completeness, clarity, feasibility, or 
 
 ### Consume the answers
 
-With three levels, a score of 1.6 is on a 0–2 scale. Keep the rubric with the reported score; arithmetic normalization does not turn it into a probability or an objective measurement.
+With three levels, a score of 1.6 is on a 0–2 scale. Keep the rubric with the reported score.
+
+### Limitations
+
+Arithmetic normalization does not turn a score into a probability or an objective measurement.
 
 ## Compare alternatives
 
@@ -173,10 +189,39 @@ Use a shared state and explicit preference criteria for candidate answers, desig
 
 ### Consume the answers
 
-For a ranked list, use common rubrics or explicit pairwise comparisons and retain ties. Pairwise results can be inconsistent; do not silently infer a total order from a cycle.
+For a ranked list, use common rubrics or explicit pairwise comparisons and retain ties.
+
+### Limitations
+
+Pairwise results can be inconsistent; do not silently infer a total order from a cycle.
 
 ## Repeat a judgment across items
 
-Apply the same questions to feedback entries, candidate outputs, records, or known documents. Keep item IDs and criteria stable, and bound each request to relevant evidence. Multiple questions share one state; the tool does not implicitly map a question over every item in an array. Either ask clearly item-specific questions or make a call per item.
+### Evidence needed
+
+Apply the same questions to feedback entries, candidate outputs, records, or known documents. Keep item IDs and criteria stable, and bound each request to relevant evidence. Either ask clearly item-specific questions or make a call per item.
+
+### Example payload
+
+```json
+{
+  "state": {
+    "item_id": "feedback-07",
+    "text": "Please send a replacement; the item arrived cracked."
+  },
+  "questions": {
+    "damage": {
+      "type": "noul",
+      "instructions": "Does state.text report physical damage to the item?"
+    }
+  }
+}
+```
+
+### Consume the answers
 
 For recurring evaluation, keep a labeled sample outside the model call and compare predictions with those labels using code. Inspect false positives and false negatives before selecting thresholds. Changing the rubric or backend can change comparability, so record both alongside the measurements.
+
+### Limitations
+
+Multiple questions share one state; the tool does not implicitly map a question over every item in an array.

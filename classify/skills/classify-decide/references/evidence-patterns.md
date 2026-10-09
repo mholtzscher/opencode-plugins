@@ -38,6 +38,10 @@ A file slice can support document relevance, contract consistency, requirement c
 }
 ```
 
+### Consume the answers
+
+Inspect `preservation.choice` to identify support, a visible violation, or missing context. Read `regression_test.noul` separately as a probability that the supplied test exercises the requirement. Verify reported defects against the referenced source.
+
 ### Limitations
 
 Adapt the paths to files that exist. Diffs include staged and unstaged tracked changes relative to `base`; include untracked files explicitly in `files`. For a branch review, resolve the intended comparison base before the call. A path object such as `{ "path": "report.md", "offset": 40, "limit": 60 }` selects lines 40–99.
@@ -76,6 +80,10 @@ On an OpenAI Decisions backend, attach explicit local image references for befor
   }
 }
 ```
+
+### Consume the answers
+
+Use `criterion.choice` to assess the revised screen against the acceptance criterion. Read `improved.noul` separately as a probability of visible improvement, not proof that the criterion is met. Preserve the image ordering and written criteria when reporting findings.
 
 ### Limitations
 

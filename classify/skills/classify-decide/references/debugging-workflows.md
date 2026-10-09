@@ -39,7 +39,11 @@ Include the failure, change, and available baseline or rerun results. Do not rep
 
 ### Consume the answers
 
-Use the label to choose a focused diagnostic: compare the base, inspect the service, check setup, or reproduce variability. Confirm the cause before treating a failure as unrelated.
+Use the label to choose a focused diagnostic: compare the base, inspect the service, check setup, or reproduce variability.
+
+### Limitations
+
+Confirm the cause before treating a failure as unrelated.
 
 ## Error relevance filtering
 
@@ -74,7 +78,11 @@ Compare each error with the current task and execution phase. Keep the raw outpu
 
 ### Consume the answers
 
-Inspect direct and supporting errors first. Preserve critical failures and original logs; a no-link judgment should not erase potentially useful evidence.
+Inspect direct and supporting errors first.
+
+### Limitations
+
+Preserve critical failures and original logs; a no-link judgment should not erase potentially useful evidence.
 
 ## Incident-to-code relevance
 
@@ -109,4 +117,8 @@ Supply incident symptoms, timestamps, and one candidate change. Compare candidat
 
 ### Consume the answers
 
-Check traces, rollout cohorts, and reproduction to establish causation. Scores prioritize investigation; they do not establish root cause or authorize rollback.
+Check traces, rollout cohorts, and reproduction to establish causation.
+
+### Limitations
+
+Scores prioritize investigation; they do not establish root cause or authorize rollback.

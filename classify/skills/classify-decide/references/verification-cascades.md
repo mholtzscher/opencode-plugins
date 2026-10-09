@@ -4,7 +4,7 @@ Use this when an existing workflow produces an answer or structured extraction a
 
 Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
 
-## Workflow
+## Evidence needed
 
 ```text
 producer → candidate output
@@ -12,8 +12,6 @@ producer → candidate output
   → decide(original source + requirements + output, per-field error questions)
   → keep candidate / escalate with localized findings / mark assessment unavailable
 ```
-
-## Evidence needed
 
 Schema validity does not establish semantic correctness. Frame each verification question narrowly so yes means a specific error, and include the relevant original source rather than only the producer's answer or explanation.
 

@@ -45,7 +45,11 @@ Evaluate one test or bounded test file against an explicit assertion rubric. Rec
 
 ### Consume the answers
 
-Flag weak assertions for inspection; do not require every individual test to cover errors. Test-only evidence cannot establish regression detection, coverage completeness, or implementation correctness.
+Flag weak assertions for inspection.
+
+### Limitations
+
+Do not require every individual test to cover errors. Test-only evidence cannot establish regression detection, coverage completeness, or implementation correctness.
 
 ## Mutation-testing triage
 
@@ -81,7 +85,11 @@ Use actual mutation results and the affected contract to prioritize surviving mu
 
 ### Consume the answers
 
-Investigate by reproducing the boundary case and adding a meaningful test. Verify equivalent judgments with domain constraints; do not discard mutants solely on the model label.
+Investigate by reproducing the boundary case and adding a meaningful test.
+
+### Limitations
+
+Verify equivalent judgments with domain constraints; do not discard mutants solely on the model label.
 
 ## Requirement verification
 
@@ -115,7 +123,11 @@ Assess one acceptance criterion with implementation and execution evidence. Dist
 
 ### Consume the answers
 
-Link the implementation and actual test result in the completion report. Supported is evidence triage, not a certificate; missing or failed checks still need resolution.
+Link the implementation and actual test result in the completion report.
+
+### Limitations
+
+Supported is evidence triage, not a certificate; missing or failed checks still need resolution.
 
 ## Test selection
 
@@ -149,4 +161,8 @@ Build candidates using imports, coverage, or ownership first. Judge relevance fo
 
 ### Consume the answers
 
-Run likely relevant tests first, then all checks required by the repository or CI policy. Prioritization must not silently omit mandatory checks; assess missed failures during evaluation.
+Run likely relevant tests first, then all checks required by the repository or CI policy.
+
+### Limitations
+
+Prioritization must not silently omit mandatory checks; assess missed failures during evaluation.

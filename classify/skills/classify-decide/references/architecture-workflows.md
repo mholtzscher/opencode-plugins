@@ -37,7 +37,11 @@ Compare one function with the documented module responsibility and allowed depen
 
 ### Consume the answers
 
-Verify the dependency and identify the specific responsibility to relocate. A classification is a review lead; deterministic import rules should still enforce expressible constraints.
+Verify the dependency and identify the specific responsibility to relocate.
+
+### Limitations
+
+A classification is a review lead; deterministic import rules should still enforce expressible constraints.
 
 ## API compatibility assessment
 
@@ -70,7 +74,11 @@ Include the old/new contract, real consumers, and rollout constraints. Assess se
 
 ### Consume the answers
 
-Confirm the affected consumer with a contract test and consider a versioned change or migration. Preserved covers only supplied consumers, not every downstream client.
+Confirm the affected consumer with a contract test and consider a versioned change or migration.
+
+### Limitations
+
+Preserved covers only supplied consumers, not every downstream client.
 
 ## Semantic repository indexing
 
@@ -108,4 +116,8 @@ Enumerate functions with deterministic tooling, then classify bounded snippets w
 
 ### Consume the answers
 
-Store symbol ID, revision, rubric, backend, and measurements in the surrounding index if that system exists. Refresh changed symbols and use metadata to aid search; Classify does not build or persist an index.
+Store symbol ID, revision, rubric, backend, and measurements in the surrounding index if that system exists. Refresh changed symbols and use metadata to aid search.
+
+### Limitations
+
+Classify does not build or persist an index.

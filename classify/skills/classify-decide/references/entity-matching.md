@@ -4,7 +4,7 @@ Use this for candidate pairs from catalogs, contacts, organizations, citations, 
 
 Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
 
-## Workflow
+## Evidence needed
 
 ```text
 normalize exact fields + generate plausible pairs in code
@@ -12,8 +12,6 @@ normalize exact fields + generate plausible pairs in code
   → candidate match / unresolved pair / different entity
   → surrounding workflow decides whether to link records
 ```
-
-## Evidence needed
 
 Use deterministic identifiers and arithmetic where they settle the question. Send ambiguous names, aliases, descriptions, and conflicting context to the classifier. Candidate generation avoids an all-pairs comparison over entire collections.
 

@@ -4,15 +4,13 @@ Use this when code can find candidate values but their role depends on meaning: 
 
 Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
 
-## Workflow
+## Evidence needed
 
 ```text
 source → parser/regex/known roster → candidate IDs + source spans
   → decide(source + candidates, choice of requested role)
   → resolve selected ID → copy exact span → validate and normalize in code
 ```
-
-## Evidence needed
 
 Keep offsets and provenance in the caller's candidate map. Preserve distinct occurrences when identical strings have different contexts. If there are no candidates, return missing without a model call. One candidate plus `none` still provides the two alternatives required by a `choice` question.
 

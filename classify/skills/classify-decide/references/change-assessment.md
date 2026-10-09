@@ -45,7 +45,11 @@ Compare before/after behavior and the stated intent. Use the category to choose 
 
 ### Consume the answers
 
-Inspect changed outputs or error paths when behavioral or mixed is selected. Structural is a preliminary judgment; establish equivalence with appropriate tests and analysis.
+Inspect changed outputs or error paths when behavioral or mixed is selected.
+
+### Limitations
+
+Structural is a preliminary judgment; establish equivalence with appropriate tests and analysis.
 
 ## Change risk scoring
 
@@ -87,7 +91,11 @@ Supply the diff, affected contracts, and relevant callers. Ask separate question
 
 ### Consume the answers
 
-Add targeted authorization, persistence, or compatibility checks for flagged areas. Low measurements mean no risk identified from this evidence, not proof of absence.
+Add targeted authorization, persistence, or compatibility checks for flagged areas.
+
+### Limitations
+
+Low measurements mean no risk identified from this evidence, not proof of absence.
 
 ## PR scope evaluation
 
@@ -122,7 +130,11 @@ Compare changed behavior with the requested work, including exceptions explicitl
 
 ### Consume the answers
 
-Inspect the unrelated change and propose splitting or explaining it. Do not revert work solely from the classification.
+Inspect the unrelated change and propose splitting or explaining it.
+
+### Limitations
+
+Do not revert work solely from the classification.
 
 ## Intent-preserving refactor verification
 
@@ -165,7 +177,11 @@ Include the refactor constraints, old and new paths, and verification evidence. 
 
 ### Consume the answers
 
-Inspect `attempt_count` and `delay_schedule` independently so support for one requirement does not hide a violation of the other. Verify any suspected behavior change against the helper implementation and tests. Supported does not prove full semantic equivalence.
+Inspect `attempt_count` and `delay_schedule` independently so support for one requirement does not hide a violation of the other. Verify any suspected behavior change against the helper implementation and tests.
+
+### Limitations
+
+Supported does not prove full semantic equivalence.
 
 ## Code complexity judgment
 
@@ -197,7 +213,11 @@ Supply the required behavior and constraints with the implementation. Evaluate a
 
 ### Consume the answers
 
-Use the rubric to prioritize simplification review. Check hidden requirements and extension points before removing abstractions.
+Use the rubric to prioritize simplification review.
+
+### Limitations
+
+Check hidden requirements and extension points before removing abstractions.
 
 ## Dependency upgrade assessment
 
@@ -231,7 +251,11 @@ Supply the actual version change, release notes, and relevant usage. Retrieve th
 
 ### Consume the answers
 
-For targeted review, inspect retry defaults and test duplicate-charge behavior. Version numbers alone do not establish upgrade risk.
+For targeted review, inspect retry defaults and test duplicate-charge behavior.
+
+### Limitations
+
+Version numbers alone do not establish upgrade risk.
 
 ## Documentation impact detection
 
@@ -264,7 +288,11 @@ Compare the affected documentation claims with the change. Keep one claim or doc
 
 ### Consume the answers
 
-Verify the active default and update the referenced section when stale. A consistent result covers only the supplied claim.
+Verify the active default and update the referenced section when stale.
+
+### Limitations
+
+A consistent result covers only the supplied claim.
 
 ## Release note classification
 
@@ -302,4 +330,8 @@ Supply the change and intended audience. Separate breaking compatibility from th
 
 ### Consume the answers
 
-Draft notes from verified changes and contracts. A breaking signal warrants compatibility review and migration guidance, not an automatically chosen version bump.
+Draft notes from verified changes and contracts.
+
+### Limitations
+
+A breaking signal warrants compatibility review and migration guidance, not an automatically chosen version bump.

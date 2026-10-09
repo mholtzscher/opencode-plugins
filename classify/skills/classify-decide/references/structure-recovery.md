@@ -6,8 +6,6 @@ Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-i
 
 - [Pass 1: recover boundaries](#pass-1-recover-boundaries)
 - [Pass 2: classify the resulting blocks](#pass-2-classify-the-resulting-blocks)
-- [Render and verify in code](#render-and-verify-in-code)
-- [Limitations](#limitations)
 
 ## Pass 1: recover boundaries
 
@@ -43,7 +41,11 @@ Ask whether a line continues a sentence, rather than whether two lines discuss t
 
 ### Consume the answers
 
-Apply a caller-defined boundary policy in code, using punctuation and source layout as well as the returned judgments. Preserve uncertain boundaries for inspection. Evaluate sentence-ending and mid-sentence boundaries separately when selecting cutoffs; a threshold suitable for hard-wrapped prose can incorrectly join list items.
+Apply a caller-defined boundary policy in code, using punctuation and source layout as well as the returned judgments. Preserve uncertain boundaries for inspection.
+
+### Limitations
+
+Evaluate sentence-ending and mid-sentence boundaries separately when selecting cutoffs; a threshold suitable for hard-wrapped prose can incorrectly join list items.
 
 ## Pass 2: classify the resulting blocks
 
@@ -94,7 +96,7 @@ The second call depends on blocks built after the first call. Include surroundin
 
 Companion questions for heading level, list order, or callout kind can share this second call because they inspect the same blocks. Consume a companion answer only when the selected block type makes it relevant; it does not depend on reading another answer inside the call.
 
-## Render and verify in code
+#### Render and verify in code
 
 ```text
 source lines + boundary judgments → blocks with provenance
@@ -103,6 +105,6 @@ blocks + type judgments → deterministic renderer → reconstructed Markdown
 
 The renderer adds markup and approved whitespace changes while copying source wording. Escape syntax where necessary and retain original source slices; classify a code block without executing its contents. Check text preservation independently of the semantic judgments, and retain unresolved block types for review rather than silently inventing structure.
 
-## Limitations
+### Limitations
 
 Batch only within Classify's question and evidence limits. Long documents need overlapping context at chunk boundaries and may require several requests per pass. Explicit source markers should not be overridden merely because a model prefers another interpretation.

@@ -39,7 +39,7 @@ test("entry registers a discoverable skill from the package rather than the sess
   expect(markdown).toContain(skill.content);
 });
 
-test("bundled skill references resolve and their examples satisfy the live ad hoc contract", async () => {
+test("bundled skill references resolve, use consistent layouts, and satisfy the live ad hoc contract", async () => {
   const skill = await Effect.runPromise(loadDecisionSkill());
   const links = [
     ...skill.content.matchAll(/\]\((?<reference>references\/[^)]+)\)/gu),
@@ -54,6 +54,23 @@ test("bundled skill references resolve and their examples satisfy the live ad ho
     )
   );
   for (const text of references) {
+    const headings = [
+      ...text.matchAll(
+        /^#{2,3} (?<heading>Evidence needed|Example payload|Consume the answers|Limitations)$/gmu
+      ),
+    ].map(([, heading]) => heading);
+    expect(headings.length).toBeGreaterThan(0);
+    for (let index = 0; index < headings.length;) {
+      expect(headings.slice(index, index + 3)).toEqual([
+        "Evidence needed",
+        "Example payload",
+        "Consume the answers",
+      ]);
+      index += 3;
+      if (headings[index] === "Limitations") {
+        index += 1;
+      }
+    }
     const examples = [...text.matchAll(/```json\n(?<input>[\s\S]*?)\n```/gu)];
     expect(examples.length).toBeGreaterThan(0);
     for (const [, example] of examples) {
