@@ -11,17 +11,15 @@
     "classify": {
       "component": "classify"
     },
-    "github-tools": {
-      "component": "github-tools"
-    },
     "marketplace": {
       "component": "marketplace"
     },
     "quota-usage": {
       "component": "quota-usage"
     },
-    "spec-tools": {
-      "component": "spec-tools"
+    "workflow-tools": {
+      "component": "workflow-tools",
+      "release-as": "1.0.0"
     }
   }
 }

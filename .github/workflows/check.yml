@@ -29,10 +29,9 @@ jobs:
         path:
           - cache-metrics
           - classify
-          - github-tools
           - marketplace
           - quota-usage
-          - spec-tools
+          - workflow-tools
     defaults:
       run:
         working-directory: ${{ matrix.path }}

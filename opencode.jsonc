@@ -8,8 +8,7 @@
     "./marketplace",
     "./cache-metrics",
     "./quota-usage",
-    "./github-tools",
-    "./spec-tools",
+    "./workflow-tools",
     {
       "package": "./classify",
       "options": {
@@ -66,12 +65,7 @@
       },
       {
         "action": "integration.use",
-        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:github-tools",
-        "effect": "deny",
-      },
-      {
-        "action": "integration.use",
-        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:spec-tools",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:workflow-tools",
         "effect": "deny",
       },
       {
