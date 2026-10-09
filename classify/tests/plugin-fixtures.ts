@@ -3,7 +3,9 @@ import type {
   CommandEditor,
 } from "@opencode/plugin/effect/command";
 import type { RpcHandlers } from "@opencode/plugin/effect/rpc";
+import type { SkillEditor } from "@opencode/plugin/effect/skill";
 import type { ToolEditor } from "@opencode/plugin/effect/tool";
+import type { Skill } from "@opencode/schema/skill";
 import type { Tool } from "@opencode/schema/tool";
 import type { Schema } from "effect";
 import { Effect, Exit, Scope } from "effect";
@@ -29,6 +31,7 @@ interface PluginRuntime {
   ) => Effect.Effect<void, unknown>;
   stored?: Map<string, Schema.Json>;
   namespaces?: Tool.Namespace[];
+  skills?: Skill.Info[];
 }
 
 /** Each test file owns its registrations and explicitly installs dispose as its cleanup hook. */
@@ -99,6 +102,18 @@ export const createPluginFixture = (setup = plugin.effect) => {
         synthetic: ({ text }: { text: string }) =>
           Effect.sync(() => {
             runtime?.messages?.push(text);
+          }),
+      },
+      skill: {
+        // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Host skill registration uses an editor callback.
+        transform: (callback: (editor: Pick<SkillEditor, "add">) => void) =>
+          Effect.sync(() => {
+            // oxlint-disable-next-line promise/prefer-await-to-callbacks -- Invoke the host registration contract.
+            callback({
+              add: (skill) => {
+                runtime?.skills?.push(skill);
+              },
+            });
           }),
       },
       storage: {

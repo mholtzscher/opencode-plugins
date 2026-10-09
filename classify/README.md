@@ -99,6 +99,12 @@ Confidence is a provider-native uncertainty metric, not a probability of correct
 
 See the [tool reference](./docs/TOOL_REFERENCE.md) for criteria rules, complete success/error examples, diagnostics, and parser exports.
 
+## Additional judgment patterns
+
+The plugin also bundles the discoverable `classify-decide` skill. Ask to use it for additional judgment patterns: categorization, overlapping labels, claim grounding, rubric scoring, candidate comparison, repeated evaluation, and file or image evidence. Its short guide links to examples loaded on demand; these illustrate the tool's open-ended criteria rather than restrict its uses. No separate skill installation is needed.
+
+Bundled references cover retrieval filtering and reranking, entity matching, hierarchical classification, candidate-span extraction, verification cascades, and document structure recovery. Each contains its own workflow, example payloads, and result-handling guidance; no external cookbook is needed.
+
 ## Switch backends in a session
 
 Configure multiple profiles under `options.backends` and name the default with `options.defaultBackend`. This example is the **options object**, not a complete OpenCode config:

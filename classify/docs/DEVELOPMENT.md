@@ -12,6 +12,7 @@ The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns the
 | [`backend-controls.ts`](../backend-controls.ts) | Backend-selection RPC, slash command, session checks, and selection notifications |
 | [`classification-tool.ts`](../classification-tool.ts), [`classification-schemas.ts`](../classification-schemas.ts) | Classification tool construction and input/output codecs |
 | [`tool-description.ts`](../tool-description.ts) | Agent-facing usage, answer semantics, and named-classifier guidance |
+| [`decision-skill.ts`](../decision-skill.ts), [`skills/classify-decide/`](../skills/classify-decide/SKILL.md) | Load bundled skill metadata/body and provide on-demand judgment and evidence examples |
 | [`router.ts`](../router.ts), [`selection.ts`](../selection.ts) | Shared backend selection for classification and search; persist session overrides |
 | [`classification.ts`](../classification.ts) | Validate input, resolve named classifiers, preflight, resolve evidence, and dispatch |
 | [`evidence.ts`](../evidence.ts), [`bounded-file.ts`](../bounded-file.ts) | Text/JSON evidence service and bounded regular-file reads shared with image resolution |
@@ -33,6 +34,10 @@ Only `decide` currently registers under the native `classify` namespace. Search 
 Discovery owns its mutable traversal inventory and publishes copied snapshots into a caller-owned `Ref`. Finalizers publish progress on interruption so deadline results retain completed traversal counts. Native permission waits count toward the deadline. Descriptor operations finish before cleanup, so filesystem cleanup can extend the nominal deadline. Both public services preserve mixed interruption/cleanup causes rather than converting them to error envelopes.
 
 The tool description leads with open-ended capabilities, includes one structured-state example, and preserves structured-output and `ok` handling, answer semantics, and the self-contained evidence boundary. Preset guidance appears only when classifiers are configured. Operational details and full output envelopes live in the tool reference rather than being repeated in the description. Schema field descriptions cover constraints Code Mode's generated TypeScript signature may omit. Agents do not need to read the README to make and interpret a call.
+
+Setup registers `classify-decide` through `context.skill.transform`. The loader resolves `SKILL.md` relative to the installed module, uses its frontmatter as the metadata source, and registers the body with an absolute path so supporting references resolve from the skill directory. The package includes `skills/`; only skill metadata is advertised before invocation. `tests/decision-skill.test.ts` checks registration from an unrelated session directory and validates linked JSON examples against the current input schema.
+
+Additional workflows live in separate bundled skill references so agents load only the applicable pattern. Each reference is self-contained, with requests matching Classify's contract and instructions for consuming the results. Thresholds remain caller-defined rather than plugin defaults. New JSON examples are covered automatically by the linked-reference validation test.
 
 ### Adding a provider
 

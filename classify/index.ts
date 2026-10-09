@@ -5,6 +5,7 @@ import { registerBackendControls } from "./backend-controls.js";
 import { createClassifyTool } from "./classification-tool.js";
 import { Classification } from "./classification.js";
 import { loadOptions } from "./config.js";
+import { loadDecisionSkill } from "./decision-skill.js";
 // import { grammarTool } from "./grammar-tool.js";
 import { classifyLayer } from "./layers.js";
 import { routeClassification } from "./router.js";
@@ -47,6 +48,10 @@ export default Plugin.define({
       // );
 
       yield* registerBackendControls(context, options, selection);
+      const skill = yield* loadDecisionSkill().pipe(Effect.orDie);
+      yield* context.skill.transform((editor) => {
+        editor.add(skill);
+      });
       yield* context.tool.transform((editor) => {
         editor.namespace({
           description:
