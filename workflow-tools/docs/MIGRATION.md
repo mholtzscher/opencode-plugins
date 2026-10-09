@@ -63,7 +63,7 @@ Unquoted spaced filenames previously accepted are now invalid: require exactly o
 
 ## Release and rollback
 
-Workflow tools is a **new 1.0.0 component**, with package/manifest seed 1.0.0 and component-local `release-as: 1.0.0`. Inspect the first release PR and remove the one-time override after release. Historical legacy tags/releases are neither recreated nor deleted, and are not prior Workflow tools versions.
+Workflow tools started as a **new 1.0.0 component**, with package/manifest seed 1.0.0 and component-local `release-as: 1.0.0`. The initial GitHub release is complete and that one-time override is removed; subsequent releases advance normally. Historical legacy tags/releases are neither recreated nor deleted, and are not prior Workflow tools versions. GitHub release creation does not prove npm availability; see [npm release recovery](./DEVELOPMENT.md#npm-release-recovery).
 
 Rollback: remove the new source, choose a historical Git ref containing both old paths, then restore both entries at that ref:
 
