@@ -2,9 +2,22 @@
 
 Adapt these examples to the user's domain and criteria. Each JSON block is a complete ad hoc `decide` payload; no named classifier is required. These examples show request construction, not measured model accuracy.
 
+Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+
+- [Categorize or route](#categorize-or-route)
+- [Check independent properties](#check-independent-properties)
+- [Assess support, contradiction, or missing evidence](#assess-support-contradiction-or-missing-evidence)
+- [Score against observable anchors](#score-against-observable-anchors)
+- [Compare alternatives](#compare-alternatives)
+- [Repeat a judgment across items](#repeat-a-judgment-across-items)
+
 ## Categorize or route
 
+### Evidence needed
+
 Choose one category for a message, document, event, proposal, or observation. Define boundaries and tie-breakers in the instructions; give uncertainty its own label when evidence can be insufficient.
+
+### Example payload
 
 ```json
 {
@@ -24,11 +37,17 @@ Choose one category for a message, document, event, proposal, or observation. De
 }
 ```
 
+### Consume the answers
+
 Routing returns a label. Any resulting message, assignment, or external action belongs to the surrounding workflow.
 
 ## Check independent properties
 
+### Evidence needed
+
 Use multiple `noul` questions for overlapping topics, requirements, or risks. A single `choice` would incorrectly force them to be mutually exclusive. This also works for checking whether a document addresses several requested points or whether a proposal meets several constraints.
+
+### Example payload
 
 ```json
 {
@@ -50,11 +69,17 @@ Use multiple `noul` questions for overlapping topics, requirements, or risks. A 
 }
 ```
 
+### Consume the answers
+
 Each answer is the probability of its proposition, not a boolean. Choose any conversion to a flag according to the user's error tolerance rather than applying a universal threshold.
 
 ## Assess support, contradiction, or missing evidence
 
+### Evidence needed
+
 Use this for factual claims, summaries, hypothesis checks, or requirement coverage. Bound the judgment to the provided material. “Not supported here” and “false” are different outcomes.
+
+### Example payload
 
 ```json
 {
@@ -77,11 +102,17 @@ Use this for factual claims, summaries, hypothesis checks, or requirement covera
 }
 ```
 
+### Consume the answers
+
 For long material, attach source slices with enough surrounding context to distinguish omission from contradiction. A label directs investigation; substantiate a reported defect with the actual source.
 
 ## Score against observable anchors
 
+### Evidence needed
+
 Use rubric scoring for qualities such as completeness, clarity, feasibility, or evidence strength. Define levels so a higher score always means more of the same property. Ask separate questions for independent dimensions instead of disguising tradeoffs in one number.
+
+### Example payload
 
 ```json
 {
@@ -106,11 +137,17 @@ Use rubric scoring for qualities such as completeness, clarity, feasibility, or 
 }
 ```
 
+### Consume the answers
+
 With three levels, a score of 1.6 is on a 0–2 scale. Keep the rubric with the reported score; arithmetic normalization does not turn it into a probability or an objective measurement.
 
 ## Compare alternatives
 
+### Evidence needed
+
 Use a shared state and explicit preference criteria for candidate answers, designs, explanations, or plans. Include tie and insufficient-information outcomes if appropriate. A winner is relative to the supplied criteria, not universally best.
+
+### Example payload
 
 ```json
 {
@@ -133,6 +170,8 @@ Use a shared state and explicit preference criteria for candidate answers, desig
   }
 }
 ```
+
+### Consume the answers
 
 For a ranked list, use common rubrics or explicit pairwise comparisons and retain ties. Pairwise results can be inconsistent; do not silently infer a total order from a cycle.
 

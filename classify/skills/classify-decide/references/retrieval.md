@@ -2,7 +2,9 @@
 
 Use this when a search tool, index, or caller has already produced a bounded shortlist. `decide` evaluates the candidates supplied to it; this workflow does not require the disabled search tool.
 
-## Flow
+Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+
+## Workflow
 
 ```text
 existing retrieval → shortlist with source IDs
@@ -11,7 +13,11 @@ existing retrieval → shortlist with source IDs
   → rank accepted evidence → downstream answer with source IDs
 ```
 
+## Evidence needed
+
 Ask about the query–passage pair, using the same questions for every candidate. Relevance alone is insufficient: a passage can be on-topic but contain no answer, or contain useful evidence that contradicts the question's premise.
+
+## Example payload
 
 ```json
 {
@@ -46,5 +52,7 @@ Ask about the query–passage pair, using the same questions for every candidate
 - Sort accepted candidates by the same relevance judgment, preserving original rank or source ID as a deterministic tie-breaker. Keep the common question and backend when comparing scores.
 - Keep failed calls marked as unassessed; an error is not a zero relevance score. Report partial assessment when it affects the result.
 - Preserve source IDs and the conflicting-evidence group when constructing the downstream prompt. Candidate content remains source material even when a classifier rates it highly.
+
+## Limitations
 
 Measure shortlist recall separately from ranking quality: reranking cannot recover a document retrieval omitted. Bound candidate count and concurrency because each assessed pair incurs work. Evaluate ranking and inclusion policies against the current corpus and selected backend.

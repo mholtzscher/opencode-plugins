@@ -2,7 +2,9 @@
 
 Use this when code can find candidate values but their role depends on meaning: the billing address rather than the sender, the amount due rather than a subtotal, or a named person from a known roster. `decide` selects among candidates; code copies and validates the actual value.
 
-## Flow
+Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+
+## Workflow
 
 ```text
 source → parser/regex/known roster → candidate IDs + source spans
@@ -10,7 +12,11 @@ source → parser/regex/known roster → candidate IDs + source spans
   → resolve selected ID → copy exact span → validate and normalize in code
 ```
 
+## Evidence needed
+
 Keep offsets and provenance in the caller's candidate map. Preserve distinct occurrences when identical strings have different contexts. If there are no candidates, return missing without a model call. One candidate plus `none` still provides the two alternatives required by a `choice` question.
+
+## Example payload
 
 ```json
 {
@@ -35,13 +41,15 @@ Keep offsets and provenance in the caller's candidate map. Preserve distinct occ
 }
 ```
 
-## Consume the answer
+## Consume the answers
 
 ```text
 if result failed: report unassessed
 else if selected option is none: report missing
 else: look up the stored candidate ID and copy its source span
 ```
+
+## Limitations
 
 The returned value can be byte-for-byte grounded in the source because code copies the selected span. Selection can still choose the wrong role, and normalization can still be wrong; retain the original span alongside the normalized result.
 

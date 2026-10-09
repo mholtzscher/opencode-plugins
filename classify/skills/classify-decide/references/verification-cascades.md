@@ -2,7 +2,9 @@
 
 Use this when an existing workflow produces an answer or structured extraction and needs to decide which items warrant a more expensive second pass. The producer and escalation mechanism are outside `decide`; Classify supplies bounded verification judgments.
 
-## Flow
+Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+
+## Workflow
 
 ```text
 producer → candidate output
@@ -11,7 +13,11 @@ producer → candidate output
   → keep candidate / escalate with localized findings / mark assessment unavailable
 ```
 
+## Evidence needed
+
 Schema validity does not establish semantic correctness. Frame each verification question narrowly so yes means a specific error, and include the relevant original source rather than only the producer's answer or explanation.
+
+## Example payload
 
 ```json
 {
@@ -43,5 +49,7 @@ For an empty field, ask whether the source actually provides the requested infor
 When any single error is sufficient to justify escalation, use an any-flag policy over the per-field results. Averaging can hide one strong error signal among many low ones. The threshold and error costs belong to the caller and should be evaluated on representative labeled outputs.
 
 Send the next producer the original source, requirements, candidate, and localized findings. Set a bounded escalation policy, such as one stronger pass followed by an unresolved result if necessary. A verifier failure is an unavailable assessment, not evidence that the candidate passed.
+
+## Limitations
 
 `decide` uses the selected configured backend; adding a model name to its input does not select an extractor or automatically invoke another model. Use only producer/escalation mechanisms actually available in the surrounding workflow. Measure verification errors, escalation rate, and total cost to determine whether the cascade improves that workflow.

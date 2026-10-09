@@ -60,6 +60,6 @@ Batch independent questions sharing evidence into one call. If a later judgment 
 
 Discover the `classify` namespace and use the returned `decide` signature. The live definition owns input limits, available presets, supported evidence, and output fields. Use a configured classifier only when it is advertised and its criteria fit the task. Otherwise supply `state` and `questions` directly; creating a preset is not a prerequisite.
 
-Check `ok` before reading `result.answers[id]`. On failure, use the returned error to correct the request or report the unavailable assessment. Preserve source references when presenting findings so the user can inspect the underlying evidence.
+Check `ok` before reading `result.answers[id]`. On failure, use the returned error to correct the request or report the unavailable assessment. Unknown labels and unavailable assessments do not establish safety or correctness. Replace illustrative snippets with current evidence and preserve file paths, revisions, and item IDs when presenting findings so the user can inspect the underlying evidence.
 
 Treat the measurements as inputs to the user's decision. Inspect source evidence for consequential claims, and distinguish model judgments from verified observations. Provider confidence is not a calibrated probability of correctness. Use caller-defined thresholds or evaluate them against labeled examples before making a score a recurring gate; repeating an identical call is not additional evidence.

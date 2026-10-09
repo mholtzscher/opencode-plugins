@@ -2,11 +2,17 @@
 
 Use this when labels form a known taxonomy: products, subjects, organizational units, or any caller-provided hierarchy. Keep the tree or graph and label-to-parent mapping in code. The model chooses among the children presented at a particular node.
 
+Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+
 ## Traverse the hierarchy
+
+### Evidence needed
 
 1. Supply the item and a `choice` question over one node's direct children. Use stable short option keys with informative descriptions; keep question IDs within the live schema's rules.
 2. After the answer, construct the next question from the selected child's children. This is a dependent call because those options depend on the previous result.
 3. Stop at a leaf, an explicit unmatched outcome, or the traversal's depth/request budget. A single-child node can be traversed in code; a leaf needs no call.
+
+### Example payload
 
 ```json
 {
@@ -29,7 +35,9 @@ Use this when labels form a known taxonomy: products, subjects, organizational u
 }
 ```
 
-### Preserve alternatives when needed
+### Consume the answers
+
+#### Preserve alternatives when needed
 
 Greedy traversal discards every alternative after each call. If early ambiguity matters, keep a bounded beam of plausible paths and ask one child-choice question per frontier node. Those frontier questions can share a call when the evidence is shared and each question identifies its parent category.
 

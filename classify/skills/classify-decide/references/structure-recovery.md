@@ -2,11 +2,22 @@
 
 Use this for text whose headings, list markers, or paragraph boundaries were lost. Let the model classify boundaries and block types, while code preserves source text and renders the markup.
 
+Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+
+- [Pass 1: recover boundaries](#pass-1-recover-boundaries)
+- [Pass 2: classify the resulting blocks](#pass-2-classify-the-resulting-blocks)
+- [Render and verify in code](#render-and-verify-in-code)
+- [Limitations](#limitations)
+
 ## Pass 1: recover boundaries
+
+### Evidence needed
 
 Split and number source lines in code, preserving offsets and blank-line information. Honor explicit markers and other deterministic structure directly. Ask about ambiguous adjacent line boundaries only.
 
 Ask whether a line continues a sentence, rather than whether two lines discuss the same topic: the latter can incorrectly collapse an entire list into a paragraph.
+
+### Example payload
 
 ```json
 {
@@ -30,11 +41,17 @@ Ask whether a line continues a sentence, rather than whether two lines discuss t
 }
 ```
 
+### Consume the answers
+
 Apply a caller-defined boundary policy in code, using punctuation and source layout as well as the returned judgments. Preserve uncertain boundaries for inspection. Evaluate sentence-ending and mid-sentence boundaries separately when selecting cutoffs; a threshold suitable for hard-wrapped prose can incorrectly join list items.
 
 ## Pass 2: classify the resulting blocks
 
+### Evidence needed
+
 The second call depends on blocks built after the first call. Include surrounding blocks so a heading can be distinguished from a short paragraph. The following payload illustrates a possible block set, not a recorded result of the first example.
+
+### Example payload
 
 ```json
 {
@@ -73,6 +90,8 @@ The second call depends on blocks built after the first call. Include surroundin
 }
 ```
 
+### Consume the answers
+
 Companion questions for heading level, list order, or callout kind can share this second call because they inspect the same blocks. Consume a companion answer only when the selected block type makes it relevant; it does not depend on reading another answer inside the call.
 
 ## Render and verify in code
@@ -83,5 +102,7 @@ blocks + type judgments → deterministic renderer → reconstructed Markdown
 ```
 
 The renderer adds markup and approved whitespace changes while copying source wording. Escape syntax where necessary and retain original source slices; classify a code block without executing its contents. Check text preservation independently of the semantic judgments, and retain unresolved block types for review rather than silently inventing structure.
+
+## Limitations
 
 Batch only within Classify's question and evidence limits. Long documents need overlapping context at chunk boundaries and may require several requests per pass. Explicit source markers should not be overridden merely because a model prefers another interpretation.
