@@ -103,9 +103,9 @@ See the [tool reference](./docs/TOOL_REFERENCE.md) for criteria rules, complete 
 
 The plugin also bundles the discoverable `classify-decide` skill. Ask to use it for additional judgment patterns: categorization, overlapping labels, claim grounding, rubric scoring, candidate comparison, repeated evaluation, and file or image evidence. Its short guide links to examples loaded on demand; these illustrate the tool's open-ended criteria rather than restrict its uses. No separate skill installation is needed.
 
-Bundled references cover retrieval filtering and reranking, entity matching, hierarchical classification, candidate-span extraction, verification cascades, and document structure recovery. Each contains its own workflow, example payloads, and result-handling guidance; no external cookbook is needed.
+Bundled references cover retrieval filtering and reranking, entity matching, hierarchical classification, candidate-span extraction, verification cascades, and document structure recovery. Each reference file is dedicated to one flow, with evidence requirements, example payloads, result handling, and limitations; dependent steps stay together. The skill guide links directly to each flow, so no external cookbook is needed.
 
-Coding references add 28 workflows across change assessment, architecture, tests and verification, debugging, maintenance, and agent investigation. Examples cover semantic diffs, compatibility and migration risk, test quality and mutation triage, review finding triage, agent progress, and selective follow-up. The agent reference also describes a caller-managed semantic event stream. These are on-demand recipes; the plugin does not register automation hooks, run reviewers, persist events, or execute their decisions.
+Coding references add 28 workflows across change assessment, architecture, tests and verification, debugging, maintenance, and agent investigation. Examples cover semantic diffs, compatibility and migration risk, test quality and mutation triage, review finding triage, agent progress, and selective follow-up. A dedicated reference also describes a caller-managed semantic event stream. These are on-demand recipes; the plugin does not register automation hooks, run reviewers, persist events, or execute their decisions.
 
 ## Switch backends in a session
 

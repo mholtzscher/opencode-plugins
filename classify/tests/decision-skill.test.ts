@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -45,6 +45,13 @@ test("bundled skill references resolve, use consistent layouts, and satisfy the 
     ...skill.content.matchAll(/\]\((?<reference>references\/[^)]+)\)/gu),
   ];
   expect(links.length).toBeGreaterThan(0);
+  const referencePaths = links.map(([, relative]) => relative);
+  const referenceDirectory = path.join(path.dirname(skill.path), "references");
+  const referenceNames = await readdir(referenceDirectory);
+  const bundledPaths = referenceNames
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => `references/${name}`);
+  expect(referencePaths.toSorted()).toEqual(bundledPaths.toSorted());
   const decode = Schema.decodeUnknownSync(
     Schema.fromJsonString(buildInputSchema({}))
   );
@@ -54,23 +61,16 @@ test("bundled skill references resolve, use consistent layouts, and satisfy the 
     )
   );
   for (const text of references) {
-    const headings = [
-      ...text.matchAll(
-        /^#{2,3} (?<heading>Evidence needed|Example payload|Consume the answers|Limitations)$/gmu
-      ),
-    ].map(([, heading]) => heading);
-    expect(headings.length).toBeGreaterThan(0);
-    for (let index = 0; index < headings.length;) {
-      expect(headings.slice(index, index + 3)).toEqual([
-        "Evidence needed",
-        "Example payload",
-        "Consume the answers",
-      ]);
-      index += 3;
-      if (headings[index] === "Limitations") {
-        index += 1;
-      }
-    }
+    expect([...text.matchAll(/^# /gmu)]).toHaveLength(1);
+    const headings = [...text.matchAll(/^## (?<heading>.+)$/gmu)].map(
+      ([, heading]) => heading
+    );
+    expect(headings).toEqual([
+      "Evidence needed",
+      "Example payload",
+      "Consume the answers",
+      "Limitations",
+    ]);
     const examples = [...text.matchAll(/```json\n(?<input>[\s\S]*?)\n```/gu)];
     expect(examples.length).toBeGreaterThan(0);
     for (const [, example] of examples) {
