@@ -68,9 +68,19 @@ Load one copy of each plugin; avoid configuring multiple sources with the same p
 
 Run `bun install` inside each plugin you work on. Configure its directory in `plugins`: relative paths resolve from the containing config file, or use an absolute path from another project. The root install only supplies lint tooling.
 
-The repository's [`opencode.jsonc`](./opencode.jsonc) loads all six local plugins and contains operator-specific model, account, and credential settings. Classify defaults to `ollama-nimble`; see its [development configuration](./classify/docs/CONFIGURATION.md#repository-development-configuration) before using hosted profiles or changing models.
+The repository's [`opencode.jsonc`](./opencode.jsonc) loads all six local plugins and contains operator-specific model, account, and credential settings. See Classify's [development configuration](./classify/docs/CONFIGURATION.md#repository-development-configuration) before using hosted profiles or changing models.
 
-With mise 2026.9.18 or later, `mise run opencode` launches the local plugins with isolated `XDG_CONFIG_HOME` under `.opencode-dev/` and `--standalone`. It does not start inference servers. The optional [Laya daemon](./classify/docs/CONFIGURATION.md#start-laya-with-mise) is managed separately.
+Run plain `opencode` from this repository to use the local plugins while retaining global MCP servers, permissions, providers, and CLI settings. The project config merges over the global config, but plugin arrays accumulate rather than replace one another.
+
+### Local plugins versus global installs
+
+Verified with OpenCode V2.0.26: configuring an installed package globally and its local checkout here produces `Duplicate plugin ID` failures. ID-based disable directives such as `-classify` do not select a source: loading the local copy re-enables that ID for both copies, and the installed copy wins.
+
+Root `opencode.jsonc` instead uses experimental `integration.use` policies with `plugin:<package-target>` resources to block only the five global Git/npm package sources in this project. Keep these policies aligned with the global package targets if those sources change; leave the local path entries and their options intact. This behavior was verified against the installed V2.0.26 runtime; the public policies guide did not yet document `integration.use`.
+
+After changing plugin sources, open `/plugins` and confirm all six repository plugins are **active, local**, with no duplicate failures. Unrelated global plugins should remain active. CLI preferences still come from global `cli.json`; there is no project-local CLI settings file.
+
+Launching OpenCode does not start inference servers. The optional [Laya daemon](./classify/docs/CONFIGURATION.md#start-laya-with-mise) is managed separately.
 
 ### Verification
 
