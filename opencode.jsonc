@@ -70,6 +70,11 @@
       },
       {
         "action": "integration.use",
+        "resource": "plugin:@mholtzscher/opencode-workflow-tools",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
         "resource": "plugin:@mholtzscher/opencode-classify",
         "effect": "deny",
       },

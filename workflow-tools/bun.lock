@@ -3,9 +3,10 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "opencode-workflow-tools",
+      "name": "@mholtzscher/opencode-workflow-tools",
       "dependencies": {
         "@effect/platform-node": "4.0.0-rc.112",
+        "@effect/platform-node-shared": "4.0.0-rc.112",
         "@opencode/plugin": "^2.0.22",
         "effect": "4.0.0-rc.112",
       },

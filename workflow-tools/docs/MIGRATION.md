@@ -2,7 +2,7 @@
 
 [Back to README](../README.md)
 
-Workflow tools replaces `spec-tools` and `github-tools` with independent private package `opencode-workflow-tools`, server ID `workflow-tools`. This is a breaking migration, not a compatibility wrapper.
+Workflow tools replaces `spec-tools` and `github-tools` with independent package `@mholtzscher/opencode-workflow-tools`, server ID `workflow-tools`. This is a breaking migration, not a compatibility wrapper.
 
 ## Remove legacy sources first
 
@@ -15,9 +15,11 @@ After removal, merge this into existing settings:
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["github:mholtzscher/opencode-plugins#main::path:workflow-tools"],
+  "plugins": ["@mholtzscher/opencode-workflow-tools"],
 }
 ```
+
+Until the [first npm publish](https://github.com/mholtzscher/opencode-plugins/blob/main/docs/RELEASING.md#first-workflow-tools-publish), use `github:mholtzscher/opencode-plugins#main::path:workflow-tools` instead. Replace any existing Git entry when moving to npm; do not load both sources.
 
 For local development use `./workflow-tools`; paths resolve from the containing config. Preserve unrelated entries/options, launch plain `opencode`, and verify one plugin/eight commands. All retained commands are server-side for terminal/web/desktop. Relevant external skills remain required; authenticated `gh` belongs on the server for GitHub activities, not the TUI host. No Plannotator or gh-stack dependency remains. See [dependencies](./WORKFLOWS.md#dependencies).
 

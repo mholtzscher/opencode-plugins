@@ -15,9 +15,11 @@ bun run typecheck
 bun test
 ```
 
-Run `bun run check` from root; scope formatting to owned files during concurrent work. This independent private ESM package exports only `.`; strict NodeNext/noEmit checking includes nested `**/*.ts`, excluding dependencies.
+Run `bun run check` from root; scope formatting to owned files during concurrent work. This independent npm-enabled ESM package exports only `.`; strict NodeNext/noEmit checking includes nested `**/*.ts`, excluding dependencies.
 
-Effect and platform-node are pinned exactly to `4.0.0-rc.112`. The transitive platform-node-shared override also pins rc.112 because its newer stable release is incompatible with the pinned Effect APIs. `@opencode/plugin` is `^2.0.22`, currently locked at 2.0.26. Keep prereleases aligned; upgrading Effect is outside this change.
+Effect, platform-node, and platform-node-shared are pinned exactly to `4.0.0-rc.112`. The shared adapter is a direct dependency as well as a local override: published consumers do not inherit overrides, and its newer stable release is incompatible with the pinned Effect APIs. `@opencode/plugin` is `^2.0.22`. Keep prereleases aligned; upgrading Effect is outside this change.
+
+`npm pack --dry-run` should include the TypeScript entry and production modules under `pr/` and `specs/`, documentation, changelog, and MIT license, but no tests, test-support fixtures, lockfile, or development config. OpenCode loads TypeScript directly; no build or install hooks are needed. See [Releasing](https://github.com/mholtzscher/opencode-plugins/blob/main/docs/RELEASING.md) for bootstrap and trusted publishing.
 
 ## Actual architecture and module map
 

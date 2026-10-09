@@ -16,11 +16,11 @@ GitHub does not start other workflows for PRs or releases created using `GITHUB_
 
 ## First Workflow tools release
 
-Workflow tools replaces the two legacy release components with its own new `workflow-tools` component, package/manifest seed `1.0.0`, and **component-local** `release-as: 1.0.0`. Inspect the generated release PR to confirm the initial version; remove this one-time override after the release. It remains private and Git-installable, with no npm publication or TUI export. Preserve historical legacy tags/releases; their changelog material belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not earlier Workflow tools releases.
+Workflow tools replaces the two legacy release components with its own new `workflow-tools` component, package/manifest seed `1.0.0`, and **component-local** `release-as: 1.0.0`. Inspect the generated release PR to confirm the initial version; remove this one-time override after the release. It is npm-enabled and Git-installable, with no TUI export. Preserve historical legacy tags/releases; their changelog material belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not earlier Workflow tools releases.
 
 ## First Classify publish
 
-Classify is the only npm-enabled package. Its name is `@mholtzscher/opencode-classify`, and its initial version is `1.0.0`. The other packages retain `private: true` and receive GitHub releases only.
+Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools is also npm-enabled; Cache metrics, Quota usage, and Marketplace retain `private: true` and receive GitHub releases only.
 
 Before merging the first automated release PR, publish Classify once while authenticated to npm as `mholtzscher`. npm requires the package to exist before a trusted publisher can be attached. From `classify/` in the checkout containing this setup:
 
@@ -46,9 +46,30 @@ On npmjs.com, open the settings for `@mholtzscher/opencode-classify` and add a G
 
 Allow the publisher to publish directly if npm offers a stage-only option. No `NPM_TOKEN` repository secret is required. The publish job requests `id-token: write`; npm uses that identity and automatically generates provenance for the public repository.
 
+## First Workflow tools publish
+
+The package name is `@mholtzscher/opencode-workflow-tools`. npm requires an existing package before a trusted publisher can be attached, so the first publish is manual; subsequent releases use GitHub OIDC.
+
+Merge the publishing setup and initial release PR, confirming that `workflow-tools-v1.0.0` contains the scoped, public package metadata. The initial automated publish cannot succeed before npm bootstrap and trusted-publisher setup. In a separate checkout of that release tag, run from `workflow-tools/` while authenticated as `mholtzscher`:
+
+```sh
+bun install --frozen-lockfile
+bun run typecheck
+bun test
+npm pack --dry-run
+npm login
+npm publish --access public
+```
+
+The allowlist ships the TypeScript server entry, production `pr/` and `specs/` modules, documentation, changelog, and MIT license, excluding tests and development fixtures. No compilation or TUI bundle is needed. Effect's shared Node adapter is pinned as a direct dependency so fresh consumers do not rely on the repository's override or lockfile.
+
+On npmjs.com, open this package's settings and add a GitHub Actions trusted publisher using the same fields in the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow filename `release-please.yml`, and no environment. Allow direct publishing; no npm token secret is needed. Remove Workflow tools' one-time `release-as` override after the initial release so later versions advance normally.
+
+The manual publish completes npm delivery of `1.0.0`; do not rerun the automated publish for an already-published version, because npm versions are immutable. Future tagged releases use the configured publisher. Until bootstrap is complete, use the Git install target in the plugin README.
+
 ## Automated npm releases
 
-When Release Please creates a Classify release, `publish-classify` checks out that release's tag, installs Classify's dependencies with Bun, runs typecheck and tests, inspects the package contents, and publishes with npm. Each plugin is an independent package, so installation and publication run inside `classify/`, without npm workspace flags.
+When Release Please creates a Classify or Workflow tools release, `publish-classify` or `publish-workflow-tools` checks out that component's tag, verifies its version and published GitHub release, installs its dependencies with Bun, runs typecheck and tests, inspects the package contents, and publishes with npm. Each plugin is an independent package, so installation and publication run inside its directory, without npm workspace flags. Publishing uses Node 24 and npm 11 (trusted publishing requires npm 11.5.1+).
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
@@ -57,6 +78,14 @@ If recovery requires a workflow fix, merge that fix and dispatch the updated wor
 ```sh
 gh workflow run release-please.yml --ref main -f classify_tag=classify-v1.0.1
 ```
+
+For Workflow tools, supply its optional tag input instead:
+
+```sh
+gh workflow run release-please.yml --ref main -f workflow_tools_tag=workflow-tools-v1.0.1
+```
+
+Supply at least one tag input. Each publisher runs only for its component's tag; Classify's existing recovery input remains supported.
 
 This publishes the tagged package using the current workflow. It skips Release Please, so it does not create another release or version bump. npm verbose logs include OIDC exchange errors to help diagnose trusted-publisher mismatches.
 

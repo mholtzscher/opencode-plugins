@@ -6,14 +6,16 @@ Composable specification and pull-request workflows for **OpenCode V2.0.22+**, a
 
 **Migrating? First remove both legacy plugin sources from every applicable server and TUI configuration.** Old and new IDs differ, so duplicate-ID protection cannot prevent both loading. See [Migration](./docs/MIGRATION.md) before replacing installations.
 
-Merge this entry into your `opencode.jsonc`:
+After the [first npm publish](https://github.com/mholtzscher/opencode-plugins/blob/main/docs/RELEASING.md#first-workflow-tools-publish), merge this entry into your `opencode.jsonc`:
 
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["github:mholtzscher/opencode-plugins#main::path:workflow-tools"],
+  "plugins": ["@mholtzscher/opencode-workflow-tools"],
 }
 ```
+
+Until npm publication is complete, use `github:mholtzscher/opencode-plugins#main::path:workflow-tools` instead. Git installs remain supported. When switching sources, replace the existing entry rather than adding a second copy; the server ID remains `workflow-tools`.
 
 Install the [dependencies](./docs/WORKFLOWS.md#dependencies) for the activities you use on the **OpenCode server**. Skills and authenticated `gh` are external, not bundled or checked at startup. Spec-only planning/refinement does not need `gh`; remote clients do not need TUI-host `gh`.
 

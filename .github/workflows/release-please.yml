@@ -8,7 +8,11 @@ on:
     inputs:
       classify_tag:
         description: Existing Classify release tag to publish
-        required: true
+        required: false
+        type: string
+      workflow_tools_tag:
+        description: Existing Workflow tools release tag to publish
+        required: false
         type: string
 
 permissions:
@@ -29,6 +33,8 @@ jobs:
     outputs:
       classify_released: ${{ steps.release.outputs['classify--release_created'] }}
       classify_tag: ${{ steps.release.outputs['classify--tag_name'] }}
+      workflow_tools_released: ${{ steps.release.outputs['workflow-tools--release_created'] }}
+      workflow_tools_tag: ${{ steps.release.outputs['workflow-tools--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
@@ -37,7 +43,7 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # GITHUB_TOKEN-created releases do not trigger another workflow. Publish in
-  # this run, as in pi-extensions. Only Classify opts into npm publishing.
+  # this run, as in pi-extensions. Classify and Workflow tools opt into npm.
   publish-classify:
     needs: release
     if: >-
@@ -81,4 +87,48 @@ jobs:
 
       # Configure release-please.yml as this package's npm trusted publisher.
       # npm uses GitHub OIDC and generates provenance without NODE_AUTH_TOKEN.
+      - run: npm publish --access public --loglevel verbose
+
+  publish-workflow-tools:
+    needs: release
+    if: >-
+      always() && (needs.release.outputs.workflow_tools_released == 'true' ||
+       (github.event_name == 'workflow_dispatch' && startsWith(inputs.workflow_tools_tag, 'workflow-tools-v')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: workflow-tools
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.workflow_tools_tag || inputs.workflow_tools_tag }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release.outputs.workflow_tools_tag || inputs.workflow_tools_tag }}
+        run: |
+          test "$RELEASE_TAG" = "workflow-tools-v$(node -p 'require("./package.json").version')"
+          test "$(node -p 'require("./package.json").name')" = "@mholtzscher/opencode-workflow-tools"
+          gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx false
+
+      - run: npm install -g npm@11
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: npm pack --dry-run
+
+      # Configure release-please.yml as this package's npm trusted publisher.
       - run: npm publish --access public --loglevel verbose

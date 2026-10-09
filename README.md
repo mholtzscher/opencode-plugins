@@ -73,7 +73,7 @@ Run plain `opencode` from this repository to use the local plugins while retaini
 
 Verified with OpenCode V2.0.26: configuring an installed package globally and its local checkout here produces `Duplicate plugin ID` failures. ID-based disable directives such as `-classify` do not select a source: loading the local copy re-enables that ID for both copies, and the installed copy wins.
 
-Root `opencode.jsonc` instead uses experimental `integration.use` policies with `plugin:<package-target>` resources to block only four installed Git/npm package sources in this project. Keep these policies aligned with the global package targets if those sources change; leave the local path entries and their options intact. This behavior was verified against the installed V2.0.26 runtime; the public policies guide did not yet document `integration.use`.
+Root `opencode.jsonc` instead uses experimental `integration.use` policies with `plugin:<package-target>` resources to block installed Git/npm package sources in this project. Keep these policies aligned with the global package targets if those sources change; leave the local path entries and their options intact. This behavior was verified against the installed V2.0.26 runtime; the public policies guide did not yet document `integration.use`.
 
 The merger removes the two legacy installed-source deny policies. Remove legacy sources from all applicable configs **before** loading Workflow tools: removing those policies can re-enable global old installations, and their different IDs evade duplicate-ID protection. Repository changes do not edit global configuration. See [migration prerequisites](./workflow-tools/docs/MIGRATION.md#remove-legacy-sources-first).
 
@@ -97,4 +97,4 @@ From the repository root, run `bun install`, then `bun run check` for Ultracite'
 
 ## Releases
 
-Release Please manages independent versions, changelogs, tags, and GitHub releases for all five plugins. Classify also publishes to npm as `@mholtzscher/opencode-classify` through GitHub Actions trusted publishing. See [Releasing](./docs/RELEASING.md) for first-publish setup and the release workflow.
+Release Please manages independent versions, changelogs, tags, and GitHub releases for all five plugins. Classify and Workflow tools have npm publishing jobs for `@mholtzscher/opencode-classify` and `@mholtzscher/opencode-workflow-tools`, using GitHub Actions trusted publishing after npm-side setup. See [Releasing](./docs/RELEASING.md) for first-publish setup and the release workflow.
