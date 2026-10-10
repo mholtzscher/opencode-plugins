@@ -176,7 +176,11 @@ test("startup selection failure recovers without a reconnect and stops retrying 
     read: () => {
       attempts += 1;
       if (attempts < 3) {
-        return Promise.reject(new Error("Session is not ready"));
+        return Promise.reject(
+          Object.assign(new Error("RPC is not ready"), {
+            type: "rpc.unavailable",
+          })
+        );
       }
       return Promise.resolve(selected("hosted"));
     },
@@ -244,7 +248,12 @@ test("unmount cancels recovery scheduled by a failed read", async () => {
     publish: noop,
     read: () => {
       attempts += 1;
-      return Promise.reject(new Error("RPC unavailable"));
+      return Promise.reject(
+        Object.assign(new Error("Connection lost"), {
+          name: "ClientError",
+          reason: "Transport",
+        })
+      );
     },
   });
   try {
@@ -252,6 +261,90 @@ test("unmount cancels recovery scheduled by a failed read", async () => {
     stop();
     jest.advanceTimersByTime(60_000);
     expect(attempts).toBe(1);
+  } finally {
+    stop();
+    jest.useRealTimers();
+  }
+});
+
+for (const error of [
+  { type: "unknown_backend" },
+  { type: "unavailable" },
+  { _tag: "SessionNotFoundError" },
+  { name: "ClientError", reason: "MalformedResponse" },
+  new Error("Invalid selection response"),
+]) {
+  test(`permanent selection errors wait for an explicit refresh: ${JSON.stringify(error)}`, async () => {
+    jest.useFakeTimers();
+    let attempts = 0;
+    let refresh = noop;
+    const labels: string[] = [];
+    const stop = watchBackendStatus({
+      onChanged: (listener) => {
+        refresh = listener;
+        return noop;
+      },
+      onConnected: () => noop,
+      publish: (label) => labels.push(label),
+      read: () => {
+        attempts += 1;
+        if (attempts === 1) {
+          // oxlint-disable-next-line eslint/prefer-promise-reject-errors -- RPC errors are structured objects.
+          return Promise.reject(error);
+        }
+        return Promise.resolve(selected("repaired"));
+      },
+    });
+    try {
+      await flush();
+      jest.advanceTimersByTime(60_000);
+      expect(attempts).toBe(1);
+      expect(labels.at(-1)).toBe("unavailable");
+      refresh();
+      await flush();
+      expect(labels.at(-1)).toBe("repaired");
+    } finally {
+      stop();
+      jest.useRealTimers();
+    }
+  });
+}
+
+test("recovery has a finite budget, renewed by server events", async () => {
+  jest.useFakeTimers();
+  let attempts = 0;
+  let reconnect = noop;
+  const stop = watchBackendStatus({
+    onChanged: () => noop,
+    onConnected: (listener) => {
+      reconnect = listener;
+      return noop;
+    },
+    publish: noop,
+    read: () => {
+      attempts += 1;
+      return Promise.reject(
+        Object.assign(new Error("RPC not loaded"), {
+          type: "rpc.unavailable",
+        })
+      );
+    },
+  });
+  try {
+    await flush();
+    for (const delay of [1000, 2000, 4000, 8000, 16_000]) {
+      jest.advanceTimersByTime(delay);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Each failed attempt schedules the next timer.
+      await flush();
+    }
+    expect(attempts).toBe(6);
+    jest.advanceTimersByTime(60_000);
+    expect(attempts).toBe(6);
+    reconnect();
+    await flush();
+    jest.advanceTimersByTime(1000);
+    await flush();
+    expect(attempts).toBe(8);
   } finally {
     stop();
     jest.useRealTimers();
