@@ -20,7 +20,7 @@ Add the plugins you want to the `plugins` array in `opencode.jsonc`. Use a proje
 
 Classify is available on npm as [`@mholtzscher/opencode-classify`](https://www.npmjs.com/package/@mholtzscher/opencode-classify). The other plugins install from Git.
 
-This example lists all five packages. Keep only those you want. Classify uses TypeSafe here and needs `TYPESAFE_API_KEY` in the OpenCode server environment. To choose another backend, read [Classify configuration](./classify/docs/CONFIGURATION.md). Before replacing legacy specification or GitHub plugins, follow [Workflow tools migration](./workflow-tools/docs/MIGRATION.md).
+This example lists all five packages. Keep only those you want. Classify uses TypeSafe here and needs `TYPESAFE_API_KEY` in the OpenCode server environment. To choose another backend, read [Classify configuration](./classify/docs/CONFIGURATION.md).
 
 ```jsonc
 {
@@ -78,9 +78,7 @@ On OpenCode V2.0.26, a global package plus its local checkout produces `Duplicat
 
 Root `opencode.jsonc` uses experimental `integration.use` policies with `plugin:<package-target>` resources to block installed Git and npm sources in this project. If global package targets change, update these policies to match. Preserve local path entries and their options. This behavior was verified against V2.0.26, whose public policies guide did not document `integration.use`.
 
-Before loading Workflow tools, follow [migration prerequisites](./workflow-tools/docs/MIGRATION.md#remove-legacy-sources-first). Removing old deny policies can re-enable global legacy installations with different IDs. Repository changes do not edit global configuration.
-
-After changing plugin sources, open `/plugins` and confirm all five repository plugins are **active, local**, with no duplicate failures or legacy command providers. Unrelated global plugins should remain active. CLI preferences still come from global `cli.json`; there is no project-local CLI settings file.
+After changing plugin sources, open `/plugins` and confirm all five repository plugins are **active, local**, with no duplicate failures. Unrelated global plugins should remain active. CLI preferences still come from global `cli.json`; there is no project-local CLI settings file.
 
 ### Verification
 
