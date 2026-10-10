@@ -57,7 +57,7 @@ ${PR_BODY_TEMPLATE_INSTRUCTIONS}
 
 5. **Boundaries** — Do not commit, push, switch branches, launch a watcher, or wait for checks. /pr-checks is a separate optional action.
 
-6. **Report back** — report the PR URL and verified title/body changes. Suggest /pr-checks or /pr-feedback only when relevant without executing them or implying checks passed.
+6. **Report back** — report the PR URL and verified title/body changes. Suggest /pr-checks or /pr-triage only when relevant without executing them or implying checks passed.
 
 User guidance for this description (takes precedence when provided):
 ${request || "(none provided; infer it from the PR diff)"}`;

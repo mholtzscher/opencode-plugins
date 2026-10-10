@@ -44,10 +44,10 @@ export const registerPrCommands = (
         {
           description:
             "Read-only triage of unresolved inline PR threads; agree verdicts before /pr-fix",
-          name: "pr-feedback",
+          name: "pr-triage",
           run: (_args: string, cwd: string) =>
             workflows.prepareFeedbackReview(cwd),
-          validate: (args: string) => requireNoArguments("pr-feedback", args),
+          validate: (args: string) => requireNoArguments("pr-triage", args),
         },
         {
           description:

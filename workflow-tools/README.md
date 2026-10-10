@@ -28,7 +28,7 @@ Install the [dependencies](./docs/WORKFLOWS.md#dependencies) for the activities 
 | `/spec-refine <path>` | Propose clarity and complexity improvements; edit only approved recommendations |
 | `/pr-publish [--no-watch] [guidance]` | Commit scoped changes and create/update a PR; start background investigation by default |
 | `/pr-rewrite [guidance]` | Rewrite and verify the current PR's title and structured body, without code delivery or monitoring |
-| `/pr-feedback` | Read-only triage of unresolved inline threads |
+| `/pr-triage` | Read-only triage of unresolved inline threads |
 | `/pr-fix` | Deliver the whole agreed feedback report, then react/resolve settled threads |
 | `/pr-checks` | Immediately snapshot checks and investigate completed failures without waiting or editing |
 

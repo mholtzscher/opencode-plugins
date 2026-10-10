@@ -57,7 +57,7 @@ describe("spec workflow instructions", () => {
       "remaining gaps",
       "failed, blocked, unrun, or unavailable",
       "acceptance criteria remain unsatisfied",
-      "/pr-feedback",
+      "/pr-triage",
       "/pr-checks",
     ]) {
       expect(prompt).toContain(policy);

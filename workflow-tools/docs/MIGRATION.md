@@ -38,7 +38,8 @@ For local development use `./workflow-tools`; paths resolve from the containing 
 | Publication without watching | `/pr-publish --no-watch [guidance]` |
 | `/pr --describe [--watch] [guidance]` | `/pr-rewrite [guidance]`; both title/body, no monitoring |
 | `/pr --update` or `/pr --refresh` | `/pr-rewrite [guidance]`; retain relevant guidance, remove watch flags |
-| `/pr-comments` | `/pr-feedback` |
+| `/pr-comments` | `/pr-triage` |
+| `/pr-feedback` | `/pr-triage`; renamed, same read-only behavior |
 | `/pr-comments-fix [scope]` | `/pr-fix`; remove scope, deliver whole agreed report |
 | `/pr-actions` | `/pr-checks`; immediate snapshot, no waiting |
 | `/pr-review` | Removed; no review picker replacement |

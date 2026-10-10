@@ -54,7 +54,7 @@ ${PR_BODY_TEMPLATE_INSTRUCTIONS}
 
 5. **GitHub checks** — ${checkInstruction}
 
-6. **Report back** — report whether created or updated, PR URL, delivered changes, published head SHA, actual validation, and watcher startup or opt-out status. Pending monitoring is not evidence that checks passed. Suggest /pr-checks for explicit investigation or /pr-feedback for inline feedback when relevant; do not invoke another workflow command or invent URL selector arguments.
+6. **Report back** — report whether created or updated, PR URL, delivered changes, published head SHA, actual validation, and watcher startup or opt-out status. Pending monitoring is not evidence that checks passed. Suggest /pr-checks for explicit investigation or /pr-triage for inline feedback when relevant; do not invoke another workflow command or invent URL selector arguments.
 
 Requested branch name or PR description:
 ${request || "(none provided; infer it from the relevant changes)"}`;

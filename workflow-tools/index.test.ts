@@ -26,6 +26,8 @@ describe("server registration", () => {
           const host = yield* makeHost();
           expect(plugin.id).toBe("workflow-tools");
           expect([...host.commands.keys()]).toEqual(commandNames);
+          expect(host.commands.has("pr-triage")).toBe(true);
+          expect(host.commands.has("pr-feedback")).toBe(false);
           expect(manifest.exports).toEqual({ ".": "./index.ts" });
           expect(host.processes).toEqual([]);
           expect(host.reads).toEqual([]);
