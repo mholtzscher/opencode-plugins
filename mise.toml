@@ -4,10 +4,59 @@ min_version = { hard = "2026.9.18" }
 experimental = true
 
 [tools]
+bun = "1.4.2"
+node = "24.21.0"
 uv = "0.12.17"
 pitchfork = "2.25.0"
 "npm:oxlint" = "1.86.0"
 "npm:oxfmt" = "0.71.0"
+
+[tasks.install]
+description = "Install locked dependencies for the root and all five plugins"
+run = [
+  "bun install --frozen-lockfile",
+  "bun install --cwd cache-metrics --frozen-lockfile",
+  "bun install --cwd classify --frozen-lockfile",
+  "bun install --cwd marketplace --frozen-lockfile",
+  "bun install --cwd quota-usage --frozen-lockfile",
+  "bun install --cwd workflow-tools --frozen-lockfile",
+]
+
+[tasks.lint]
+description = "Check repository lint and formatting"
+run = "bun run check"
+
+[tasks.fix]
+description = "Apply repository lint and formatting fixes"
+run = "bun run fix"
+
+[tasks.typecheck]
+description = "Typecheck all five plugins"
+run = [
+  "bun run --cwd cache-metrics typecheck",
+  "bun run --cwd classify typecheck",
+  "bun run --cwd marketplace typecheck",
+  "bun run --cwd quota-usage typecheck",
+  "bun run --cwd workflow-tools typecheck",
+]
+
+[tasks.test]
+description = "Run all four plugin test suites (Marketplace has none)"
+run = [
+  "bun test --cwd cache-metrics",
+  "bun test --cwd classify",
+  "bun test --cwd quota-usage",
+  "bun test --cwd workflow-tools",
+]
+
+[tasks.check]
+description = "Run lint, all typechecks, and all test suites"
+depends = ["lint", "typecheck", "test"]
+
+[tasks."build:tui"]
+description = "Rebuild the committed Cache metrics TUI bundle"
+dir = "{{config_root}}/cache-metrics"
+run = "bun run build:tui"
 
 [daemons.laya]
 run = "exec uv tool run --python 3.12 --torch-backend=auto --from 'laya[serve]==0.3.22' laya-serve"
