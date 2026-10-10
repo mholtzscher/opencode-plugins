@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.5.0...classify-v1.5.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **classify:** retry unavailable backend status reads ([#29](https://github.com/mholtzscher/opencode-plugins/issues/29)) ([dc2b7cd](https://github.com/mholtzscher/opencode-plugins/commit/dc2b7cd56fbe1c513cc63e1cf6fd6b1d1c159231))
+
 ## [1.5.0](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.4.0...classify-v1.5.0) (2026-10-09)
 
 

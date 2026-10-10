@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v1.0.1...workflow-tools-v2.0.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workflow-tools:** rename pr-feedback to pr-triage ([#26](https://github.com/mholtzscher/opencode-plugins/issues/26))
+
+### Code Refactoring
+
+* **workflow-tools:** rename pr-feedback to pr-triage ([#26](https://github.com/mholtzscher/opencode-plugins/issues/26)) ([c831e8b](https://github.com/mholtzscher/opencode-plugins/commit/c831e8b8152c4705babb9aadc4bf07caa1611872))
+
 ## [1.0.1](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v1.0.0...workflow-tools-v1.0.1) (2026-10-09)
 
 
