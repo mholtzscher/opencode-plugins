@@ -25,9 +25,13 @@ Cache hit rate is `cache.read / (input + cache.read)`. Output tokens and cache w
 
 **In** means cached input, **New** means uncached input, and **Out** means generated output. The sidebar covers only the selected session. It shows **No token usage yet** when saved messages have no measured input tokens.
 
+![Expanded Cache sidebar showing the input cache-hit rate and token totals](./docs/images/cache-sidebar.png)
+
 ## History and export
 
 History includes the root session and its subagents by default, even when opened from a subagent. Responses are grouped under their preceding user request, with separate totals for each turn. Parent and subagent turns stay separate. The trend shows recent responses, oldest first. `·` means no measured input.
+
+![Cache history in fullscreen, showing a subagent turn, per-response cache rates, tool activity, and keyboard controls](./docs/images/cache-history.png)
 
 These keys work while the panel has focus:
 
