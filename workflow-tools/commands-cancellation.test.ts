@@ -17,7 +17,7 @@ describe("host interruption", () => {
     "spec-refine",
     "pr-publish",
     "pr-rewrite",
-    "pr-feedback",
+    "pr-triage",
     "pr-fix",
     "pr-checks",
   ])(
@@ -93,7 +93,7 @@ describe("host interruption", () => {
       );
     }
   );
-  test.each(["pr-rewrite", "pr-feedback", "pr-fix", "pr-checks"])(
+  test.each(["pr-rewrite", "pr-triage", "pr-fix", "pr-checks"])(
     "/%s interrupts PR subprocess preparation without admitting partial results",
     async (name) => {
       await Effect.runPromise(
@@ -133,7 +133,7 @@ describe("host interruption", () => {
     "spec-refine",
     "pr-publish",
     "pr-rewrite",
-    "pr-feedback",
+    "pr-triage",
     "pr-fix",
     "pr-checks",
   ])(

@@ -23,7 +23,7 @@ export const commandNames = [
   "spec-refine",
   "pr-publish",
   "pr-rewrite",
-  "pr-feedback",
+  "pr-triage",
   "pr-fix",
   "pr-checks",
 ];

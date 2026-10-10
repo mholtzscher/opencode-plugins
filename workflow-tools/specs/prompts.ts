@@ -30,7 +30,7 @@ Report completion evidence:
 - remaining gaps against the spec
 
 Distinguish successful checks from failed, blocked, unrun, or unavailable checks. Missing, unknown, skipped, or pending required checks are not verified passing. Never imply completion when required checks or acceptance criteria remain unsatisfied.
-Suggest /pr-feedback for review feedback or /pr-checks if checks are blocked, when relevant. These are optional handoffs, not automatic command invocations; do not append a PR URL as a command selector.`;
+Suggest /pr-triage for review feedback or /pr-checks if checks are blocked, when relevant. These are optional handoffs, not automatic command invocations; do not append a PR URL as a command selector.`;
 
 export const buildRefinementPrompt = (specPath: string): string =>
   `Review @${specPath} for clarity and solution complexity using the unslop skill. Preserve the proposal-first approval boundary even if the skill normally edits directly.

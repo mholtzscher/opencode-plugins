@@ -43,7 +43,7 @@ describe("PR command preparation", () => {
             host.processes.some((process) => process.args[0] === "api")
           ).toBe(false);
           host.processes.length = 0;
-          yield* host.run("pr-feedback");
+          yield* host.run("pr-triage");
           expect(
             host.processes.some(
               (process) =>

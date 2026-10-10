@@ -21,7 +21,7 @@ describe("shared command execution", () => {
     ["spec-refine", "example.md", "specs/example.md"],
     ["pr-publish", "publication guidance", "publication guidance"],
     ["pr-rewrite", "metadata guidance", "metadata guidance"],
-    ["pr-feedback", "", "No unresolved inline review threads found"],
+    ["pr-triage", "", "No unresolved inline review threads found"],
     ["pr-fix", "", "42"],
     ["pr-checks", "", "pending"],
   ] as const;
@@ -98,7 +98,7 @@ describe("shared command execution", () => {
       ])
     ),
     ["pr-rewrite", "--no-watch"],
-    ...["pr-feedback", "pr-fix", "pr-checks"].flatMap((name) =>
+    ...["pr-triage", "pr-fix", "pr-checks"].flatMap((name) =>
       ["scope", "--watch"].map((input) => [name, input])
     ),
   ];
@@ -132,7 +132,7 @@ describe("shared command execution", () => {
     "spec-refine",
     "pr-publish",
     "pr-rewrite",
-    "pr-feedback",
+    "pr-triage",
     "pr-fix",
     "pr-checks",
   ])("/%s preserves SDK session errors", async (name) => {
