@@ -4,114 +4,51 @@
 
 ## Setup and validation
 
-Use OpenCode 2.0.22+. Follow [migration prerequisites](./MIGRATION.md#remove-legacy-sources-first) before loading `./workflow-tools` from root config, or an absolute package directory elsewhere. Relative paths resolve from the containing config. Launch plain `opencode`; see [local-plugin guidance](../../README.md#local-plugins-versus-global-installs).
+Use OpenCode 2.0.22 or later. Before replacing legacy plugins, follow [migration prerequisites](./MIGRATION.md#remove-legacy-sources-first). When loading this checkout alongside global installs, follow [local-plugin setup](../../README.md#local-plugins-versus-global-installs).
 
-From `workflow-tools/`:
+From `workflow-tools/`, run `bun install`, `bun run typecheck`, and `bun test`. From the repository root, run `bun run check`. Use `bun install --frozen-lockfile` for reproducible installs.
 
-```sh
-bun install
-bun install --frozen-lockfile
-bun run typecheck
-bun test
-```
+Keep Effect prereleases aligned. Pin the shared Node adapter as a direct dependency as well as an override. Published consumers do not inherit overrides, and incompatible adapter releases break the pinned APIs.
 
-Run `bun run check` from root; scope formatting to owned files during concurrent work. This independent npm-enabled ESM package exports only `.`; strict NodeNext/noEmit checking includes nested `**/*.ts`, excluding dependencies.
-
-Effect, platform-node, and platform-node-shared are pinned exactly to `4.0.0-rc.112`. The shared adapter is a direct dependency as well as a local override: published consumers do not inherit overrides, and its newer stable release is incompatible with the pinned Effect APIs. `@opencode/plugin` is `^2.0.22`. Keep prereleases aligned; upgrading Effect is outside this change.
-
-`npm pack --dry-run` should include the TypeScript entry and production modules under `pr/` and `specs/`, documentation, changelog, and MIT license, but no tests, test-support fixtures, lockfile, or development config. OpenCode loads TypeScript directly; no build or install hooks are needed. See [Releasing](https://github.com/mholtzscher/opencode-plugins/blob/main/docs/RELEASING.md) for bootstrap and trusted publishing.
+Run `npm pack --dry-run` before publishing. Confirm the package contains TypeScript production modules, documentation, the changelog, and the license. Exclude tests, fixtures, the lockfile, and development config. OpenCode loads TypeScript directly, without build or install hooks. Release Please updates versions and changelogs. Follow [Releasing](../../docs/RELEASING.md) for publication.
 
 ### npm release recovery
 
-The initial `workflow-tools-v1.0.0` GitHub release is complete; the one-time `release-as` override is removed so subsequent `fix(workflow-tools): ...` changes can produce patch releases. Release Please owns version and changelog updates; do not bump `package.json` by hand.
+Successful OIDC authentication does not prove publication. An `E409` error mentioning a staged version means it may be reserved but not public. While signed in to npm:
 
-Successful GitHub OIDC authentication does not mean npm publication succeeded. An `E409` error mentioning a previously staged version means that version is reserved but may not be public. Inspect staged versions while signed in to npm:
+1. Find the staged version with `npm stage list @mholtzscher/opencode-workflow-tools --json`.
+2. Inspect it with `npm stage view <stage-id>`.
+3. Approve the intended artifact on npmjs.com or with `npm stage approve <stage-id>`, which requires two-factor authentication.
+4. Confirm public availability with `npm view @mholtzscher/opencode-workflow-tools version`.
 
-```sh
-npm stage list @mholtzscher/opencode-workflow-tools --json
-npm stage view <stage-id>
-```
+Do not republish a reserved version.
 
-Approve the intended artifact on npmjs.com or with `npm stage approve <stage-id>` (requires 2FA). Do not retry `npm publish` for that same staged version. Verify public availability with `npm view @mholtzscher/opencode-workflow-tools version`.
+Trusted publishers must allow direct `npm publish`, not only staging. New configurations require a successful publish within two days. Advancing the version does not fix missing publisher permissions.
 
-For future unattended releases, the trusted publisher must allow direct `npm publish`, not just `npm stage publish`. A new patch version avoids the old version's reservation, but does not fix missing publishing permissions. New trusted-publisher configurations also need a successful publish within two days to avoid expiry.
+## Architecture and invariants
 
-## Actual architecture and module map
+`index.ts` registers the spec and PR command families. Each acquires service layers in plugin scope. The plugin has no global runtime, TUI entry, custom RPC, durable workflow state, or scheduler. Executors validate arguments before reads and submit exactly one prompt. They preserve the invoking session, attachments, and requested queue or steer delivery.
 
-Thin `index.ts` registers both command families under `workflow-tools`. **Each registration family acquires its own service layers internally in plugin scope**, rather than the index constructing layers or a global runtime. Executors parse before reads, use the invoking session directory, and submit exactly one prompt preserving session, files/other fields, and queue/steer delivery.
+Spec resolution uses scoped Effect FileSystem and Path services. Stat follows symlinks to regular files, including targets outside `specs/`. Normalized paths preserve link names. Missing targets and targets that are not files map to `not-found`. Other I/O failures map to `filesystem` with their causes. Host permissions govern actual reads. The resolver does not prevent filesystem races. Before changing argument parsing or resolution, read [spec inputs](./WORKFLOWS.md#spec-inputs).
 
-| Module | Responsibility |
-| --- | --- |
-| `specs/commands.ts` | Three registrations, scoped NodeServices/filesystem acquisition and admission |
-| `specs/arguments.ts`, `specs/errors.ts` | Pure strict path grammar and tagged command errors |
-| `specs/paths.ts` | Session-relative resolver using Effect FileSystem and Path |
-| `specs/prompts.ts` | Planning, single-PR implementation, approved refinement |
-| `pr/commands.ts` | Five registrations, early validation and scoped PR service layers |
-| `pr/workflows.ts` | Explicit `prepare*` methods for publication, metadata rewrite, feedback review/fix and check investigation; returns text, owns no sessions/runtime |
-| `pr/arguments.ts` | Publish/rewrite/watch parsing and no-argument validation |
-| `pr/publication-prompts.ts`, `pr/metadata-prompts.ts`, `pr/watcher-prompts.ts` | Publication, shared metadata policy and read-only observer instructions |
-| `pr/feedback-prompts.ts`, `pr/check-prompts.ts`, `pr/evidence-format.ts` | Pure instruction/evidence formatting, clipping and untrusted-data delimiters |
-| `pr/review-threads.ts` | GraphQL query, pagination decoding and unresolved-thread filtering |
-| `pr/checks.ts` | Concrete-target all/required reads, empty/error decoding and identity rereads |
-| `pr/check-classification.ts` | Pure snapshot classification: stable identity, consistent rollups and duplicate ambiguity |
-| `pr/schemas.ts`, `pr/errors.ts` | External schemas, decoding and typed infrastructure failures |
-| `pr/github.ts` | Scoped native ChildProcessSpawner with bounded output, accepted exits and timeouts |
-| `pr/actions.ts`, `pr/actions-log.ts`, `pr/log-storage.ts` | Named job/run/annotation/log collectors with explicit partial-failure handling and concurrency limits; pure log excerpts and full failed-step evidence storage |
-| `command-execution.ts` | Shared preparation/admission cancellation boundary; preserves invocation attachments, session and delivery |
-| `interruption.ts` | Scoped preparation/admission racing against matching session events |
+Each subprocess has a scope and timeout. Interruption terminates it, escalating to a forced kill after five seconds. Actions collection limits concurrency and reports failed reads as limitations. Propagate interruption and defects instead of returning partial success. Do not retry GitHub writes. Temporary evidence logs do not store workflow progress.
 
-The resolver uses Effect `Path` and `FileSystem.stat` with `NodeServices.layer` acquired at registration. Stat follows symlinks: direct entries resolving to regular files are accepted, including targets outside `specs/`, while the normalized path retains the link name. Missing directory/entry, dangling link, or non-file target maps to `not-found`; permission/other I/O maps to `filesystem` with causes. SDK errors retain their channel. No custom filesystem adapter or race-proof filesystem sandbox is introduced; actual file reads remain subject to host permissions.
+An interruption event for the invoking session cancels preparation and prevents late prompt admission. Events for other sessions, or streams that end or fail, do not cancel it.
 
-Each subprocess has a scope and timeout; interruption terminates it, escalating cleanup to forced kill after five seconds if needed. Actions lookups have bounded concurrency: expected failures become explicit limitations, while interruption/defects are not partial success. Mutating GitHub operations are not retried. Existing temporary log paths are retained; evidence storage is not workflow persistence.
+OpenCode 2.0.26 does not emit this event for commands still preparing a prompt. Its interrupt endpoint treats them as idle and returns `interrupted: false`. Escape and session interruption need a host fix for this phase. Disconnecting a pending request does clean up preparation. After prompt admission, normal host interruption applies.
 
-When the host emits a same-session interruption event, the plugin cancels preparation and prevents late admission; other-session events do not. Completion/cancellation/unload releases scoped listeners/work; ended/failed streams do not imply cancellation. **OpenCode 2.0.26 does not emit that event for preparation-only commands:** its interrupt endpoint treats the session as idle and returns `interrupted: false`. User-facing cancellation of that preparation therefore requires a host fix; prompt-admitted executions can be interrupted. Actual request-disconnect cleanup was verified separately. Background agents use the host lifecycle, not a TUI ManagedRuntime. There is no picker, TUI export, custom RPC/events/configuration, durable workflow state or plugin scheduler.
+## Testing boundaries
 
-## Offline coverage
+Tests use fake Effect layers, TestClock, and Deferred or Queue synchronization rather than sleeps. `test-support/host.ts` provides the fake host scope, session and spec fixtures, and subprocess responses. Preserve tests for all eight registrations and for invalid arguments causing zero reads or prompt admissions. Also cover attachments and delivery, path parsing and symlinks, approval and publication policies, unstable check snapshots, subprocess limits, and cancellation cleanup. Offline tests verify service behavior and prompt policy, not live agent compliance.
 
-Tests use explicit fake Effect layers, TestClock for timeouts and Deferred/Queue synchronization rather than sleeps. Run focused files as needed, then the full suite and root lint:
+### Live smoke checklist
 
-| Tests | Boundary |
-| --- | --- |
-| `index.test.ts` | Exact eight names/server export, retired-name absence and no startup dependencies |
-| `command-execution.test.ts`, `specs/commands.test.ts`, `pr/commands.test.ts` | Shared admission/delivery and SDK failures; command-specific session paths and preparation reads; invalid-input zero reads/admissions |
-| `specs/arguments.test.ts`, `specs/paths.test.ts` | Quotes/concatenation/terminator/retired flags; symlink acceptance (relative/absolute targets inside/outside specs); unsafe, missing, non-file, dangling/directory-link and deterministic permission/I/O errors; fixtures under `/tmp/opencode` |
-| `specs/prompts.test.ts`, `pr/arguments.test.ts`, `pr/publication-prompts.test.ts`, `pr/metadata-prompts.test.ts`, `pr/workflows.test.ts` | Planning phases, implementation evidence, refinement approval/reconciliation, scoped create/update publication, metadata preservation/verification, observer policy, whole-report approved fix delivery before GitHub writes |
-| `pr/checks.test.ts`, `pr/check-classification.test.ts`, `pr/workflows.test.ts` | Immediate target-specific all/required reads `[0,1,8]`, pending plus failures, empty stderr/errors, required-query failure, duplicate joins, changed identity, skipped/unreported gates; pure classification without input mutation |
-| `pr/github.test.ts`, `interruption.test.ts`, `commands-cancellation.test.ts` | Process/JSON/output limits/timeouts, filtered cancellation and cleanup/no late admission |
+Use a disposable repository and branch. Record the OpenCode and `gh` versions, server dependencies, and evidence for each PASS, FAIL, or NOT RUN result. Get explicit approval for GitHub writes to disposable targets and for global plugin configuration changes.
 
-`test-support/host.ts` supplies the scoped fake host, session/spec fixtures and subprocess responses for registration and command-boundary tests. Existing contract assertions are retained across the split suites.
-
-Offline tests prove service behavior and prompt policy, not live agent compliance or external integration.
-
-## Live smoke checklist (external, not CI)
-
-Use a disposable repository/branch with normal local-plugin launch (`opencode`). Record OpenCode/gh versions and server dependencies. Record each behavior as passed, failed or unavailable with evidence/prerequisites. Never modify real PRs merely to validate the merger; writes require explicitly authorized disposable targets.
-
-1. With user approval remove old installed sources from every applicable configuration, including TUI-only sources; verify one plugin instance and eight commands.
-2. Create a small idea: verify explained depth selection, question-tool interview/planning, and no implementation. Exercise lightweight/full-depth paths; both retain domain modeling, spec-planner and approval. Refine a quoted existing spec: verify no initial edits, then approve selected recommendations and verify only selected changes plus consistent dependent contracts.
-3. Verify `/spec-annotate` and `/pr-review` absent, no TUI entry, and retained commands working without Plannotator or TUI-host `gh`.
-4. With authenticated server `gh` and a disposable PR, exercise feedback/checks; cancel pending preparation and verify no late prompt. Authorize rewrite: verify title/body refresh/read-back with no code/branch/monitoring effects. Publish without an open PR, then updates to that same PR: verify no duplicates, unrelated work or unsolicited metadata changes. Verify default background startup and prompt return, read-only failure investigation/reporting, no observer with `--no-watch`, and superseded termination after an authorized new push. Confirm spec-only commands without server `gh`. Test timeout/startup-failure/no-check cases using controlled fixtures or mark unavailable; prompt snapshots do not prove live observer compliance.
-5. Invoke retained commands from available terminal, web and desktop clients against the server; verify no TUI-only path. Remote checks require server-side `gh`, not the client's installation.
-6. On explicitly authorized disposable targets, verify implementation publishes one PR and reports deliverables, actual validation, PR URL, required-check status and spec gaps. Establish valid/invalid/already-addressed/unclear feedback outcomes in conversation; verify whole settled-report fix delivery, post-publication per-verdict reactions/resolution, untouched unclear/unapproved outcomes, no GitHub writes on failed validation/delivery, and honest background/partial-write reports. Mark unavailable live cases honestly while retaining offline coverage.
-
-Pending monitoring, no checks, unknown required subsets, skipped and unreported jobs do not establish a passing merge gate. Keep live evidence separate from automated results.
-
-## Recorded live validation — 2026-10-09
-
-OpenCode **2.0.26** and server `gh` **2.102.0** were exercised through Terminal Control and the actual host API. Disposable local projects used project-only deny policies to exclude still-installed legacy sources and Plannotator; global configuration was untouched. GitHub reads targeted PR #21 without reactions, resolutions, or other smoke-test writes.
-
-| Boundary | Observed result |
-| --- | --- |
-| Normal local-plugin launch | Passed: one server-only Workflow tools instance, its eight commands, no legacy/Plannotator commands; two built-in commands remain |
-| Invalid arguments | Passed: 16 usage/path/retired-flag cases rejected with zero messages admitted |
-| Lightweight creation | Passed: explained depth, actual grill-with-docs/domain-modeling/spec-planner calls, question dialogue, approved draft; no implementation |
-| Full-depth creation | Explained full-depth selection and used interview/domain-modeling/question tools; deliberately interrupted before drafting, so later planning/approval stages were not exercised |
-| Quoted-path refinement | Passed: requirements questions, conservative/aggressive proposals, unchanged file hash before approval; only the selected conservative changes applied and reconciled; valid quoted implementation handoff |
-| Immediate PR checks | Initially failed because `gh pr view --repo` lacked a selector; fixed current-branch lookup, then passed live with concrete PR/SHA, six successful checks, unknown requirements and honest no-required-subset limitation |
-| Inline feedback | Passed: unresolved-thread fetch, evidence-based current-code evaluation, retained IDs, no edits or GitHub writes; disposable source context could not prove correspondence to the published revision |
-| Preparation-only session interrupt | Failed host behavior: `interrupted: false`, blocked fake `gh` remained alive, no messages admitted; cleaned up owned processes explicitly |
-| Transport abort | Passed: disconnecting the pending command request terminated fake `gh` and left messages/inbox empty; this is not proof of Escape/session-interrupt behavior |
-
-The check-read race in which a required identity appears between all/required reads is also covered by regression fixtures: inconsistent same-head rollups now yield unknown classification and explicit missing-identity limitations, without waiting or retrying.
-
-Publication/create-update, metadata rewriting, feedback delivery/reactions/resolutions, watcher startup/deadline/superseded behavior, and web/desktop clients remain unrun without authorized disposable GitHub targets or available clients. No live check is inferred from offline prompt assertions. All owned terminal/server sessions were stopped after validation.
+1. Remove legacy sources. Verify one server-only plugin with eight commands and no retired annotation or review commands. Spec planning and refinement must work without server `gh`.
+2. Test lightweight and full-depth creation. Both must explain the chosen depth, interview the user, model the domain, plan the spec, and obtain explicit approval. Neither may implement code. Refine a quoted path. Confirm the file stays unchanged before approval, then contains only selected changes and the updates needed to keep its contracts consistent.
+3. Verify invalid arguments fail before reads or prompt admission. Cancel controlled pending preparation. Confirm subprocess cleanup and no late prompt. Test session interruption and request disconnect separately.
+4. On a disposable PR, triage unresolved inline threads read-only and investigate checks immediately. Distinguish pending, empty, skipped, unknown-required, and unstable snapshots from green required checks.
+5. Test authorized PR creation, updates, and metadata rewriting. Confirm there are no duplicate PRs, unrelated changes, or unintended metadata edits. Rewrite must read back the title and body without delivering code. Test watcher startup, opt-out, read-only investigation, deadline expiry, and termination when the head changes.
+6. Test implementation delivery and fixes for the whole agreed feedback report. Validation and publication must succeed before reactions or thread resolution. Unclear and unapproved items must remain pending. Report failed GitHub writes and watcher startup separately from successful delivery.
+7. Test available terminal, web, desktop, and remote clients with dependencies installed on the server. Mark unavailable clients or targets NOT RUN.

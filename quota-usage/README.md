@@ -1,6 +1,6 @@
 # Quota usage
 
-An OpenCode V2 plugin showing remaining account quota in web or TUI chat and in the TUI sidebar. It supports Codex and OpenCode Go using the server's active provider connections.
+An OpenCode V2 plugin that shows remaining account quota in web or TUI chat and in the TUI sidebar. It uses the server's active Codex and OpenCode Go connections.
 
 ## Quick start
 
@@ -24,15 +24,15 @@ No plugin-specific options or keys are required. Credentials and usage requests 
 
 ## Usage in web or TUI chat
 
-Ask **"Show my quotas"** or **"How much Codex quota do I have left?"**. The agent can call `quota_usage` to fetch current remaining percentages and reset times for supported providers in the location's provider list.
+Ask "Show my quotas" or "How much Codex quota do I have left?" The agent can call `quota_usage` to fetch remaining percentages and reset times for supported providers in the location's provider list.
 
-The tool takes no arguments and fetches fresh usage on each call. Missing credentials or failed requests return **Usage unavailable** for that provider. If neither supported provider is configured, it returns an empty provider list. This works in stock OpenCode web with the plugin loaded on its server.
+The tool takes no arguments and fetches fresh usage on each call. This works in stock OpenCode web with the plugin loaded on its server.
 
 ## Reading the TUI panel
 
 The **Quotas** panel shows account allowance remaining, not token usage for the current session. It refreshes on startup, every minute, and after successful session execution. Reset countdowns also update every minute.
 
-Only supported providers present in the location's provider list appear. Missing credentials or failed requests show **Usage unavailable**. A standard OpenAI API key does not supply the ChatGPT account claim needed for Codex usage.
+Only supported providers in the location's provider list appear. If neither is configured, the panel stays hidden and the tool returns an empty list. Missing credentials or failed requests show **Usage unavailable** for that provider without discarding the other's result. A standard OpenAI API key cannot supply Codex account usage.
 
 ## Further reading
 

@@ -1,6 +1,6 @@
 # Code evidence validation
 
-## Result — 2026-10-03
+## Results recorded on 2026-10-03
 
 Raw-query evidence worked through a real OpenCode host, preserved the reviewed source ranges, and reduced local classification cost in this small trial. **The pinned Kotlin grammar is not compatible with all current Kotlin syntax.**
 
@@ -31,7 +31,7 @@ Final verification: `bun run typecheck`, **169 passing tests**, repository `bun 
 
 [`host.ts`](./host.ts) launches an isolated `opencode serve`, creates a real session, and registers a test-only command bridge to invoke the host's registered executors with that session context. This is deterministic host integration, not a model-generated tool call. The loopback System One backend records full request bodies and returns fixed probabilities, which are never treated as accuracy measurements.
 
-The successful requests cover Unicode source and a combined Go/TypeScript/Kotlin request with all six real declarations. Every returned range is compared to independently reviewed source, not just to another parser result. Grammar discovery succeeds for a nonexistent `.go` path.
+The successful requests cover Unicode source and a combined Go, TypeScript, and Kotlin request with all six real declarations. Each returned range was compared with independently reviewed source. Grammar discovery succeeded for a nonexistent `.go` path.
 
 Validation also reproduced and fixed a budget bug: after reading 600 KB of file evidence, selecting a tiny function from a separate 600 KB source file was incorrectly rejected. Code sources now retain their independent 1 MiB read limit, while selected content counts toward the aggregate request limit. A focused regression failed before the fix; a third real-host request now verifies this combination reaches the backend.
 
@@ -48,7 +48,7 @@ Full recorded source payloads and the disposable server logs remain under `/tmp/
 
 ## 2. Source coverage and limitations
 
-The six reviewed declarations cover generic Go receiver methods, free functions, exported TypeScript arrows/classes, and private/nested Kotlin extension functions. Automated feature probes additionally cover Go build tags/generic interfaces, TypeScript decorators/overloads/JSX, and Kotlin annotations/companions. Existing tests cover explicit comments, duplicate/overlapping captures, predicates, CRLF, and Unicode.
+The six reviewed declarations cover generic Go receiver methods, free functions, exported TypeScript arrows and classes, and private and nested Kotlin extension functions. Automated probes also cover Go build tags and generic interfaces, TypeScript decorators, overloads, and JSX, and Kotlin annotations and companions. Existing tests cover explicit comments, duplicate and overlapping captures, predicates, CRLF, and Unicode.
 
 Four sampled Ktor files are rejected by the pinned grammar:
 
@@ -115,13 +115,17 @@ bun experiments/ollama-benchmark.ts --models nimble --concurrency 1,2,4 \
   --requests 4 --repetitions 1 --batch-sizes 1,4 --output ./my-machine-results
 ```
 
-Use an idle inference server: cold tests unload the specified models, and even warm-only model switching may cause Ollama to evict other resident models. The script never downloads models, starts/stops servers, changes settings, or tries to fill the server's queue. It attempts to restore initially resident benchmark models on normal completion/errors; forced termination cannot guarantee cleanup.
+Use an idle inference server. Cold tests unload the specified models, and warm-only model switching may cause Ollama to evict other resident models. The script does not download models, start or stop servers, change settings, or try to fill the server's queue. It attempts to restore initially resident benchmark models after normal completion or errors. Forced termination cannot guarantee cleanup.
 
-Each run creates a new directory (under the OS temporary directory by default) with `results.json` and `summary.md`. Explicit output directories must not already exist, and their parent must exist. Completed phases are saved after each phase; there is no automatic resume. Timeouts and rejected responses count as failures, and the run stops after saving the failed phase. An interrupted phase may not be retained. Allow several minutes; do not impose a two-minute outer command timeout.
+Each run creates a directory with `results.json` and `summary.md`. The default location is the OS temporary directory. An explicit output directory must not already exist, and its parent must exist. The script saves completed phases but does not resume them automatically. Timeouts and rejected responses count as failures. The run stops after saving the failed phase. An interrupted phase may not be retained. Allow several minutes rather than imposing a two-minute outer command timeout.
 
-JSON includes the exact flags, workload version, Ollama version, installed model metadata/digests, initial residency, OS, CPU, RAM, Bun version, and NVIDIA GPU/driver information when `nvidia-smi` is available (otherwise `null`). Hardware describes the **script host**; with `--base-url` pointing to another machine, record the server's hardware separately. Reports include synthetic inputs' byte counts, full validated answers/usage, elapsed time, median/p95 latency, successful calls and questions per second, and error counts. Hostnames and endpoint URLs may be identifying: review the JSON before sharing it.
+JSON records the flags, workload and Ollama versions, installed model metadata and digests, initial residency, OS, CPU, RAM, and Bun version. It includes NVIDIA GPU and driver information when `nvidia-smi` is available, or `null` otherwise. Hardware describes the script host. If `--base-url` points to another machine, record the server's hardware separately.
 
-For cross-machine comparisons, use the same revision, model digest, flags, Ollama settings, and workload. Record inference slots/`OLLAMA_NUM_PARALLEL`, context size, GPU offload, and competing GPU workloads separately; the portable script cannot reliably discover every server setting. Cold means model-unloaded, not OS disk-cache-cold. Warm repeated and varied input baselines are separate. Sweeps alternate direction to reduce order bias. Fixtures use only yes/no questions so batching comparisons keep a consistent answer type; numbers are not directly comparable to earlier mixed-type tests or an accuracy evaluation. Prefer the smallest concurrency near peak throughput. Testing a higher _server_ parallelism requires separately configuring Ollama and rerunning this script.
+Reports include synthetic input byte counts, validated answers and usage, elapsed time, median and p95 latency, successful calls and questions per second, and error counts. Review the JSON before sharing it because hostnames and endpoint URLs may identify a machine.
+
+For cross-machine comparisons, use the same revision, model digest, flags, Ollama settings, and workload. Record inference slots, `OLLAMA_NUM_PARALLEL`, context size, GPU offload, and competing GPU workloads separately. The script cannot reliably discover every server setting.
+
+Cold means the model is unloaded, not that the OS disk cache is cold. Warm repeated-input and varied-input baselines are separate. Sweeps alternate direction to reduce order bias. Fixtures use only yes/no questions so batching comparisons keep a consistent answer type. These numbers are not directly comparable with earlier mixed-type tests or accuracy evaluations. Prefer the smallest concurrency near peak throughput. To test higher server parallelism, configure Ollama separately and rerun the script.
 
 ### Code-evidence experiments
 

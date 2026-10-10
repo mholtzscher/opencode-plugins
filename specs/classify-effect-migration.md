@@ -2,7 +2,7 @@
 
 ## Scope and decisions
 
-Migrate the complete classify pipeline to Effect 4 compatible with the installed OpenCode V2 plugin release. Each provider supplies a Layer implementing one DecisionBackend service. Inject IO boundaries, not pure functions. Use Effect Schema for configuration, tool input/output, and provider wire validation. Structured tool output replaces serialized JSON content. The TUI remains a no-op.
+Migrate the complete Classify pipeline to Effect 4 compatible with the installed OpenCode V2 plugin release. Each provider supplies a Layer implementing one DecisionBackend service. Inject I/O services, not pure functions. Use Effect Schema for configuration, tool inputs and outputs, and provider wire validation. Structured tool output replaces serialized JSON content. The TUI remains a no-op.
 
 The provider-only deadline starts after credential and evidence resolution and covers HTTP attempts, body consumption, and backoff. Preserve retry eligibility for HTTP 429/529, exponential backoff, Retry-After, and request/response bounds. Permission waits do not consume the provider deadline. Interruption is cancellation, never a serialized classification failure.
 
@@ -55,6 +55,6 @@ classify/
 
 ## Risks and limits
 
-Effect is a release candidate. Pin a version compatible with the installed plugin and verify installed declarations. Resource acquisition under interruption needs scoped ownership to avoid leaked descriptors/readers/processes. Structured output is a deliberate compatibility change; update tool guidance and exported consumers. Do not infer identical Code Mode behavior without checking the installed host implementation.
+Effect is a release candidate. Pin a version compatible with the installed plugin and verify installed declarations. Acquire resources in scopes so interruption cleans up descriptors, readers, and processes. Structured output changes compatibility. Update tool guidance and exported consumers. Verify Code Mode behavior against the installed host implementation.
 
 Effort: L. No new provider functionality, embedded SDK host, or TUI functionality is included.

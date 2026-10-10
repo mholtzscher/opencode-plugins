@@ -2,7 +2,7 @@
 
 Use this when code can find candidate values but their role depends on meaning: the billing address rather than the sender, the amount due rather than a subtotal, or a named person from a known roster. `decide` selects among candidates; code copies and validates the actual value.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 

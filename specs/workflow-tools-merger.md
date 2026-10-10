@@ -1,6 +1,10 @@
-# Workflow Tools Merger — Implementation Spec
+# Workflow tools merger implementation spec
 
-**Status:** Ready for task breakdown **Approved by:** User approved the consolidated command walkthrough and documented limitations **Type:** Refactoring and command-surface redesign **Effort:** L (1–2 days) **Date:** 2026-10-09
+Status: Ready for task breakdown.
+
+Approval: The user approved the consolidated command walkthrough and documented limitations.
+
+Type: Refactoring and command redesign. Effort: L, 1–2 days. Date: 2026-10-09.
 
 ## Command walkthrough decisions
 
@@ -54,9 +58,15 @@ Use layout D's flat, intent-oriented names, with simplification consolidated int
 | `/pr-fix` | none | Fix all agreed-valid evaluated feedback, validate and publish; react to and resolve all settled evaluated threads; start background check investigation |
 | `/pr-checks` | none | Inspect the current snapshot immediately, distinguish required/advisory checks, and investigate completed failures without waiting or editing |
 
-PR subprocess limits, external response decoding, and log persistence remain as in the current working tree, except approved publication/metadata/snapshot changes, plugin/service labels, and handoff guidance. Publication uses `--no-watch` to disable its default background watcher; metadata rewriting has no watch mode. Reject retired `--describe`, `--update`, and `--refresh` operation flags with usage pointing to `/pr-rewrite` before GitHub reads or prompt admission. Reject `--watch` on either command and `--no-watch` on `/pr-rewrite` with the relevant usage rather than silently changing modes. Other guidance parsing remains unchanged. Do not reuse the spec path parser for PR guidance. `/pr-feedback`, `/pr-fix`, and `/pr-checks` accept no arguments; reject nonempty input before reads/admission.
+Keep the current PR subprocess limits, external response decoding, and log persistence. Apply only the approved publication, metadata, and snapshot changes, plugin and service labels, and handoff guidance.
 
-### Publication behavior — `workflow-tools/pr/pr.ts` (D1/D3)
+Publication uses `--no-watch` to disable its default background watcher. Metadata rewriting has no watch mode. Reject `--describe`, `--update`, and `--refresh` before GitHub reads or prompt admission, with usage pointing to `/pr-rewrite`. Reject `--watch` on either command and `--no-watch` on `/pr-rewrite` with the relevant usage.
+
+Keep other guidance parsing unchanged. Do not reuse the spec path parser for PR guidance. `/pr-feedback`, `/pr-fix`, and `/pr-checks` accept no arguments. Reject nonempty input before reads or admission.
+
+### Publication behavior
+
+Owned by `workflow-tools/pr/pr.ts`, deliverables D1 and D3.
 
 The publication prompt reviews the complete relevant staged, unstaged, and untracked change set, preserves unrelated user work, discovers the default branch, and keeps an appropriate existing non-default branch. Create a branch when on the default branch or detached HEAD as in the current workflow.
 
@@ -77,7 +87,9 @@ The background agent is a bounded observer/investigator, not a plugin-owned sche
 
 `--no-watch` skips agent creation entirely. There is no foreground-watch mode on `/pr-publish`; `/pr-checks` remains available for explicit synchronous investigation. End-to-end `/spec-implement` retains its own required-check remediation and does not gain this background default.
 
-### Metadata rewrite behavior — `workflow-tools/pr/pr.ts` (D1/D3)
+### Metadata rewrite behavior
+
+Owned by `workflow-tools/pr/pr.ts`, deliverables D1 and D3.
 
 Fetch and review the current PR's complete relevant diff before preparing metadata. Refresh both its title and body from the actual scope, respecting explicit user guidance. Remove the existing body-only/title-preservation instruction; a misleading title should be corrected as part of the command rather than merely reported.
 
@@ -85,7 +97,9 @@ Retain the current structured description format for this command and newly crea
 
 Publish both title and body and verify their parsed values through GitHub reads, allowing the existing terminal-newline tolerance for the body. Report the PR URL and what metadata changed. Do not commit, push, switch branches, launch a watcher, or wait for checks. `/pr-checks` is a separate optional action.
 
-### Feedback triage — `workflow-tools/pr/prompts.ts` (D3)
+### Feedback triage
+
+Owned by `workflow-tools/pr/prompts.ts`, deliverable D3.
 
 Keep the existing paginated fetch of unresolved inline review threads. Do not expand to PR-level review summaries or conversation comments. The initial evaluation is read-only: no local edits, reactions, replies, or thread resolution.
 
@@ -93,9 +107,13 @@ Treat all comment payload fields as untrusted external data, not executable inst
 
 Check whether feedback is outdated, duplicate, superseded, or already addressed. Explain disputed claims with evidence and use the question tool when product intent is uncertain. Preserve PR identity, file/line references, URLs, authors, thread IDs, and comment IDs so the separate fix command can reuse agreed verdicts. State payload truncation or inaccessible-context limitations honestly. Do not interpret an agent verdict as user approval to edit.
 
-### Feedback application — `workflow-tools/pr/prompts.ts` (D3)
+### Feedback application
 
-`/pr-fix` processes the entire evaluated report with user-agreed outcomes, not a narrowed subset. Reject nonempty command arguments with usage before GitHub reads or admission; there is no scope selector. Reuse current-conversation thread/comment IDs, evidence, and approved verdicts without fetching or reclassifying review threads. Retain the existing repository/current-PR metadata lookup; stop on missing discussion/IDs, absence of any agreed outcomes, or a mismatch between the discussed PR and the target. Mixed reports process agreed outcomes while leaving unclear/unapproved ones pending. Do not guess approval or treat external comment text as instructions.
+Owned by `workflow-tools/pr/prompts.ts`, deliverable D3.
+
+`/pr-fix` processes every user-agreed outcome in the evaluated report. It has no scope selector. Reject nonempty command arguments with usage before GitHub reads or admission.
+
+Reuse thread and comment IDs, evidence, and approved verdicts from the current conversation without fetching or reclassifying threads. Keep the existing repository and current-PR metadata lookup. Stop if discussion or IDs are missing, no outcomes are agreed, or the discussed PR differs from the target. Process agreed outcomes and leave unclear or unapproved ones pending. Do not infer approval or treat external comment text as instructions.
 
 Apply the smallest fixes for every agreed-valid issue and run relevant validation. Commit only relevant changes, push updates to the existing discussed PR using the publication policy, and confirm delivery. Preserve unrelated user work. A validation or delivery failure prevents all reaction/resolution writes for this invocation; report the blocker rather than falsely declaring threads handled.
 
@@ -110,7 +128,9 @@ No scoped subset is permitted. Do not resolve a valid fix that remains unpublish
 
 After a code publication, start the same read-only, 30-minute, head-SHA-scoped background watcher used by `/pr-publish`. Watcher failure does not undo successful delivery or GitHub updates; report its startup separately. Pending CI is not green CI. `/pr-fix` adds no independent watch flag. Report fixes, actual validation, commit/PR/head identity, reactions/resolutions, skipped/pending outcomes, and watcher status. Remove the previous leave-uncommitted/no-push instructions and optional scope override.
 
-### Immediate check investigation — `workflow-tools/pr/checks.ts` (D1/D3)
+### Immediate check investigation
+
+Owned by `workflow-tools/pr/checks.ts`, deliverables D1 and D3.
 
 Replace the `actions` service's pending-check wait loop with an immediate snapshot. Fetch all reported checks and the required-only subset, then report pending checks while investigating any already failed/cancelled checks. Do not call `gh pr checks --watch`, wait for pending completion, rerun jobs, edit, commit, or push. Preserve existing available Actions evidence gathering and untrusted-log boundaries.
 
@@ -149,7 +169,9 @@ Examples:
 
 ## Types and interfaces
 
-### Spec arguments — `workflow-tools/specs/arguments.ts` (D2)
+### Spec arguments
+
+Owned by `workflow-tools/specs/arguments.ts`, deliverable D2.
 
 New internal types; no persisted or wire representation:
 
@@ -172,7 +194,9 @@ export declare function parseSpecArguments(
 
 Parsing is pure apart from constructing typed Effects; it performs no filesystem, SDK, or subprocess calls. Do not export the tokenizer unless a caller actually needs it.
 
-### End-to-end implementation — `workflow-tools/specs/prompts.ts` (D2/D3)
+### End-to-end implementation
+
+Owned by `workflow-tools/specs/prompts.ts`, deliverables D2 and D3.
 
 Keep the existing implementation prompt's orchestrator use, repository-instruction handling, bounded delegation, assumptions reporting, smallest-complete-solution goal, local validation, branch/commit/push/PR publication, and required-check remediation. The command publishes one PR, not a stack; remove the stacked prompt builder and gh-stack dependency.
 
@@ -180,7 +204,9 @@ Continue stopping for missing credentials/permissions or destructive or material
 
 The final report must identify completed deliverables, actual tests/validation commands and their results, the published PR URL, required-check status, and remaining gaps against the spec. Distinguish successful checks from failed, blocked, unrun, or unavailable checks; never imply completion when required checks or acceptance criteria remain unsatisfied.
 
-### Unified refinement behavior — `workflow-tools/specs/prompts.ts` (D2/D3)
+### Refinement behavior
+
+Owned by `workflow-tools/specs/prompts.ts`, deliverables D2 and D3.
 
 Replace the separate scrub, background-scrub, and simplification prompt builders with one refinement prompt builder. Request the existing unslop skill for clarity work, while explicitly preserving the proposal-first approval boundary.
 
@@ -193,7 +219,9 @@ Replace the separate scrub, background-scrub, and simplification prompt builders
 
 There is no refinement mode flag, autonomous background edit, or separate simplification command. Background analysis can be requested conversationally; the registered command does not spawn a subagent automatically.
 
-### Spec errors — `workflow-tools/specs/errors.ts` (D2)
+### Spec errors
+
+Owned by `workflow-tools/specs/errors.ts`, deliverable D2.
 
 Follow the existing `Schema.TaggedError` pattern:
 
@@ -220,7 +248,9 @@ Usage messages name the redesigned command and its valid syntax. No spec-annotat
 
 SDK errors retain the SDK's existing error channel; do not mislabel them as path errors. Existing PR error types remain unchanged in `pr/errors.ts`.
 
-### Resolver — `workflow-tools/specs/paths.ts` (D2)
+### Resolver
+
+Owned by `workflow-tools/specs/paths.ts`, deliverable D2.
 
 Replace the Promise filesystem boundary with an Effect boundary:
 
@@ -241,7 +271,9 @@ Replace the Promise filesystem boundary with an Effect boundary:
 
 The input is already tokenized/unquoted; normalize the optional `@` and `specs/` prefixes once. Return a relative normalized path retaining the link name for symlinks to regular files. Map an absent `specs/` directory, absent/non-file target, or dangling link to `not-found`; permission and other I/O errors to `filesystem`. Retain diagnostic causes for I/O failures. Provide `NodeServices.layer` at registration/runtime wiring, not through a new global runtime.
 
-### Command registration — D1/D2
+### Command registration
+
+Deliverables D1 and D2.
 
 Use the installed Effect plugin SDK context and registration scope. The registration functions own acquisition and return no command-execution errors at setup; failures belong to each executor:
 
@@ -287,9 +319,13 @@ Focused entrypoint change:
 
 Move the existing registration/service wiring into `pr/commands.ts`; `index.ts` delegates to both registration functions. This diff describes ownership, not a replacement for the full setup body.
 
-### PR interfaces — `workflow-tools/pr/` (D1/D3)
+### PR interfaces
 
-#### Check snapshot types — `workflow-tools/pr/checks.ts` (D1)
+Owned by `workflow-tools/pr/`, deliverables D1 and D3.
+
+#### Check snapshot types
+
+Owned by `workflow-tools/pr/checks.ts`, deliverable D1.
 
 New ephemeral internal shapes, not persistence or RPC contracts:
 
@@ -362,7 +398,9 @@ Replace the failure-only prompt interface in `workflow-tools/pr/prompts.ts` (D3)
 
 The `actions(cwd)` service provides `Github`, reads the snapshot, gathers existing evidence only for failed/cancelled checks, then returns the immediate report/investigation prompt. The host retains admission/session ownership. `/pr-checks` does not call any watcher.
 
-#### Publication and feedback service — `workflow-tools/pr/workflows.ts` (D1)
+#### Publication and feedback service
+
+Owned by `workflow-tools/pr/workflows.ts`, deliverable D1.
 
 Retain the existing PR workflow errors and non-publication service methods. Make operation mode explicit at the service boundary; registration passes `"publish"` for `/pr-publish` and `"rewrite"` for `/pr-rewrite`.
 
@@ -397,7 +435,11 @@ Focused service change in `workflow-tools/pr/workflows.ts` (D1):
      ) => Effect.Effect<string, WorkflowError>;
 ```
 
-`pullRequest` validates retired/inapplicable flags, parses guidance and watch mode through the typed Effect parser, then selects the publication or metadata rewrite builder using the explicit operation mode. Publish defaults to `background`, with `--no-watch` selecting `none`; rewrite always selects `none` and rejects watch flags. Remove flag-based operation selection and the old `describe`/`watchChecks` result fields. Surface invalid flags as the existing `GithubError` with the new command's usage message. Pass parsed guidance/watch mode into publication generation rather than reparsing obsolete flags; remove the check-watching parameter and instructions from `buildPrDescribePrompt`. Rewrite mode fetches current PR metadata; publishing mode builds the publication prompt without a metadata fetch. Existing internal builder names need not match public command names.
+`pullRequest` validates flags, parses guidance and watch mode through the typed Effect parser, and selects the builder using the explicit operation mode. Publish defaults to `background`. `--no-watch` selects `none`. Rewrite always selects `none` and rejects watch flags.
+
+Remove flag-based operation selection and the old `describe` and `watchChecks` result fields. Return the existing `GithubError` for invalid flags, with the new command's usage message. Pass parsed guidance and watch mode into publication generation instead of reparsing obsolete flags. Remove the check-watching parameter and instructions from `buildPrDescribePrompt`.
+
+Rewrite mode fetches current PR metadata. Publishing mode builds its prompt without that fetch. Internal builder names need not match public command names.
 
 ```ts
 // Target service interface; existing operations retain their side-effect boundaries.
@@ -412,7 +454,9 @@ Rename service identifier prefixes from `github-tools/` to `workflow-tools/` whi
 
 There is no TUI entrypoint or custom TUI runtime in the new package. All retained commands execute on the server and can be invoked from terminal, web, and desktop clients. Remove Plannotator review delegation, picker/session-creation behavior, and their configuration/documentation as active capabilities.
 
-## Handoff contract — D3
+## Handoff contract
+
+Deliverable D3.
 
 Handoffs are guidance in descriptions, docs, and generated prompts. No command executes another workflow command or creates workflow state merely to continue the lifecycle. Existing end-to-end implementation and PR watching remain autonomous inside their chosen command.
 
@@ -484,7 +528,9 @@ specs/workflow-tools-merger.md       # new — this approved implementation cont
 
 After migration, retire the two old source packages and package-local manifests/lockfiles/docs only after verifying their contents were preserved or deliberately consolidated. Do not move generated `node_modules`. Preserve historical release/tag history; place any existing historical changelog material in a clearly labeled migration/history section of `docs/MIGRATION.md`, not as previous workflow-tools releases. No unrelated plugin refactoring.
 
-## Migration and release contract — D5
+## Migration and release contract
+
+Deliverable D5.
 
 - Package version and manifest seed: `1.0.0`. Configure `workflow-tools` as its own release-please component with a component-local `"release-as": "1.0.0"` for the first release; remove that one-time override after the release. Do not recreate or delete historical tags/releases.
 - Preserve `private: true`, ESM, `main: ./index.ts`, export only `.`; there is no `./tui` export. Preserve scripts `test: bun test` and `typecheck: tsc --noEmit`. Set `@opencode/plugin` to `^2.0.22`; retain current Effect/platform-node pins and development dependencies.
@@ -521,7 +567,7 @@ After migration, retire the two old source packages and package-local manifests/
 
 | ID | Outcome | Effort | Owning paths | Depends on | Acceptance |
 | --- | --- | --- | --- | --- | --- |
-| D1 | New server-only package, publish/rewrite modes, retained Effect PR baseline and immediate check snapshot infrastructure | M | `workflow-tools/{index.ts,package.json,bun.lock,tsconfig.json,interruption.ts,pr/}` | — | A1, A5, A10 |
+| D1 | New server-only package, publish/rewrite modes, retained Effect PR baseline and immediate check snapshot infrastructure | M | `workflow-tools/{index.ts,package.json,bun.lock,tsconfig.json,interruption.ts,pr/}` | None | A1, A5, A10 |
 | D2 | Three redesigned spec commands with strict parsing and Effect paths/admission | M | `workflow-tools/specs/{arguments*,errors.ts,commands.ts,paths*,prompts.ts}`, `index.test.ts` | D1 | A2, A3, A4 |
 | D3 | Reviewed command prompts, publication/background/feedback behavior, domain vocabulary and consolidated lifecycle docs | M | `workflow-tools/{specs/prompts*,pr/{pr.ts,prompts.ts,workflows.ts,checks.ts},README.md,docs/WORKFLOWS.md}`, `GLOSSARY.md` | D2 | A6, A10 |
 | D4 | Complete retained-capability regression suite and external smoke checklist | M | `workflow-tools/{index.test.ts,interruption.test.ts,pr/*test.ts,specs/*test.ts,docs/DEVELOPMENT.md}` | D3 | A1–A7, A10 |

@@ -1,6 +1,6 @@
 # Workflow tools
 
-Composable specification and pull-request workflows for **OpenCode V2.0.22+**, available to terminal, web, and desktop clients. All eight commands run on the server; there is no TUI entry or Plannotator dependency.
+Specification and pull-request workflows for OpenCode V2.0.22 or later. All eight commands run on the server and work with terminal, web, and desktop clients. The plugin has no TUI entry or Plannotator dependency.
 
 ## Install
 
@@ -17,7 +17,7 @@ After the [first npm publish](https://github.com/mholtzscher/opencode-plugins/bl
 
 Until npm publication is complete, use `github:mholtzscher/opencode-plugins#main::path:workflow-tools` instead. Git installs remain supported. When switching sources, replace the existing entry rather than adding a second copy; the server ID remains `workflow-tools`.
 
-Install the [dependencies](./docs/WORKFLOWS.md#dependencies) for the activities you use on the **OpenCode server**. Skills and authenticated `gh` are external, not bundled or checked at startup. Spec-only planning/refinement does not need `gh`; remote clients do not need TUI-host `gh`.
+Install the [dependencies](./docs/WORKFLOWS.md#dependencies) for the activities you use on the OpenCode server. The plugin does not bundle skills or authenticated `gh`, or check them at startup. Spec planning and refinement do not need `gh`. Remote clients do not need a local `gh` installation.
 
 ## Commands
 
@@ -39,9 +39,9 @@ Install the [dependencies](./docs/WORKFLOWS.md#dependencies) for the activities 
 /pr-publish --no-watch Emphasize the migration
 ```
 
-Existing specs are direct entries in the invoking session's `specs/` directory, including symlinks to regular files. Quote paths containing whitespace; nested path inputs are rejected. Symlink targets may be outside `specs/`. PR commands target the current repository/PR, not a URL argument. Feedback, fix, and checks accept no arguments.
+Existing specs are direct entries in the invoking session's `specs/` directory, including symlinks to regular files. Quote paths containing whitespace. Nested path inputs are invalid, but symlink targets may be outside `specs/`. PR commands target the current repository and PR, not a URL argument. `/pr-triage`, `/pr-fix`, and `/pr-checks` accept no arguments.
 
-Handoffs are suggestions, not automatic transitions or saved workflow state. Publication's watcher is a read-only, 30-minute observer of a concrete PR/head SHA; pending monitoring is not green CI. Agent instructions and offline tests do not prove live execution compliance.
+Handoffs suggest a next activity without running it or saving workflow progress. Publication starts a read-only watcher for the published PR and head SHA with a 30-minute budget. Pending monitoring does not mean CI passed. Offline tests verify prompt instructions, not live agent compliance.
 
 ## Guides
 
@@ -49,4 +49,4 @@ Handoffs are suggestions, not automatic transitions or saved workflow state. Pub
 | --- | --- |
 | [Workflows](./docs/WORKFLOWS.md) | Scope, dependencies, approval, delivery, watcher and check limitations |
 | [Development](./docs/DEVELOPMENT.md) | Actual Effect architecture, validation, external smoke checklist |
-| [Migration](./docs/MIGRATION.md) | Legacy-source removal, command/flag/quoting changes, rollback and historical changelog |
+| [Migration](./docs/MIGRATION.md) | Legacy-source removal, command/quoting changes, rollback and historical changelog |

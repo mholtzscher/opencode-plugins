@@ -12,4 +12,11 @@ These `node-types.json` files and licenses are copied from the pinned npm packag
 
 Each corresponding `.LICENSE` is the upstream package's `LICENSE`. JSON formatting may differ from upstream; data is unchanged. The runtime reports whether each type can actually be queried in the installed WASM grammar; metadata may also describe abstract or grammar-variant-specific types.
 
-To refresh intentionally, update the pinned package versions in `scripts/sync-code-grammars.ts` alongside the WASM dependency, run it from `classify/`, format `classify/grammars/*.json` from the repository root, and run the grammar/query tests. Adding a language requires its WASM asset, metadata/license, and extension registration—not a declaration adapter.
+To update grammars:
+
+1. Update the pinned package versions in `scripts/sync-code-grammars.ts` and the WASM dependency together.
+2. Run the script from `classify/`.
+3. Format `classify/grammars/*.json` from the repository root.
+4. Run the grammar and query tests.
+
+To add a language, include its WASM asset, metadata, license, and extension registration. No declaration adapter is needed.

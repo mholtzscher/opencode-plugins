@@ -1,8 +1,8 @@
 # Visual or mixed-evidence judgments
 
-Use explicit evidence references to let the backend inspect server-local material without first bringing all of it into the agent's conversation. Paths are relative to the invoking session directory. The `type: "evidence"` marker enables resolution; paths inside ordinary JSON remain literal data.
+Use explicit references so the backend can inspect server-local evidence without copying it into the conversation. Paths resolve relative to the invoking session directory. `type: "evidence"` enables resolution. Paths inside ordinary JSON remain literal data.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 

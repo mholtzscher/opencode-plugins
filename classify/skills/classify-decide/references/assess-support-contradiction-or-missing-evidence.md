@@ -1,12 +1,10 @@
 # Assess support, contradiction, or missing evidence
 
-Adapt this complete ad hoc `decide` payload to the user's domain and criteria; no named classifier is required. The example shows request construction, not measured model accuracy.
-
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
-Use this for factual claims, summaries, hypothesis checks, or requirement coverage. Bound the judgment to the provided material. “Not supported here” and “false” are different outcomes.
+Use this for factual claims, summaries, hypothesis checks, or requirement coverage. Limit the judgment to the provided material. "Not supported here" and "false" are different outcomes.
 
 ## Example payload
 

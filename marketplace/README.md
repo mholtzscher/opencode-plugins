@@ -1,6 +1,6 @@
 # Marketplace
 
-An OpenCode V2 TUI prototype for browsing skills, commands, and agents. Install, update, and uninstall actions change durable prototype state; they **do not install or remove OpenCode resources**.
+An OpenCode V2 TUI prototype for browsing skills, commands, and agents. Install, update, and uninstall actions change saved prototype state. They **do not install or remove OpenCode resources**.
 
 ## Quick start
 
@@ -20,13 +20,29 @@ Open the TUI and use one of these entry points:
 | `/marketplace` or **Browse marketplace catalog** in the command palette | Full-page catalog with categories, search, and item details |
 | **Manage installed marketplace items** in the command palette | Installed-items panel alongside an open session |
 
-Move with ↑/↓ or `j`/`k`; Enter applies the highlighted item's action immediately. Available items install, outdated items update, and current items uninstall. State is shared between both views and survives TUI restarts.
+## Controls
 
-The sample catalog is [`marketplace.json`](./marketplace.json). For a local checkout, see [development](./docs/DEVELOPMENT.md).
+| Key                    | Catalog action                               |
+| ---------------------- | -------------------------------------------- |
+| ↑/↓ or `k`/`j`         | Select an item                               |
+| Tab, →, or `l`         | Next category                                |
+| Shift+Tab, ←, or `h`   | Previous category                            |
+| Enter, Space, or click | Apply the selected item's action immediately |
+| `/`                    | Search                                       |
+| `q` or Escape          | Return Home; Escape dismisses search first   |
 
-## Further reading
+In the installed panel, use ↑/↓ or `k`/`j` to select an item, Enter to apply its action, `f` for fullscreen, and Escape to close. Only `/marketplace` is a slash command. **Manage installed marketplace items** and **Close marketplace catalog** are command-palette entries.
 
-| Guide | Contents |
-| --- | --- |
-| [Usage](./docs/USAGE.md) | Catalog and panel controls, simulated actions, persisted state |
-| [Development](./docs/DEVELOPMENT.md) | Catalog format, source map, local setup, verification |
+## Prototype state
+
+Checked boxes indicate simulated installs:
+
+| Recorded version       | Action    |
+| ---------------------- | --------- |
+| Absent                 | Install   |
+| Different from catalog | Update    |
+| Same as catalog        | Uninstall |
+
+Actions log simulated operations and update saved TUI state shared by both views. The prototype does not extract tarballs or change OpenCode resources. First launch seeds an outdated `code-review` skill and a current `ship-check` command. State keys use kind plus ID, so items of different kinds remain separate even if they have the same name.
+
+The sample catalog is [`marketplace.json`](./marketplace.json). See [development](./docs/DEVELOPMENT.md) for catalog changes, local setup, and verification.

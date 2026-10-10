@@ -1,6 +1,6 @@
 # API compatibility assessment
 
-Use these caller-defined judgments to prioritize investigation. Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved. Supply intended module responsibilities and supported consumer contracts; do not infer them from directory names alone.
+Before using this example, read [coding evidence requirements](../SKILL.md#supply-enough-context) and [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
