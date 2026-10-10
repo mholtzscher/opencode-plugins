@@ -14,6 +14,10 @@ The `check` workflow runs lint, typechecks all five plugins, and runs the four p
 
 GitHub does not start other workflows for PRs or releases created using `GITHUB_TOKEN`. The npm publish job therefore runs in the same workflow as Release Please. Before merging a bot-created release PR, run its checks explicitly with `gh workflow run check.yml --ref <release-pr-branch>` and verify that run succeeds.
 
+## First Workflow tools release
+
+Workflow tools replaced the two legacy release components with a new `workflow-tools` component starting at `1.0.0`. The initial GitHub release is complete, and its one-time `release-as: 1.0.0` override has been removed. Preserve legacy tags and releases. Their changelog belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not Workflow tools release history.
+
 ## First Classify publish
 
 Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools is also npm-enabled; Cache metrics, Quota usage, and Marketplace retain `private: true` and receive GitHub releases only.

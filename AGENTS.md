@@ -14,5 +14,5 @@
 - Before launching local plugins with global settings or diagnosing duplicate IDs, read `README.md#local-plugins-versus-global-installs`. Launch with plain `opencode`.
 - Before configuring Classify providers, read `classify/docs/CONFIGURATION.md`. Before live checks, read `classify/docs/SMOKE_TESTING.md`.
 - Before changing Marketplace actions, read `marketplace/README.md`. They change saved prototype state, not OpenCode resources.
-- Before changing Workflow tools commands, read `workflow-tools/README.md` and the relevant prompt modules. For service changes or live checks, read `workflow-tools/docs/DEVELOPMENT.md`.
-- Global configuration changes require user authorization.
+- Before changing Workflow tools commands, read `workflow-tools/docs/WORKFLOWS.md`. For service changes or live checks, read `workflow-tools/docs/DEVELOPMENT.md`.
+- Before replacing legacy plugins or changing source deny policies, read `workflow-tools/docs/MIGRATION.md`. Global configuration changes require user authorization.
