@@ -12,18 +12,28 @@ export const watchBackendStatus = (host: BackendStatusHost) => {
   let disposed = false;
   let request: AbortController | undefined;
   let timeout: ReturnType<typeof setTimeout> | undefined;
+  let retry: ReturnType<typeof setTimeout> | undefined;
+  let retryDelay = 1000;
   host.publish("…");
   const refresh = () => {
     if (disposed) {
       return;
     }
     clearTimeout(timeout);
+    clearTimeout(retry);
     request?.abort();
     const current = new AbortController();
     request = current;
+    // A session or its location RPC may not be ready when the sidebar mounts.
+    // Retry selection reads only; no inference or selection writes are involved.
+    const recover = () => {
+      host.publish("unavailable");
+      retry = setTimeout(refresh, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 30_000);
+    };
     timeout = setTimeout(() => {
       current.abort();
-      host.publish("unavailable");
+      recover();
     }, 5000);
     void (async () => {
       try {
@@ -31,10 +41,11 @@ export const watchBackendStatus = (host: BackendStatusHost) => {
         if (disposed || current.signal.aborted) {
           return;
         }
+        retryDelay = 1000;
         host.publish(selected.backend);
       } catch {
         if (!(disposed || current.signal.aborted)) {
-          host.publish("unavailable");
+          recover();
         }
       } finally {
         if (request === current) {
@@ -49,6 +60,7 @@ export const watchBackendStatus = (host: BackendStatusHost) => {
   return () => {
     disposed = true;
     clearTimeout(timeout);
+    clearTimeout(retry);
     request?.abort();
     stopChanged();
     stopConnected();

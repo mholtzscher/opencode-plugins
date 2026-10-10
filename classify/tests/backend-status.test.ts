@@ -164,3 +164,96 @@ test("unmount cancels the status timeout", () => {
     jest.useRealTimers();
   }
 });
+
+test("startup selection failure recovers without a reconnect and stops retrying after success", async () => {
+  jest.useFakeTimers();
+  const labels: string[] = [];
+  let attempts = 0;
+  const stop = watchBackendStatus({
+    onChanged: () => noop,
+    onConnected: () => noop,
+    publish: (label) => labels.push(label),
+    read: () => {
+      attempts += 1;
+      if (attempts < 3) {
+        return Promise.reject(new Error("Session is not ready"));
+      }
+      return Promise.resolve(selected("hosted"));
+    },
+  });
+  try {
+    await flush();
+    expect(labels.at(-1)).toBe("unavailable");
+    jest.advanceTimersByTime(1000);
+    await flush();
+    expect(attempts).toBe(2);
+    jest.advanceTimersByTime(1999);
+    expect(attempts).toBe(2);
+    jest.advanceTimersByTime(1);
+    await flush();
+    expect(labels.at(-1)).toBe("hosted");
+    jest.advanceTimersByTime(60_000);
+    expect(attempts).toBe(3);
+  } finally {
+    stop();
+    jest.useRealTimers();
+  }
+});
+
+test("timeout retries even when the old read ignores abort and settles during the replacement", async () => {
+  jest.useFakeTimers();
+  const labels: string[] = [];
+  const pending: ReturnType<typeof Promise.withResolvers<Selection>>[] = [];
+  const stop = watchBackendStatus({
+    onChanged: () => noop,
+    onConnected: () => noop,
+    publish: (label) => labels.push(label),
+    read: () => {
+      const deferred = Promise.withResolvers<Selection>();
+      pending.push(deferred);
+      return deferred.promise;
+    },
+  });
+  try {
+    jest.advanceTimersByTime(6000);
+    expect(pending).toHaveLength(2);
+    pending[0].resolve(selected("stale"));
+    await flush();
+    expect(labels.at(-1)).toBe("unavailable");
+    // The stale read's finally must not clear the replacement's timeout.
+    jest.advanceTimersByTime(5000);
+    jest.advanceTimersByTime(2000);
+    expect(pending).toHaveLength(3);
+    pending[2].resolve(selected("hosted"));
+    await flush();
+    pending[1].resolve(selected("also-stale"));
+    await flush();
+    expect(labels.at(-1)).toBe("hosted");
+  } finally {
+    stop();
+    jest.useRealTimers();
+  }
+});
+
+test("unmount cancels recovery scheduled by a failed read", async () => {
+  jest.useFakeTimers();
+  let attempts = 0;
+  const stop = watchBackendStatus({
+    onChanged: () => noop,
+    onConnected: () => noop,
+    publish: noop,
+    read: () => {
+      attempts += 1;
+      return Promise.reject(new Error("RPC unavailable"));
+    },
+  });
+  try {
+    await flush();
+    stop();
+    jest.advanceTimersByTime(60_000);
+    expect(attempts).toBe(1);
+  } finally {
+    stop();
+    jest.useRealTimers();
+  }
+});
