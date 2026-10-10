@@ -8,7 +8,7 @@ Workflow tools replaces `spec-tools` and `github-tools` with independent package
 
 **Before loading the replacement**, remove both old package sources in every applicable configuration, with user approval. Check global `~/.config/opencode/opencode.json(c)` (or `$XDG_CONFIG_HOME/opencode/`), ancestor/project direct and `.opencode` config, discovered plugin directories, inline config overrides, and TUI-only `cli.json` sources if present. Remove old local paths and Git targets, including pinned/historical variants.
 
-Root config replaces both local sources with `./workflow-tools` and both old installed-source deny policies with the new target. **Removing old root deny policies can re-enable globally installed legacy plugins.** Remove legacy sources first: their IDs differ from the replacement, so duplicate-ID protection cannot suppress them. Implementation edits repository config only, not your global configuration.
+Root config replaces both local sources with `./workflow-tools` and both old installed-source deny policies with the new target. Removing old deny policies can re-enable globally installed legacy plugins. Remove legacy sources first because their IDs differ from the replacement. Duplicate-ID protection cannot suppress them. Repository changes do not edit your global configuration.
 
 After removal, merge this into existing settings:
 
@@ -44,13 +44,15 @@ For local development use `./workflow-tools`; paths resolve from the containing 
 | `/pr-actions` | `/pr-checks`; immediate snapshot, no waiting |
 | `/pr-review` | Removed; no review picker replacement |
 
-No legacy aliases exist. Earlier proposals `/spec-simplify`, `/spec-refine --background`, `/spec-implement --stacked`, and `--simplify` are unsupported. Refinement approval includes wording-only edits; conversational background analysis remains possible. Implementation has completion evidence and required-check remediation, without a new fixed retry cap/preflight-report stage. Feedback fixes no longer remain uncommitted/unpushed, and settled already-addressed threads are handled after published-revision verification.
+No legacy aliases exist. Earlier proposals `/spec-simplify`, `/spec-refine --background`, `/spec-implement --stacked`, and `--simplify` are unsupported. Refinement requires approval even for wording changes. Background analysis can still be requested in conversation.
 
-Publication/rewrite reject retired `--describe`, `--update`, `--refresh`, and `--watch` before reads/admission; rewrite also rejects `--no-watch`. Feedback/fix/checks accept no arguments. PR commands target the current repository/PR: a URL is not a selector. Default observers are read-only, concrete-SHA-scoped and bounded to an agent-owned 30-minute budget, stop as superseded, and expose startup/deadline/restart limitations. Pending is not green; check snapshots do not prove mergeability. Full contracts live in [Workflows](./WORKFLOWS.md).
+Implementation reports completion evidence and fixes required checks, without a new retry cap or mandatory preflight report. Feedback application commits and publishes fixes. It handles settled already-addressed threads after checking the published revision.
+
+Publication and rewrite reject `--describe`, `--update`, `--refresh`, and `--watch` before reads or prompt admission. Rewrite also rejects `--no-watch`. Triage, fix, and checks accept no arguments. PR commands target the current repository and PR, not a URL selector. For approval, delivery, observer, and check behavior, read [Workflows](./WORKFLOWS.md).
 
 ## Quoting migration
 
-Unquoted spaced filenames previously accepted are now invalid: require exactly one token and quote whitespace.
+Existing-spec commands now require exactly one path token. Quote filenames that contain whitespace.
 
 ```text
 /spec-implement @specs/auth.md
@@ -60,7 +62,9 @@ Unquoted spaced filenames previously accepted are now invalid: require exactly o
 /spec-refine -- -draft.md
 ```
 
-`file.md`, `specs/file.md`, `@file.md`, and `@specs/file.md` normalize to `specs/<filename>`. Adjacent quoted/unquoted segments concatenate; unmatched quotes fail. Standalone `--` permits leading-hyphen paths. No shell expansion/substitution/backslash escaping. Absolute/traversal/nested path inputs, backslashes, NUL, directories, and missing files are rejected; no extension restriction. Unlike the legacy resolver, symlinks to regular files are accepted, including targets outside `specs/`; dangling links and links to directories are rejected. Resolution uses the invoking session's server directory, not plugin/TUI location, and preserves the link name in the normalized path. Create consumes complete multiline idea text, not path grammar.
+`file.md`, `specs/file.md`, `@file.md`, and `@specs/file.md` normalize to `specs/<filename>`. Adjacent quoted and unquoted segments concatenate. Unmatched quotes fail. Standalone `--` permits leading-hyphen paths. There is no shell expansion, substitution, or backslash escaping.
+
+Unlike the legacy resolver, the new resolver accepts symlinks to regular files, including targets outside `specs/`. It retains the link name in the normalized path and resolves from the invoking session's server directory. Read [spec inputs](./WORKFLOWS.md#spec-inputs) for rejected paths and the full grammar. Create consumes multiline idea text rather than a path.
 
 ## Release and rollback
 
@@ -75,15 +79,9 @@ github:mholtzscher/opencode-plugins#<historical-ref>::path:github-tools
 
 Never load old and new providers simultaneously; align local/global source policies for the chosen configuration. No persisted workflow data needs migration; conversational verdicts are not cross-session saved state. Git history retains the old implementation; no tags change.
 
-## Documentation consolidation and deliberate retirement
-
-Both old READMEs' install/host/command guidance is consolidated here and in the new README. WORKFLOWS retains updated dependency/path rules, implementation and simplification rationale, structured PR format, inline-feedback IDs/untrusted-data boundaries and Actions evidence. DEVELOPMENT consolidates local verification, actual nested module ownership, Effect services, subprocess/log/decoding boundaries, concurrency and interruption, plus the external smoke checklist.
-
-Intentionally retired: stacked/gh-stack setup and progression; annotation dependency checks/forwarding/browser reachability; Plannotator PR picker/Home session/model selection; Promise TUI/ManagedRuntime/UI services; direct/background scrub editing and required line-count reporting; foreground pending-check watching and skipped-as-success claims; body-only rewriting/title preservation; scoped uncommitted/no-push fixes and leaving settled already-addressed threads untouched. These are approved replacements/removals, not active setup. No GitHub tools changelog existed in the inventory.
-
 ## Historical spec-tools changelog
 
-Verbatim material from `spec-tools/CHANGELOG.md`, recording the retired component—not earlier Workflow tools releases:
+Verbatim material from `spec-tools/CHANGELOG.md`. This records the retired component, not earlier Workflow tools releases:
 
 ```text
 # Changelog

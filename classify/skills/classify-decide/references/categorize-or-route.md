@@ -1,8 +1,6 @@
 # Categorize or route
 
-Adapt this complete ad hoc `decide` payload to the user's domain and criteria; no named classifier is required. The example shows request construction, not measured model accuracy.
-
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
@@ -30,7 +28,7 @@ Choose one category for a message, document, event, proposal, or observation. De
 
 ## Consume the answers
 
-Routing returns a label.
+Use the returned label to select the next activity.
 
 ## Limitations
 

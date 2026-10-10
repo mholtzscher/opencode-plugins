@@ -17,7 +17,7 @@ Run `bun run check` from the repository root. This prototype has no test script.
 
 ## Catalog format
 
-[`marketplace.json`](../marketplace.json) is a sample index standing in for an index from an external tarball. Each entry under `items` has:
+The prototype reads its sample catalog from [`marketplace.json`](../marketplace.json), rather than an external tarball. Each entry under `items` has:
 
 | Field         | Meaning                                            |
 | ------------- | -------------------------------------------------- |
@@ -28,17 +28,6 @@ Run `bun run check` from the repository root. This prototype has no test script.
 | `origin`      | `internal` or `external`                           |
 | `version`     | Compared with installed state to select the action |
 
-Edit the JSON to try other contents. If its format changes, adapt the single import and parsing in [`marketplace-catalog.ts`](../marketplace-catalog.ts). Version differences indicate an update; this is not a semantic-version ordering check.
+Edit the JSON to try other contents. If its format changes, update the import and parser in [`marketplace-catalog.ts`](../marketplace-catalog.ts). Any version difference indicates an update. The prototype does not compare semantic-version order.
 
-## Source map
-
-| File | Responsibility |
-| --- | --- |
-| [`index.ts`](../index.ts) | Server entry for the TUI prototype |
-| [`tui.tsx`](../tui.tsx) | Catalog route, session panel, command-palette and slash entries |
-| [`marketplace-catalog.ts`](../marketplace-catalog.ts) | Item types, sample import, stable keys, action selection |
-| [`marketplace-ui-state.ts`](../marketplace-ui-state.ts) | Shared durable TUI install state and simulated actions |
-| [`marketplace-catalog-page.tsx`](../marketplace-catalog-page.tsx) | Full-page navigation, search, item details |
-| [`marketplace-installed-panel.tsx`](../marketplace-installed-panel.tsx) | Installed-items session panel |
-
-State lives under the TUI storage key `marketplace-prototype-installs`. Real resource installation remains outside the prototype's behavior.
+The TUI stores prototype state under `marketplace-prototype-installs`.

@@ -41,7 +41,9 @@ Do not automatically activate the plugin in the root `opencode.jsonc`. Update th
 
 `noul` is a probability of yes in `[0, 1]`, not a misspelling of boolean. It has no separate native confidence field. `choice` returns one allowed label and a distribution. `score` returns a probability-weighted position on ordered levels and may be fractional. Choice and score have provider-supplied confidence, which is not a probability of correctness.
 
-The official TypeSafe API permits at most 255 choice options and 10 score levels. The plugin validates 2–255 choices and 2–10 score levels. Laya's HTTP server caps choice questions at 100 options, with smaller practical token budgets that can trim similar labels into indistinguishable inputs. These are plugin validation rules, not claims that all providers have identical limits. Laya's choice/score confidence is one minus normalized entropy, unlike Jev's confidence formula; thresholds must be validated for the chosen backend. Long states can be silently truncated, and the plugin does not expose Laya's token-budget controls or extra routing/confidence metadata.
+The official TypeSafe API permits at most 255 choice options and 10 score levels. The plugin validates 2–255 choices and 2–10 score levels. Providers can impose tighter limits. Laya caps choice questions at 100 options. Its smaller token budgets can trim similar labels into indistinguishable inputs.
+
+Laya computes choice and score confidence as one minus normalized entropy, unlike Jev's formula. Validate thresholds for the chosen backend. Laya can silently truncate long states. The plugin does not expose its token-budget controls or extra routing and confidence metadata.
 
 ## Recommendation and alternatives
 
@@ -215,7 +217,7 @@ export function buildToolInputSchema(
 }
 ```
 
-The implementation must typecheck this schema against the installed V2 plugin API and exercise it through the real tool registration in A11. Runtime validation additionally enforces whitespace, JSON depth/size, and response constraints that this schema cannot fully express.
+Typecheck this schema against the installed V2 plugin API and exercise it through real tool registration in A11. Runtime validation also enforces whitespace, JSON depth and size, and response constraints that the schema cannot fully express.
 
 ### Usage examples
 
@@ -370,7 +372,7 @@ This illustrative response matches the mixed incident example. The actual OpenCo
 }
 ```
 
-Named-mode success additionally includes `result.classifier`. `requestID` is optional and appears only when supplied by the provider.
+Named-mode success also includes `result.classifier`. `requestID` is optional and appears only when supplied by the provider.
 
 #### Failed tool output
 

@@ -28,36 +28,7 @@ Call-level limits must be positive integers within the configured ceilings. A ca
 
 ## Configuration
 
-Add any of these settings inside the plugin's existing `options`. Omitted fields retain their defaults:
-
-```json
-{
-  "search": {
-    "maxPaths": 16,
-    "maxFiles": 32,
-    "maxEntries": 4096,
-    "maxDepth": 16,
-    "linesPerFile": 200,
-    "maxFileBytes": 32768,
-    "maxEvidenceBytes": 1048576,
-    "concurrency": 2,
-    "timeoutMs": 120000,
-    "maxResults": 32,
-    "maxFailureDetails": 64,
-    "excludeHidden": true,
-    "excludeDirectories": [
-      "node_modules",
-      "dist",
-      "build",
-      "target",
-      "vendor",
-      "coverage"
-    ]
-  }
-}
-```
-
-Every numeric field is a positive integer. Zero, negative, fractional, and unlimited values are rejected. Operator ceilings prevent accidental unbounded settings:
+Set fields under `options.search`; omitted fields retain defaults. Numeric fields are positive integers within these ceilings:
 
 | Setting             | Default | Maximum   |
 | ------------------- | ------- | --------- |
@@ -73,7 +44,7 @@ Every numeric field is a positive integer. Zero, negative, fractional, and unlim
 | `maxResults`        | 32      | 128       |
 | `maxFailureDetails` | 64      | 128       |
 
-`excludeDirectories` replaces the default list with exact directory names, not paths or patterns. An empty list disables these name exclusions. `excludeHidden: false` includes hidden descendants. Reload the plugin after editing options.
+`excludeDirectories` replaces the defaults (`node_modules`, `dist`, `build`, `target`, `vendor`, `coverage`) with exact directory names, not paths/patterns; an empty list disables these exclusions. `excludeHidden` defaults to true; false includes hidden descendants. Reload after editing options.
 
 The existing 1 MiB serialized classification-request limit applies separately, including JSON encoding, query, and question overhead. Raising `maxFileBytes` does not raise that limit. Provider limits may be tighter. The ordinary `options.timeoutMs` and `maxRetries` still apply per classification; `options.search.timeoutMs` bounds search work across all candidates.
 

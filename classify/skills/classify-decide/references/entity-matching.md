@@ -2,7 +2,7 @@
 
 Use this for candidate pairs from catalogs, contacts, organizations, citations, or other record collections. Define the identity granularity first: the same product family, edition, variant, and physical item are different matching tasks.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
@@ -60,4 +60,4 @@ A nearest-level policy would split this 0–2 rubric at 0.5 and 1.5, assigning t
 
 ## Limitations
 
-Pairwise matches do not establish transitivity: A≈B and B≈C do not guarantee A≈C. Before building a cluster, check incompatible identifiers and variant constraints across its members. Record-linking or merging is a separate operation from the Classify judgment.
+Matching A with B and B with C does not guarantee that A matches C. Before building a cluster, check incompatible identifiers and variant constraints across its members. Linking or merging records is separate from the Classify judgment.

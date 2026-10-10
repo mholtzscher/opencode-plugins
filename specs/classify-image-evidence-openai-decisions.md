@@ -65,7 +65,13 @@ Fixed plugin limits, not claims about OpenAI's maximums:
 
 Reads are sequential and bounded by the smaller of the per-image limit and remaining aggregate budget. Never truncate, resize, or omit evidence. A one-byte overflow fails before inference. Resolve and read images once per invocation; provider retries reuse the encoded body and do not re-read files.
 
-Determine MIME type from bytes, not extension or caller metadata. Validate supported signatures and basic container structure with bounded checks: PNG signature and IHDR; JPEG SOI and a valid frame header; WebP RIFF/WEBP header, size, and supported image chunk. Reject obvious malformed containers, empty content, text, SVG, PDF, GIF, and animated PNG/WebP. Do not decode pixels or promise full corruption detection. Remaining decoder failures are provider rejections. No pixel-count limit or dimension-based transformation is introduced in this pilot.
+Determine MIME type from bytes, not the extension or caller metadata. Use bounded checks for supported signatures and basic container structure:
+
+- Check the PNG signature and IHDR.
+- Check JPEG SOI and a valid frame header.
+- Check the WebP RIFF/WEBP header, size, and supported image chunk.
+
+Reject obvious malformed containers, empty content, text, SVG, PDF, GIF, and animated PNG or WebP. These checks do not decode pixels or detect all corruption. The provider rejects remaining decoder failures. This pilot adds no pixel-count limit or dimension-based transformation.
 
 Use a regular-file descriptor, canonicalize the path, and verify descriptor/path identity before and after native permission checking. Reject non-regular files and path replacement races. Apply existing bounded-file mutation/size checks. Close handles on success, failure, interruption, and timeout.
 
@@ -160,7 +166,7 @@ OpenAI encoding:
 
 Keep question encoding and response decoding unchanged. No Responses/chat fallback and no backend failover.
 
-Extend `SystemOneDefinition` with `supportsImages?: boolean`. In `encodeRequest`, select the 13 MiB encoded-body budget only when that definition supports images and the request actually has images. Extend `requireBoundedJson` with an optional limits argument so this encoder can retain depth/prototype/accessor/cycle checks without changing global defaults. Also check actual UTF-8 serialized body length before credentials/network access. Text-only provider bodies remain capped at 1 MiB. Response bounds in `transport.ts` are unchanged.
+Extend `SystemOneDefinition` with `supportsImages?: boolean`. In `encodeRequest`, use the 13 MiB encoded-body budget only when the definition supports images and the request contains them. Add an optional limits argument to `requireBoundedJson`. Preserve depth, prototype, accessor, and cycle checks without changing global defaults. Check actual UTF-8 serialized body length before credential or network access. Text-only provider bodies remain capped at 1 MiB. Keep response bounds in `transport.ts` unchanged.
 
 ## Errors, cancellation, and data handling
 
@@ -172,7 +178,7 @@ Extend `SystemOneDefinition` with `supportsImages?: boolean`. In `encodeRequest`
 - OpenAI HTTP failures and refusals retain the existing mappings and attempt accounting.
 - Session interruption remains interruption, not an error envelope. Scoped cleanup must complete.
 
-No image bytes or data URLs in tool output, logs, progress metadata, error details, or storage. Do not include filesystem error strings. Existing public input history contains paths; native `read` previews may retain the images. Documentation must distinguish plugin storage from normal OpenCode history. Explicitly resolved images are sent to OpenAI and may incur charges. No caching or automatic conversation attachment collection.
+Keep image bytes, data URLs, and raw filesystem errors out of tool output, logs, progress metadata, error details, and storage. Public input history contains paths, and native `read` previews may retain images. Documentation must distinguish plugin storage from normal OpenCode history. Classify sends explicitly resolved images to OpenAI, which may incur charges. It does not cache images or collect conversation attachments automatically.
 
 ## Project layout and ownership
 
@@ -249,7 +255,7 @@ Implement the A1–A8 tests above using real small image fixtures, recording ser
 
 Use spies that fail the test if a rejected request touches credentials, evidence, or HTTP. Count file reads across a forced retry and assert that the second request body equals the first even if the fixture file changes. Verify that an invalid second image prevents any inference request rather than submitting a partial batch.
 
-Exercise limits at the boundary and one byte/reference beyond it. Use injected descriptors or bounded synthetic files for budget tests; arbitrary padding is not a substitute for valid format fixtures. Cancellation tests must assert descriptor cleanup and propagated interruption, not just a returned failure.
+Exercise each limit at its boundary and one byte or reference beyond it. Use injected descriptors or bounded synthetic files for budget tests. Arbitrary padding is not a substitute for valid format fixtures. Cancellation tests must assert descriptor cleanup and propagated interruption, rather than only a returned failure.
 
 Required commands from `classify/`:
 

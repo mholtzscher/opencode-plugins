@@ -4,7 +4,7 @@
 
 On pushes to `main`, [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens or updates a combined release PR. It updates each changed plugin's `package.json` and `CHANGELOG.md`. Merging the PR creates component tags such as `classify-v1.1.0` and matching GitHub releases.
 
-Use Conventional Commits. `feat(classify): ...` bumps Classify's minor version; `fix(classify): ...` bumps its patch version; breaking changes bump major. Release Please determines affected plugins by changed paths. Root-only workflow or documentation changes do not release a plugin. `docs:` and `chore:` commits alone do not trigger releases.
+Use Conventional Commits. `feat(classify): ...` bumps Classify's minor version. `fix(classify): ...` bumps its patch version. Breaking changes bump major. Release Please determines affected plugins by changed paths. Root-only workflow or documentation changes do not release a plugin. `docs:` and `chore:` commits alone do not trigger releases.
 
 ## GitHub setup
 
@@ -16,7 +16,7 @@ GitHub does not start other workflows for PRs or releases created using `GITHUB_
 
 ## First Workflow tools release
 
-Workflow tools replaced the two legacy release components with its own new `workflow-tools` component and package/manifest seed `1.0.0`. The initial `workflow-tools-v1.0.0` GitHub release is complete; its **component-local** `release-as: 1.0.0` override is removed so subsequent versions advance normally. It is npm-enabled and Git-installable, with no TUI export. Preserve historical legacy tags/releases; their changelog material belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not earlier Workflow tools releases.
+Workflow tools replaced the two legacy release components with a new `workflow-tools` component starting at `1.0.0`. The initial GitHub release is complete, and its one-time `release-as: 1.0.0` override has been removed. Preserve legacy tags and releases. Their changelog belongs in [migration history](../workflow-tools/docs/MIGRATION.md), not Workflow tools release history.
 
 ## First Classify publish
 
@@ -63,13 +63,13 @@ npm publish --access public
 
 The allowlist ships the TypeScript server entry, production `pr/` and `specs/` modules, documentation, changelog, and MIT license, excluding tests and development fixtures. No compilation or TUI bundle is needed. Effect's shared Node adapter is pinned as a direct dependency so fresh consumers do not rely on the repository's override or lockfile.
 
-On npmjs.com, open this package's settings and add a GitHub Actions trusted publisher using the same fields in the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow filename `release-please.yml`, and no environment. Allow direct publishing; no npm token secret is needed. Newly created trusted publishers must complete a successful publish within two days or be recreated after expiry.
+On npmjs.com, add a trusted publisher in this package's settings using the Classify table above. Allow direct publishing. No npm token secret is needed. A new trusted publisher must complete a successful publish within two days or be recreated after expiry.
 
-The manual publish completes npm delivery of `1.0.0`; do not rerun the automated publish for an already-published version, because npm versions are immutable. If npm reports that `1.0.0` is already staged, inspect and approve the intended staged artifact rather than retrying publication; see [npm release recovery](../workflow-tools/docs/DEVELOPMENT.md#npm-release-recovery). Future tagged releases use the configured publisher. Until a version is public, use the Git install target in the plugin README.
+The manual publish delivers `1.0.0` to npm. npm versions are immutable, so do not rerun publication for an already-published version. If npm reports that `1.0.0` is staged, follow [npm release recovery](../workflow-tools/docs/DEVELOPMENT.md#npm-release-recovery) to inspect and approve it. Future tagged releases use the configured publisher. Until a version is public, use the Git install target in the plugin README.
 
 ## Automated npm releases
 
-When Release Please creates a Classify or Workflow tools release, `publish-classify` or `publish-workflow-tools` checks out that component's tag, verifies its version and published GitHub release, installs its dependencies with Bun, runs typecheck and tests, inspects the package contents, and publishes with npm. Each plugin is an independent package, so installation and publication run inside its directory, without npm workspace flags. Publishing uses Node 24 and npm 11 (trusted publishing requires npm 11.5.1+).
+After Release Please creates a Classify or Workflow tools release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Installation and publication run inside each plugin directory, without workspace flags. Publishing uses Node 24 and npm 11. Trusted publishing requires npm 11.5.1 or later.
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
@@ -89,4 +89,4 @@ Supply at least one tag input. Each publisher runs only for its component's tag;
 
 This publishes the tagged package using the current workflow. It skips Release Please, so it does not create another release or version bump. npm verbose logs include OIDC exchange errors to help diagnose trusted-publisher mismatches.
 
-To opt another plugin into npm, give it a scoped package name, package metadata, a license, a `files` allowlist, and public `publishConfig`; remove `private: true`. Add its release outputs and a publish job to the workflow, then perform its first publish and configure its trusted publisher. Keep package-specific build steps in that job. Cache metrics must include its committed `dist/tui.js` bundle.
+To publish another plugin on npm, add a scoped package name, package metadata, a license, a `files` allowlist, and public `publishConfig`. Remove `private: true`. Add release outputs and a publish job to the workflow. Perform the first publish and configure the trusted publisher. Keep package-specific build steps in that job. Cache metrics must include its committed `dist/tui.js` bundle.

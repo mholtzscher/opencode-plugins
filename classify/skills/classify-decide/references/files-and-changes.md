@@ -1,8 +1,8 @@
 # Files and changes
 
-Use explicit evidence references to let the backend inspect server-local material without first bringing all of it into the agent's conversation. Paths are relative to the invoking session directory. The `type: "evidence"` marker enables resolution; paths inside ordinary JSON remain literal data.
+Use explicit references so the backend can inspect server-local evidence without copying it into the conversation. Paths resolve relative to the invoking session directory. `type: "evidence"` enables resolution. Paths inside ordinary JSON remain literal data.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
@@ -44,4 +44,4 @@ Inspect `preservation.choice` to identify support, a visible violation, or missi
 
 Adapt the paths to files that exist. Diffs include staged and unstaged tracked changes relative to `base`; include untracked files explicitly in `files`. For a branch review, resolve the intended comparison base before the call. A path object such as `{ "path": "report.md", "offset": 40, "limit": 60 }` selects lines 40–99.
 
-For structured code selection, use `code: [{ path, query }]` with a raw Tree-sitter query capturing `@evidence`. Include surrounding declarations and comments when they affect interpretation. File slices are useful when the query's grammar or capture boundaries are uncertain. Search and grammar-discovery tools are currently unregistered; their availability is not a prerequisite for file or code evidence.
+For structured code selection, use `code: [{ path, query }]` with a raw Tree-sitter query that captures `@evidence`. Include surrounding declarations and comments when they affect interpretation. Use file slices when the grammar or capture boundaries are uncertain. File and code evidence work even while search and grammar-discovery tools are unregistered.

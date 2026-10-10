@@ -81,7 +81,7 @@ Defaults are `http://127.0.0.1:11434`, model `nimble`, and no authorization head
 
 The address resolves from the OpenCode server. The plugin does not start Ollama or pull models. Increase the shared `timeoutMs` if cold model loads exceed the default 30 seconds.
 
-Ollama's Nimble endpoint accepts up to **26 choice options** and a **64 KiB request body**, tighter than the plugin's general limits. Use string descriptions for score criteria: Ollama 0.35.0 rejects structured score descriptions with HTTP 400. The plugin preserves question content rather than converting it to strings. Oversized or unsupported requests may return `REQUEST_REJECTED`. Results report `provider: "ollama"`; test confidence thresholds on your own data.
+Ollama's Nimble endpoint accepts up to 26 choice options and a 64 KiB request body, below the plugin's general limits. Use string descriptions for score criteria. Ollama 0.35.0 rejects structured score descriptions with HTTP 400, and the plugin does not convert them to strings. Oversized or unsupported requests may return `REQUEST_REJECTED`. Results report `provider: "ollama"`. Test confidence thresholds on your own data.
 
 ### Laya
 
@@ -116,7 +116,7 @@ mise daemons start laya
 opencode
 ```
 
-Configure a Laya profile before launching OpenCode; starting the daemon does not change the selected backend. The root `mise.toml` uses Pitchfork to supervise Laya 0.3.22 on `http://127.0.0.1:8000`. First start uses uv to install `laya[serve]` in a cached Python 3.12 environment and downloads the English checkpoint from Hugging Face. PyTorch's backend is selected automatically. Startup allows up to 20 minutes for installation and model loading. No API key is configured; the listener is loopback-only.
+Configure a Laya profile before launching OpenCode. Starting the daemon does not change the selected backend. The root `mise.toml` uses Pitchfork to supervise Laya 0.3.22 on `http://127.0.0.1:8000`. First start uses uv to install `laya[serve]` in a cached Python 3.12 environment and download the English checkpoint from Hugging Face. PyTorch selects its backend automatically. Startup allows up to 20 minutes for installation and model loading. The listener is loopback-only, with no API key configured.
 
 ```sh
 mise daemons status laya
@@ -150,13 +150,7 @@ Defaults are model `gpt-6-luna` and credential variable `OPENAI_API_KEY`. You ca
 
 The [Decisions API](https://developers.openai.com/api/docs/guides/decisions) is in public beta and currently supports only `gpt-6-luna`. The plugin sends bearer-authenticated requests to `https://api.openai.com/v1/decisions`, never Chat Completions or Responses. A configured `model` is passed unchanged; unsupported models produce `REQUEST_REJECTED`, with no fallback.
 
-The adapter maps `noul` to a native `predicate`, choice criteria to `choices`, and score criteria to ordered `levels`. Strings remain text; structured state, instructions, and descriptions are JSON-serialized. Optional yes/no criteria are appended to predicate instructions. Score levels use their zero-based indices as wire labels; returned indices and labels are validated before restoring the original structured legend. Native probabilities, confidence, fractional scores, and reported token usage remain unchanged. Refusals fail the entire call with sanitized `INVALID_RESPONSE`, without partial answers.
-
-OpenAI Decisions is the only image-capable backend in this plugin. Supply explicit [local image evidence](./EVIDENCE.md#images), including image-only or named preset evidence. The adapter sends inline base64 data URLs in ordered user-message image parts. Text-only calls retain string input. Hosted URLs, `file_id`, caller-supplied inline bytes, GIF/animation, resizing, OCR preprocessing, automatic conversation attachments, and image search are not supported. Other profiles return `UNSUPPORTED_INPUT` before any evidence or credential reads, with no failover.
-
-Image limits are fixed, not profile options: four references, 4 MiB per image, 8 MiB aggregate raw bytes, and 13 MiB for the complete encoded image request. Public input, resolved non-image state/questions, text-only requests, and responses retain 1 MiB bounds. The image resolver has its own 30-second deadline including permission waits; `timeoutMs` applies to provider transport. Pending descriptor operations and cleanup can extend the image deadline. Increasing `timeoutMs` does not increase image budgets or the image-resolution deadline.
-
-Image-reference paths stay local to resolution; file/code/diff paths and paths supplied in text keep their old behavior. Native `read` permissions and external-directory approvals still apply. Classify stores no images, but ordinary OpenCode history may retain paths and native previews. Explicit image calls send image bytes to OpenAI and may incur charges. Verify the pinned runtime using the opt-in [smoke procedure](./SMOKE_TESTING.md#image-evidence-on-a-real-host).
+OpenAI Decisions is the only image-capable backend. See [image evidence](./EVIDENCE.md#images) for supported formats, fixed budgets, permissions, and history implications. Increasing `timeoutMs` changes provider transport time, not image-resolution limits. Verify native previews/permissions using the opt-in [smoke procedure](./SMOKE_TESTING.md#image-evidence-on-a-real-host).
 
 ## Local-server origins
 

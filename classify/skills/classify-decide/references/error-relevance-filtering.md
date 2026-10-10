@@ -1,6 +1,6 @@
 # Error relevance filtering
 
-Use these caller-defined judgments to prioritize investigation. Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved. Retain raw errors, execution conditions, timestamps, and revision IDs. Ask for likely diagnostic directions rather than assigning certainty or causation from correlation.
+Before using this example, read [coding evidence requirements](../SKILL.md#supply-enough-context) and [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 

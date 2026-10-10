@@ -2,13 +2,13 @@
 
 Use this for text whose headings, list markers, or paragraph boundaries were lost. Let the model classify boundaries and block types, while code preserves source text and renders the markup.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
 Split and number source lines in code, preserving offsets and blank-line information. Honor explicit markers and other deterministic structure directly. Ask about ambiguous adjacent line boundaries only.
 
-Ask whether a line continues a sentence, rather than whether two lines discuss the same topic: the latter can incorrectly collapse an entire list into a paragraph.
+Ask whether a line continues a sentence, rather than whether two lines discuss the same topic. The latter can incorrectly collapse an entire list into a paragraph.
 
 The second call depends on blocks built after the first call. Include surrounding blocks so a heading can be distinguished from a short paragraph.
 

@@ -14,17 +14,10 @@ bun test
 
 Run `bun run check` from the repository root. Tests cover credential extraction and provider-response parsing; they do not make live account requests.
 
-## Architecture
+## Server and client contracts
 
-| File | Responsibility |
-| --- | --- |
-| [`index.ts`](../index.ts) | Effect-based server entry, active credentials, HTTP requests, RPC and tool registration |
-| [`parse.ts`](../parse.ts) | Token/account extraction and quota normalization |
-| [`rpc.ts`](../rpc.ts) | Shared schemas and portable RPC contracts |
-| [`tui.tsx`](../tui.tsx) | Provider discovery, polling, countdowns, sidebar display |
+The server resolves credentials for each request. The TUI and agent tool receive normalized quota data, not credentials.
 
-The server resolves credentials for each request; the TUI and agent tool receive normalized quota data.
+The `quota_usage` tool takes an empty input object and returns `{ providers: QuotaProvider[] }`. It checks the location's provider list and fetches supported providers concurrently through the RPC handlers. Each call fetches fresh usage. A provider failure returns an unavailable result without discarding the other's result. If no supported providers are configured, the tool returns an empty array. A provider-list failure fails the tool with a generic error.
 
-The `quota_usage` tool takes an empty input object and returns `{ providers: QuotaProvider[] }`. It checks the location's provider list and fetches supported providers concurrently using the same handlers as the RPC methods. Each call fetches fresh usage. Provider failures return an unavailable result without discarding the other provider's result. No supported providers produces an empty array; provider-list failures fail the tool with a generic error.
-
-The package exports `./rpc` with `CodexUsage` (`codex-usage`) and `OpenCodeGoUsage` (`opencode-go-usage`). Both expose `get({})`, returning a `QuotaProvider` with `provider`, `name`, `status`, `windows`, and millisecond `fetchedAt`. Window `resetAt` values use Unix seconds. Failures are represented by `status: "unavailable"`, a message, and empty windows. Neither contract emits events.
+The package exports `./rpc` with `CodexUsage`, ID `codex-usage`, and `OpenCodeGoUsage`, ID `opencode-go-usage`. Both expose `get({})`, which returns a `QuotaProvider` with `provider`, `name`, `status`, `windows`, and `fetchedAt`. `fetchedAt` uses milliseconds, while window `resetAt` values use Unix seconds. Failures return `status: "unavailable"`, a message, and empty windows. Neither contract emits events.

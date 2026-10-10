@@ -28,9 +28,9 @@ Offset is 1-based, default 1. Limit counts lines and defaults to EOF. Both accep
 
 EOF before the limit succeeds with fewer lines. Offset beyond EOF fails, including explicit slices of empty files. A terminal newline does not create a phantom line. Repeated entries preserve caller order and resolve independently.
 
-Partial reads use a bounded chunk scanner. The scan limit is 64 MiB per selection, including skipped bytes. Selected bytes share the 1 MiB evidence budget; expanded JSON and the final provider request retain their existing checks. Whole-file and Tree-sitter source limits stay at 1 MiB. The scanner validates UTF-8 and rejects NUL bytes in the consumed prefix; it does not inspect an unread suffix. Budget failures never truncate content.
+Partial reads use a bounded chunk scanner. The scan limit is 64 MiB per selection, including skipped bytes. Selected bytes share the 1 MiB evidence budget. Expanded JSON and the final provider request retain their existing checks. Whole-file and Tree-sitter source limits stay at 1 MiB. The scanner validates UTF-8 and rejects NUL bytes in the consumed prefix. It does not inspect the unread suffix or truncate content when a budget is exceeded.
 
-Permissions, canonical paths, regular-file checks, and descriptor lifetime remain owned by the evidence resolver. Reads cooperate with Effect interruption, and an in-flight filesystem read finishes before its buffer or descriptor is released. Size and timestamp changes during scanning fail with `EVIDENCE_ERROR`. Input validation failures use `INVALID_INPUT`; invalid ranges at runtime, scan limits, and file failures use `EVIDENCE_ERROR`. No failed resolution reaches the provider.
+The evidence resolver owns permissions, canonical paths, regular-file checks, and descriptor lifetime. Reads cooperate with Effect interruption. An in-flight filesystem read finishes before its buffer or descriptor is released. Size and timestamp changes during scanning fail with `EVIDENCE_ERROR`. Input validation failures use `INVALID_INPUT`. Invalid runtime ranges, exceeded scan limits, and file failures use `EVIDENCE_ERROR`. No failed resolution reaches the provider.
 
 ## Implementation ownership
 

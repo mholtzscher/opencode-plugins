@@ -2,7 +2,7 @@
 
 Use this when an existing workflow produces an answer or structured extraction and needs to decide which items warrant a more expensive second pass. The producer and escalation mechanism are outside `decide`; Classify supplies bounded verification judgments.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 

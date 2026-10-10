@@ -14,15 +14,11 @@ Remaining percentage is `100 - used_percent`, clamped to 0–100. A returned `re
 
 The server resolves the active `opencode-go` integration connection and sends its token as bearer authentication to `https://opencode.ai/zen/go/v1/usage`.
 
-The parser reads `monthly`, `rolling`, and `weekly` windows in that order. Each needs a numeric `percent` and string `resetsAt`; invalid or absent windows are skipped. Remaining percentage is `100 - percent`, clamped to 0–100. A parseable reset timestamp supplies the countdown. If no usable windows remain, the provider shows **Usage unavailable**.
+The parser reads `monthly`, `rolling`, and `weekly` windows in that order. Each needs a numeric `percent` and string `resetsAt`. It skips invalid or absent windows. Remaining percentage is `100 - percent`, clamped to 0–100. A parseable reset timestamp supplies the countdown. If no usable windows remain, the provider shows **Usage unavailable**.
 
 ## Display and refresh
 
-In web or TUI chat, the agent can call `quota_usage` to fetch current quotas on demand. It requests only supported providers in the location's provider list and returns remaining percentages, reset timestamps, and availability. Each call resolves the active credentials again.
-
-The TUI checks the location's provider list and requests only supported providers present there. If neither is present, the panel is hidden. The display uses green above 30% remaining, yellow at 30% or less, and red at 10% or less.
-
-Refresh happens on startup, every 60 seconds, and after `session.execution.succeeded`. Overlapping refreshes are skipped. Countdown updates run every 60 seconds, using days/hours/minutes and clamping elapsed resets to zero.
+The display uses green above 30% remaining, yellow at 30% or less, and red at 10% or less. The TUI skips overlapping refreshes. Countdowns show days, hours, and minutes and clamp elapsed resets to zero. For refresh timing and provider visibility, read [usage](../README.md#reading-the-tui-panel).
 
 Each server HTTP request has a 15-second timeout. Authentication, HTTP, decoding, or missing-usage failures produce a provider-specific **Usage unavailable** result. A failure to synchronize the provider list keeps the previous snapshot instead. The plugin does not provide a manual-refresh command or configurable polling interval.
 

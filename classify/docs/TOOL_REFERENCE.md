@@ -24,9 +24,7 @@ Options and inputs have bounded JSON traversal, at most 32 levels deep. Public t
 
 ### Image evidence input
 
-Use `state: { "type": "evidence", "images": [{ "path": "a.png" }] }` for image-only evidence, or combine `images` with `text`, `files`, `code`, and `diffs`. Each image reference is a strict object with only a nonblank local `path`, without null characters. No shorthand strings, URLs, inline bytes, or caller-supplied MIME types are accepted. Objects with an `images` key but no evidence marker remain literal JSON.
-
-The array accepts 1–4 references. Image 1 is the first reference; duplicates count. Static PNG, JPEG, and WebP are detected from bytes and bounded at 4 MiB each and 8 MiB total. Files resolve from the invoking session directory under native `read` permissions, exactly as text evidence does. `files` still means UTF-8 text. See [image evidence](./EVIDENCE.md#images) for validation, timeout/cleanup details, and history implications. Image inputs do not change question types or result envelopes.
+Use `state: { "type": "evidence", "images": [{ "path": "a.png" }] }`, alone or mixed with other evidence. Images do not change question types or result envelopes. See [image evidence](./EVIDENCE.md#images) for strict reference shapes, formats, order, budgets, and permissions.
 
 ## Questions and measurements
 
@@ -74,15 +72,15 @@ An `unknown` choice is a caller-defined label, not an automatic low-confidence f
 }
 ```
 
-Use entry lists for labels such as `__proto__`: the current OpenCode Code Mode object transport cannot preserve that label as an object key. The plugin safely converts entries to the backend's native criteria map using own properties, retaining the original labels in answers and probabilities. Both fields are required; descriptions may be null. Duplicate labels and unknown entry fields fail validation. Named classifiers accept either form. This workaround does not repair Code Mode's map transport itself.
+Use entry lists for labels such as `__proto__`, which Code Mode cannot preserve as an object key. The plugin converts entries to the backend's criteria map using own properties and retains labels in answers and probabilities. Both fields are required. Descriptions may be null. Duplicate labels and unknown entry fields fail validation. Named classifiers accept either form. This workaround does not repair Code Mode's map transport.
 
 ### Score legends
 
-Scores remain on the zero-based rubric: with three levels, `1.6` is a fractional score on 0–2, not a percentage. Legends preserve native nonblank strings, nonempty objects, and nonempty arrays rather than converting structured descriptions to strings. A legend must contain exactly the requested zero-based indices; null, primitive booleans/numbers, and empty descriptions are rejected.
+Scores remain on the zero-based rubric. With three levels, `1.6` is a fractional score on 0–2, not a percentage. Legends preserve native nonblank strings, nonempty objects, and nonempty arrays without stringifying structured descriptions. A legend must contain exactly the requested zero-based indices. Null, booleans, numbers, and empty descriptions are invalid.
 
 ## Named classifiers
 
-Configure up to 32 definitions under `options.classifiers`. Each needs a nonblank description of at most 512 characters and a valid question map. Names use the same format as question IDs. See the [README example](../README.md#reuse-a-named-classifier) for caller-supplied state.
+Configure up to 32 definitions under `options.classifiers`. Each needs a nonblank description of at most 512 characters and a valid question map. Names use the same format as question IDs. Omit preset `state` to require callers to supply it.
 
 To preset what a classifier evaluates, include `state` in its definition:
 
@@ -207,7 +205,7 @@ Only explicit HTTP **429 and 529** responses automatically retry. Delays are 500
 | `INVALID_RESPONSE`, `INPUT_TRUNCATED` | Invalid/oversized JSON, native contract violation, or explicit upstream truncation marker. No retry. |
 | `INTERNAL_ERROR` | Unexpected local failure, sanitized. |
 
-Errors use locally constructed messages and may include HTTP `status`. Raw upstream bodies and arbitrary thrown messages are never included. Input validation includes a JSON Pointer `path` and expected constraint where available (for example, `/questions/severity/criteria`). Messages do not echo submitted values, and arbitrary choice labels are excluded from paths. An empty pointer refers to the input root.
+The plugin constructs error messages locally and may include HTTP `status`. It excludes raw upstream bodies and arbitrary thrown messages. Input validation includes a JSON Pointer `path`, such as `/questions/severity/criteria`, and the expected constraint where available. Messages do not echo submitted values. Paths exclude arbitrary choice labels. An empty pointer refers to the input root.
 
 Failures include `attempts`, `durationMs`, and a safe final-attempt `requestID` when available. `retryAfterMs` preserves a valid provider `Retry-After` in milliseconds, not the plugin's backoff. It accepts seconds or a standard HTTP date, clamping past dates to zero. `retryable` means a caller could retry later, not that doing so is free or idempotent. A timed-out request may already have incurred cost, and successful-attempt usage can omit failed-attempt costs.
 

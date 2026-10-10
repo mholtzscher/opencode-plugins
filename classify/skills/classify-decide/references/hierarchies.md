@@ -2,7 +2,7 @@
 
 Use this when labels form a known taxonomy: products, subjects, organizational units, or any caller-provided hierarchy. Keep the tree or graph and label-to-parent mapping in code. The model chooses among the children presented at a particular node.
 
-Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-interpret): check `ok` and keep uncertain assessments unresolved.
+Before using this example, read [invocation and interpretation](../SKILL.md#invoke-and-interpret).
 
 ## Evidence needed
 
@@ -39,7 +39,7 @@ Follow the [shared invocation and interpretation rules](../SKILL.md#invoke-and-i
 
 Greedy traversal discards every alternative after each call. If early ambiguity matters, keep a bounded beam of plausible paths and ask one child-choice question per frontier node. Those frontier questions can share a call when the evidence is shared and each question identifies its parent category.
 
-One way to compare paths of different depths is the geometric mean of edge probabilities. `exp(mean(log(p)))` computes that heuristic without multiplying many tiny values; exclude zero-probability paths or define their handling explicitly. This is a ranking heuristic, not a calibrated probability that a final leaf is correct. Bound beam width, depth, total requests, and cycles; retain full path IDs when a graph permits multiple parents.
+One way to compare paths of different depths is the geometric mean of edge probabilities. Compute it with `exp(mean(log(p)))` rather than multiplying many tiny values. Exclude zero-probability paths or define how to handle them. This is a ranking heuristic, not a calibrated probability that a final leaf is correct. Limit beam width, depth, total requests, and cycles. Retain full path IDs when a graph permits multiple parents.
 
 ### Fall back to a broader label
 

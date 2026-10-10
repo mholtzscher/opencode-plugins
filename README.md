@@ -20,7 +20,7 @@ Add the plugins you want to the `plugins` array in `opencode.jsonc`. Use a proje
 
 Classify is available on npm as [`@mholtzscher/opencode-classify`](https://www.npmjs.com/package/@mholtzscher/opencode-classify). The other plugins install from Git.
 
-This example lists all five packages. Keep only those you want; Classify's example uses TypeSafe and needs `TYPESAFE_API_KEY` in the **OpenCode server** environment. Choose another backend using its [configuration guide](./classify/docs/CONFIGURATION.md). Before replacing legacy specification/GitHub plugins, remove their sources from every applicable configuration, including TUI-only sources; see [Workflow tools migration](./workflow-tools/docs/MIGRATION.md).
+This example lists all five packages. Keep only those you want. Classify uses TypeSafe here and needs `TYPESAFE_API_KEY` in the OpenCode server environment. To choose another backend, read [Classify configuration](./classify/docs/CONFIGURATION.md). Before replacing legacy specification or GitHub plugins, follow [Workflow tools migration](./workflow-tools/docs/MIGRATION.md).
 
 ```jsonc
 {
@@ -43,43 +43,25 @@ This example lists all five packages. Keep only those you want; Classify's examp
 
 OpenCode installs the packages and loads their exported TUI entries alongside the server entries. `workflow-tools` is server-only. Git installs need no checkout or manual `bun install`; cache metrics includes its prebuilt TUI bundle.
 
-You can also add a package globally with the CLI:
-
-```sh
-opencode plugin add @mholtzscher/opencode-classify
-opencode plugin add 'github:mholtzscher/opencode-plugins#main::path:cache-metrics'
-```
-
-After adding Classify with the CLI, edit its config entry to include the backend options shown above. If switching from Git or a local checkout, replace the existing entry's `package` value with `@mholtzscher/opencode-classify` and keep its options.
-
-Load one copy of each plugin; avoid configuring multiple sources with the same plugin ID. See the [OpenCode V2 plugin guide](https://opencode.ai/v2/docs/plugins) for package updates and reload behavior.
-
-## Runtime setup
-
-- **Classify:** credentials and evidence resolve on the server. Start Laya or Ollama separately for local inference. OpenAI Decisions uses its dedicated API with `gpt-6-luna`; the plugin does not execute decisions or automatically fail over.
-- **Quota usage:** uses active `openai` and `opencode-go` connections on the server. Codex requires ChatGPT account credentials. Ask for quotas in web or TUI chat; the sidebar refreshes every minute and after successful session execution.
-- **Workflow tools:** supply the [activity dependencies](./workflow-tools/docs/WORKFLOWS.md#dependencies) on the server. Existing specs are direct files under the invoking session's `specs/` directory; quote whitespace. GitHub activities need authenticated server `gh`, not TUI-host tooling. Publication starts a read-only background observer by default; pending monitoring is not green CI.
-- **Cache metrics and Marketplace:** features run in the TUI. Cache-loss markers are heuristic; Marketplace actions are simulated.
+Load one copy of each plugin. When switching sources, replace the existing entry and retain its options. See the [OpenCode V2 plugin guide](https://opencode.ai/v2/docs/plugins) for CLI installation, updates, and reload behavior. Plugin READMEs cover runtime dependencies and usage.
 
 ## Development
 
-Run `bun install` inside each plugin you work on. Configure its directory in `plugins`: relative paths resolve from the containing config file, or use an absolute path from another project. The root install only supplies lint tooling.
+Run `bun install` inside each plugin you work on. Add its directory to `plugins`. Relative paths resolve from the containing config file. You can also use an absolute path from another project. The root install supplies lint tooling only.
 
-The repository's [`opencode.jsonc`](./opencode.jsonc) loads all five local plugins and contains operator-specific model, account, and credential settings. See Classify's [development configuration](./classify/docs/CONFIGURATION.md#repository-development-configuration) before using hosted profiles or changing models.
+The repository's [`opencode.jsonc`](./opencode.jsonc) loads all five local plugins and contains operator-specific settings. See Classify's [development configuration](./classify/docs/CONFIGURATION.md#repository-development-configuration) before using hosted profiles or changing models. Inference servers are managed separately.
 
 Run plain `opencode` from this repository to use the local plugins while retaining global MCP servers, permissions, providers, and CLI settings. The project config merges over the global config, but plugin arrays accumulate rather than replace one another.
 
 ### Local plugins versus global installs
 
-Verified with OpenCode V2.0.26: configuring an installed package globally and its local checkout here produces `Duplicate plugin ID` failures. ID-based disable directives such as `-classify` do not select a source: loading the local copy re-enables that ID for both copies, and the installed copy wins.
+On OpenCode V2.0.26, a global package plus its local checkout produces `Duplicate plugin ID` failures. ID-based directives such as `-classify` do not select a source. Loading the local copy re-enables both, and the installed copy wins.
 
-Root `opencode.jsonc` instead uses experimental `integration.use` policies with `plugin:<package-target>` resources to block installed Git/npm package sources in this project. Keep these policies aligned with the global package targets if those sources change; leave the local path entries and their options intact. This behavior was verified against the installed V2.0.26 runtime; the public policies guide did not yet document `integration.use`.
+Root `opencode.jsonc` uses experimental `integration.use` policies with `plugin:<package-target>` resources to block installed Git and npm sources in this project. If global package targets change, update these policies to match. Preserve local path entries and their options. This behavior was verified against V2.0.26, whose public policies guide did not document `integration.use`.
 
-The merger removes the two legacy installed-source deny policies. Remove legacy sources from all applicable configs **before** loading Workflow tools: removing those policies can re-enable global old installations, and their different IDs evade duplicate-ID protection. Repository changes do not edit global configuration. See [migration prerequisites](./workflow-tools/docs/MIGRATION.md#remove-legacy-sources-first).
+Before loading Workflow tools, follow [migration prerequisites](./workflow-tools/docs/MIGRATION.md#remove-legacy-sources-first). Removing old deny policies can re-enable global legacy installations with different IDs. Repository changes do not edit global configuration.
 
 After changing plugin sources, open `/plugins` and confirm all five repository plugins are **active, local**, with no duplicate failures or legacy command providers. Unrelated global plugins should remain active. CLI preferences still come from global `cli.json`; there is no project-local CLI settings file.
-
-Launching OpenCode does not start inference servers. The optional [Laya daemon](./classify/docs/CONFIGURATION.md#start-laya-with-mise) is managed separately.
 
 ### Verification
 
