@@ -7,12 +7,12 @@ Five independent Bun packages for OpenCode V2. Each plugin owns its dependencies
 | Plugin | What it does | Interface and requirements |
 | --- | --- | --- |
 | [Classify](./classify/README.md) | Typed judgments with OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama; file/code/diff evidence | Namespaced decision tool and backend-selection command; TUI picker/status. Requires explicit backend configuration. |
-| [Cache metrics](./cache-metrics/README.md) | Session input cache-hit rate, token totals, per-response history, and JSON export | TUI sidebar and history panel. History includes subagents by default. |
+| [Cache metrics](./cache-metrics/README.md) | Session input cache-hit rate, token totals, per-response history, and JSON export | TUI sidebar and history panel. History includes the root session and its subagents by default. |
 | [Quota usage](./quota-usage/README.md) | Remaining Codex weekly and OpenCode Go monthly/rolling/weekly account quotas | Web/TUI chat tool and TUI sidebar backed by server RPC. Uses active provider connections. |
 | [Workflow tools](./workflow-tools/README.md) | Spec planning/refinement/implementation, PR publication/metadata, feedback delivery and check investigation | Eight server commands; OpenCode 2.0.22+. External skills and server-side authenticated `gh` as needed; no TUI entry. |
 | [Marketplace](./marketplace/README.md) | Browse a sample catalog of skills, commands, and agents | TUI prototype. Install/update/uninstall actions change durable UI state, not OpenCode resources. |
 
-Each plugin README covers setup and common use, with detailed guides under its `docs/` directory.
+Each plugin README covers setup and common use. Contributor details belong in its `docs/DEVELOPMENT.md`.
 
 ## Install
 
