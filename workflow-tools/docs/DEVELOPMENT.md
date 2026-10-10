@@ -4,7 +4,7 @@
 
 ## Setup and validation
 
-Use OpenCode 2.0.22 or later. Before replacing legacy plugins, follow [migration prerequisites](./MIGRATION.md#remove-legacy-sources-first). When loading this checkout alongside global installs, follow [local-plugin setup](../../README.md#local-plugins-versus-global-installs).
+Use an OpenCode release compatible with the `@opencode/plugin` dependency in [package.json](../package.json). When loading this checkout alongside global installs, follow [local-plugin setup](../../README.md#local-plugins-versus-global-installs).
 
 From `workflow-tools/`, run `bun install`, `bun run typecheck`, and `bun test`. From the repository root, run `bun run check`. Use `bun install --frozen-lockfile` for reproducible installs.
 
@@ -23,29 +23,41 @@ Successful OIDC authentication does not prove publication. An `E409` error menti
 
 Do not republish a reserved version.
 
-Trusted publishers must allow direct `npm publish`, not only staging. New configurations require a successful publish within two days. Advancing the version does not fix missing publisher permissions.
+Check the package's trusted-publisher settings if direct publication fails. Advancing the version does not fix missing publisher permissions. Consult [npm's trusted-publishing documentation](https://docs.npmjs.com/trusted-publishers/) for current setup requirements.
 
 ## Architecture and invariants
 
-`index.ts` registers the spec and PR command families. Each acquires service layers in plugin scope. The plugin has no global runtime, TUI entry, custom RPC, durable workflow state, or scheduler. Executors validate arguments before reads and submit exactly one prompt. They preserve the invoking session, attachments, and requested queue or steer delivery.
+[index.ts](../index.ts) registers the spec and PR command families. Each acquires Effect service layers in plugin scope. The plugin is server-only and keeps no durable workflow state. Executors validate arguments before reads. Successful preparation submits one prompt with the invoking session, attachments, and requested queue or steer delivery. Preparation does not switch agents or models.
 
-Spec resolution uses scoped Effect FileSystem and Path services. Stat follows symlinks to regular files, including targets outside `specs/`. Normalized paths preserve link names. Missing targets and targets that are not files map to `not-found`. Other I/O failures map to `filesystem` with their causes. Host permissions govern actual reads. The resolver does not prevent filesystem races. Before changing argument parsing or resolution, read [spec inputs](./WORKFLOWS.md#spec-inputs).
+Spec resolution uses scoped Effect FileSystem and Path services. Missing targets and targets that are not files map to `not-found`. Other I/O failures map to `filesystem` with their causes. Validation does not prevent filesystem races between checking and reading a file. Before changing argument parsing or resolution, read the user-facing [spec inputs](../README.md#spec-inputs), [parser](../specs/arguments.ts), and [resolver](../specs/paths.ts).
 
-Each subprocess has a scope and timeout. Interruption terminates it, escalating to a forced kill after five seconds. Actions collection limits concurrency and reports failed reads as limitations. Propagate interruption and defects instead of returning partial success. Do not retry GitHub writes. Temporary evidence logs do not store workflow progress.
+Command instructions live in [specs/prompts.ts](../specs/prompts.ts) and the `pr/*-prompts.ts` modules. Update their tests when changing approval, publication, feedback, or monitoring behavior.
+
+[pr/github.ts](../pr/github.ts) scopes subprocesses and defines their timeouts, output limits, and forced-kill delay. Actions evidence collection limits concurrency and reports failed reads as limitations. Propagate interruption and defects instead of returning partial success. Do not retry GitHub writes. Temporary evidence logs do not store workflow progress.
 
 An interruption event for the invoking session cancels preparation and prevents late prompt admission. Events for other sessions, or streams that end or fail, do not cancel it.
 
-OpenCode 2.0.26 does not emit this event for commands still preparing a prompt. Its interrupt endpoint treats them as idle and returns `interrupted: false`. Escape and session interruption need a host fix for this phase. Disconnecting a pending request does clean up preparation. After prompt admission, normal host interruption applies.
+Live testing with OpenCode 2.0.26 found that the host did not emit this event while commands were still preparing a prompt. Its interrupt endpoint treated them as idle and returned `interrupted: false`. Disconnecting a pending request cleaned up preparation. Recheck Escape, session interruption, and request disconnection when upgrading the host. After prompt submission, normal host interruption applies.
+
+### Check snapshots
+
+[pr/checks.ts](../pr/checks.ts) reads all checks and the required-only subset for a captured PR identity. It accepts the exit codes that `gh` uses for passing, failing, and pending checks, then parses the JSON. With empty stdout, it recognizes the stderr messages `no checks reported` and `no required checks reported`. Neither establishes a passing gate or proves there are no required jobs.
+
+An unrelated error reading all checks fails preparation. A failed required-only query still permits an all-check report with unknown requirement status.
+
+[pr/check-classification.ts](../pr/check-classification.ts) matches checks by name, workflow, event, and link. Unique matches in the required subset are required; other checks are advisory only when the subset is available, nonempty, and consistent. Duplicate identities are unknown. A changed PR identity or a required check missing from the all-check read makes classification unknown for the entire snapshot. Evidence collection checks PR identity again before reporting failures.
 
 ## Testing boundaries
 
-Tests use fake Effect layers, TestClock, and Deferred or Queue synchronization rather than sleeps. `test-support/host.ts` provides the fake host scope, session and spec fixtures, and subprocess responses. Preserve tests for all eight registrations and for invalid arguments causing zero reads or prompt admissions. Also cover attachments and delivery, path parsing and symlinks, approval and publication policies, unstable check snapshots, subprocess limits, and cancellation cleanup. Offline tests verify service behavior and prompt policy, not live agent compliance.
+Tests use fake Effect layers, TestClock, and Deferred or Queue synchronization rather than sleeps. `test-support/host.ts` provides the fake host scope, session and spec fixtures, and subprocess responses. Preserve tests for every command registration and for invalid arguments causing zero reads or prompt submissions. Also cover attachments and delivery, path parsing and symlinks, approval and publication instructions, unstable check snapshots, subprocess limits, and cancellation cleanup.
+
+Offline tests verify service behavior and prompt text. Use live checks to assess whether agents follow those instructions.
 
 ### Live smoke checklist
 
 Use a disposable repository and branch. Record the OpenCode and `gh` versions, server dependencies, and evidence for each PASS, FAIL, or NOT RUN result. Get explicit approval for GitHub writes to disposable targets and for global plugin configuration changes.
 
-1. Remove legacy sources. Verify one server-only plugin with eight commands and no retired annotation or review commands. Spec planning and refinement must work without server `gh`.
+1. Verify one server-only plugin with the commands listed in the [README](../README.md#commands). Spec planning and refinement must work without server `gh`.
 2. Test lightweight and full-depth creation. Both must explain the chosen depth, interview the user, model the domain, plan the spec, and obtain explicit approval. Neither may implement code. Refine a quoted path. Confirm the file stays unchanged before approval, then contains only selected changes and the updates needed to keep its contracts consistent.
 3. Verify invalid arguments fail before reads or prompt admission. Cancel controlled pending preparation. Confirm subprocess cleanup and no late prompt. Test session interruption and request disconnect separately.
 4. On a disposable PR, triage unresolved inline threads read-only and investigate checks immediately. Distinguish pending, empty, skipped, unknown-required, and unstable snapshots from green required checks.
