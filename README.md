@@ -58,7 +58,7 @@ mise run install
 mise run check
 ```
 
-[`mise.toml`](./mise.toml) pins Bun to the same version as CI and Node to the Node 24 release line used by publishing jobs. It also retains the lint tools, uv, Pitchfork, and optional Laya daemon configuration. `mise install` installs tools; `mise run install` installs locked dependencies separately in the root and each plugin, without creating a workspace. Neither command starts Laya.
+[`mise.toml`](./mise.toml) pins Bun and Node for local development and CI. CI uses `mise-action` to install only the runtimes needed by each job; publishing uses Node's bundled npm. The configuration also retains the lint tools, uv, Pitchfork, and optional Laya daemon configuration. `mise install` installs tools; `mise run install` installs locked dependencies separately in the root and each plugin, without creating a workspace. Neither command starts Laya.
 
 Use `mise run lint`, `mise run fix`, `mise run typecheck`, or `mise run test` for individual checks. After Cache metrics TUI changes, run `mise run build:tui` before `mise run check` and commit `cache-metrics/dist/tui.js`; checks do not rebuild it automatically. Tasks run from the repository root even when invoked inside a plugin.
 

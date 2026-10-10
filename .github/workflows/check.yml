@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
+      - uses: jdx/mise-action@v3
         with:
-          bun-version: 1.4.2
+          install_args: bun node
       - run: bun install --frozen-lockfile
       - run: bun run check
 
@@ -37,9 +37,9 @@ jobs:
         working-directory: ${{ matrix.path }}
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
+      - uses: jdx/mise-action@v3
         with:
-          bun-version: 1.4.2
+          install_args: bun node
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test

@@ -61,14 +61,22 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.classify_tag || inputs.classify_tag }}
 
-      - uses: oven-sh/setup-bun@v2
+      # Use the workflow's environment pins, including when recovering older tags.
+      - uses: actions/checkout@v7
         with:
-          bun-version: 1.4.2
+          ref: ${{ github.workflow_sha }}
+          path: .ci-env
+          sparse-checkout: mise.toml
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - name: Use workflow environment
+        working-directory: ${{ github.workspace }}
+        run: cp .ci-env/mise.toml mise.toml
+
+      - uses: jdx/mise-action@v3
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
+          install_args: bun node
 
       - name: Verify release tag
         env:
@@ -78,8 +86,7 @@ jobs:
           test "$RELEASE_TAG" = "classify-v$(node -p 'require("./package.json").version')"
           gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx false
 
-      # npm trusted publishing requires npm >= 11.5.1.
-      - run: npm install -g npm@11
+      # The pinned Node runtime bundles npm >= 11.5.1 for trusted publishing.
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test
@@ -87,7 +94,7 @@ jobs:
 
       # Configure release-please.yml as this package's npm trusted publisher.
       # npm uses GitHub OIDC and generates provenance without NODE_AUTH_TOKEN.
-      - run: npm publish --access public --loglevel verbose
+      - run: npm publish --registry https://registry.npmjs.org --access public --loglevel verbose
 
   publish-workflow-tools:
     needs: release
@@ -106,14 +113,22 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.workflow_tools_tag || inputs.workflow_tools_tag }}
 
-      - uses: oven-sh/setup-bun@v2
+      # Use the workflow's environment pins, including when recovering older tags.
+      - uses: actions/checkout@v7
         with:
-          bun-version: 1.4.2
+          ref: ${{ github.workflow_sha }}
+          path: .ci-env
+          sparse-checkout: mise.toml
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - name: Use workflow environment
+        working-directory: ${{ github.workspace }}
+        run: cp .ci-env/mise.toml mise.toml
+
+      - uses: jdx/mise-action@v3
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
+          install_args: bun node
 
       - name: Verify release tag
         env:
@@ -124,11 +139,11 @@ jobs:
           test "$(node -p 'require("./package.json").name')" = "@mholtzscher/opencode-workflow-tools"
           gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx false
 
-      - run: npm install -g npm@11
+      # The pinned Node runtime bundles npm >= 11.5.1 for trusted publishing.
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test
       - run: npm pack --dry-run
 
       # Configure release-please.yml as this package's npm trusted publisher.
-      - run: npm publish --access public --loglevel verbose
+      - run: npm publish --registry https://registry.npmjs.org --access public --loglevel verbose

@@ -69,7 +69,7 @@ The manual publish delivers `1.0.0` to npm. npm versions are immutable, so do no
 
 ## Automated npm releases
 
-After Release Please creates a Classify or Workflow tools release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Installation and publication run inside each plugin directory, without workspace flags. Publishing uses Node 24 and npm 11. Trusted publishing requires npm 11.5.1 or later.
+After Release Please creates a Classify or Workflow tools release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
