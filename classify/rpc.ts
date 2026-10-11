@@ -113,3 +113,24 @@ export const ClassifyBackends = Rpc.define({
     },
   },
 });
+
+/** The decide tool payload with session context, without session messages. */
+export const ClassifyDecisions = Rpc.define({
+  events: {},
+  id: "classify-decisions",
+  methods: {
+    decide: {
+      errors,
+      input: {
+        additionalProperties: false,
+        properties: {
+          input: { additionalProperties: true, type: "object" },
+          sessionID: stringJson,
+        },
+        required: ["sessionID", "input"],
+        type: "object",
+      },
+      output: { additionalProperties: true, type: "object" },
+    },
+  },
+});
