@@ -1,6 +1,6 @@
 {
   "name": "@mholtzscher/opencode-cache-metrics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "OpenCode V2 plugin for input cache-hit rates, token totals, response history, and JSON export in the TUI",
   "keywords": [
     "cache",
