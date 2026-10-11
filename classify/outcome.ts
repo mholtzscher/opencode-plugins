@@ -2,7 +2,7 @@ import { Cause, Effect, Result } from "effect";
 
 import { ClassificationError } from "./errors.js";
 
-const interruptionCause = <E>(cause: Cause.Cause<E>) =>
+export const interruptionCause = <E>(cause: Cause.Cause<E>) =>
   Cause.fromReasons<never>(
     cause.reasons.map((reason) =>
       Cause.isFailReason(reason) ? Cause.makeDieReason(reason.error) : reason

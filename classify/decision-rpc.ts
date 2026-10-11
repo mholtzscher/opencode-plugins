@@ -1,8 +1,9 @@
 import type { Plugin } from "@opencode/plugin/effect";
 import { Session } from "@opencode/schema/session";
-import { Effect, Schema } from "effect";
+import { Cause, Effect, Schema } from "effect";
 
 import type { Classification } from "./classification.js";
+import { interruptionCause } from "./outcome.js";
 import { ClassifyDecisions } from "./rpc.js";
 
 const Request = Schema.Struct({
@@ -41,12 +42,16 @@ export const registerDecisionRpc = Effect.fn("ClassifyDecisions.register")(
               sessionID,
             });
           }).pipe(
-            Effect.mapError(() =>
-              call.error(
-                "unavailable",
-                "Cannot prepare inline classification.",
-                {}
-              )
+            Effect.catchCause((cause) =>
+              Cause.hasInterrupts(cause)
+                ? Effect.failCause(interruptionCause(cause))
+                : Effect.fail(
+                    call.error(
+                      "unavailable",
+                      "Cannot prepare inline classification.",
+                      {}
+                    )
+                  )
             )
           ),
       })

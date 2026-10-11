@@ -23,6 +23,7 @@ type PluginContext = Parameters<typeof plugin.effect>[0];
 interface PluginRuntime {
   directory: string;
   sessionDirectory?: string;
+  sessionGet?: PluginContext["session"]["get"];
   sessionRequests?: Tool.Context["sessionID"][];
   tools: Tool.Info[];
   disposed?: () => void;
@@ -102,6 +103,7 @@ export const createPluginFixture = (setup = plugin.effect) => {
       },
       session: {
         get: (input: { sessionID: Tool.Context["sessionID"] }) =>
+          runtime?.sessionGet?.(input) ??
           Effect.sync(() => {
             runtime?.sessionRequests?.push(input.sessionID);
             return {

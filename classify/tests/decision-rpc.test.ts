@@ -4,7 +4,7 @@ import type { RpcHandlers } from "@opencode/plugin/effect/rpc";
 import { Session } from "@opencode/schema/session";
 import { serve } from "bun";
 import type { Schema } from "effect";
-import { Deferred, Effect, Fiber } from "effect";
+import { Cause, Deferred, Effect, Fiber } from "effect";
 
 import type { ClassifyDecisions } from "../rpc.js";
 import type { ClassifyInput } from "../types.js";
@@ -125,6 +125,117 @@ test("inline RPC rejects another location before provider dispatch", async () =>
     )
   ).rejects.toThrow("RPC unavailable");
 });
+
+test.each(["failure", "defect", "throw"] as const)(
+  "inline RPC maps a session lookup %s to sanitized unavailable",
+  async (kind) => {
+    let rpc: RpcHandlers<typeof ClassifyDecisions> | undefined;
+    const messages: string[] = [];
+    const errors: unknown[] = [];
+    await register(
+      {
+        backends: { default: { provider: "laya" } },
+        defaultBackend: "default",
+      },
+      {
+        decisions: (handlers) => {
+          rpc = handlers;
+        },
+        directory: "/tmp/opencode",
+        messages,
+        sessionGet: () => {
+          const error = new Error("PRIVATE_SESSION_DETAIL");
+          if (kind === "throw") {
+            throw error;
+          }
+          return kind === "defect" ? Effect.die(error) : Effect.fail(error);
+        },
+        tools: [],
+      }
+    );
+    if (!rpc) {
+      throw new Error("Missing decisions RPC");
+    }
+    await expect(
+      Effect.runPromise(
+        rpc.decide(
+          { input: { questions, state: "claim" }, sessionID },
+          {
+            error: (...args) => {
+              errors.push(args);
+              throw new Error("RPC unavailable");
+            },
+          }
+        )
+      )
+    ).rejects.toThrow("RPC unavailable");
+    expect(errors).toEqual([
+      ["unavailable", "Cannot prepare inline classification.", {}],
+    ]);
+    expect(messages).toEqual([]);
+  }
+);
+
+test.each([false, true])(
+  "inline RPC preserves lookup cancellation with cleanup defect=%s",
+  async (cleanupDefect) => {
+    let rpc: RpcHandlers<typeof ClassifyDecisions> | undefined;
+    const started = Deferred.makeUnsafe<boolean>();
+    let closed = 0;
+    let mapped = 0;
+    await register(
+      {
+        backends: { default: { provider: "laya" } },
+        defaultBackend: "default",
+      },
+      {
+        decisions: (handlers) => {
+          rpc = handlers;
+        },
+        directory: "/tmp/opencode",
+        sessionGet: () =>
+          Deferred.succeed(started, true).pipe(
+            Effect.andThen(Effect.never),
+            Effect.ensuring(
+              Effect.sync(() => {
+                closed += 1;
+                if (cleanupDefect) {
+                  throw new Error("PRIVATE_CLEANUP_DETAIL");
+                }
+              })
+            )
+          ),
+        tools: [],
+      }
+    );
+    if (!rpc) {
+      throw new Error("Missing decisions RPC");
+    }
+    const operation = rpc.decide(
+      { input: { questions, state: "claim" }, sessionID },
+      {
+        error: () => {
+          mapped += 1;
+          throw new Error("RPC unavailable");
+        },
+      }
+    );
+    await Effect.runPromise(
+      Effect.gen(function* cancelLookup() {
+        const fiber = yield* operation.pipe(Effect.forkChild);
+        yield* Deferred.await(started);
+        yield* Fiber.interrupt(fiber);
+        const exit = yield* Fiber.await(fiber);
+        if (exit._tag !== "Failure") {
+          throw new Error("Expected interrupted lookup");
+        }
+        expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+        expect(closed).toBe(1);
+        expect(mapped).toBe(0);
+      })
+    );
+  }
+);
 
 test("inline RPC cancellation interrupts an in-flight provider request", async () => {
   const started = Deferred.makeUnsafe<boolean>();
