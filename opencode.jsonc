@@ -65,6 +65,11 @@
       },
       {
         "action": "integration.use",
+        "resource": "plugin:@mholtzscher/opencode-quota-usage",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
         "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:workflow-tools",
         "effect": "deny",
       },

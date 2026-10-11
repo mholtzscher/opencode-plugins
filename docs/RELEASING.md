@@ -16,7 +16,7 @@ GitHub does not start other workflows for PRs or releases created using `GITHUB_
 
 ## First Classify publish
 
-Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools is also npm-enabled; Cache metrics, Quota usage, and Marketplace retain `private: true` and receive GitHub releases only.
+Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools and Quota usage are also npm-enabled; Cache metrics and Marketplace retain `private: true` and receive GitHub releases only.
 
 Before merging the first automated release PR, publish Classify once while authenticated to npm as `mholtzscher`. npm requires the package to exist before a trusted publisher can be attached. From `classify/` in the checkout containing this setup:
 
@@ -63,9 +63,28 @@ On npmjs.com, add a trusted publisher in this package's settings using the Class
 
 The manual publish delivers `1.0.0` to npm. npm versions are immutable, so do not rerun publication for an already-published version. If npm reports that `1.0.0` is staged, follow [npm release recovery](../workflow-tools/docs/DEVELOPMENT.md#npm-release-recovery) to inspect and approve it. Future tagged releases use the configured publisher. Until a version is public, use the Git install target in the plugin README.
 
+## First Quota usage publish
+
+The package name is `@mholtzscher/opencode-quota-usage`; the publishing setup preserves its current `1.1.0` version. Publish from a checkout containing the scoped, public metadata, not an older tag that still marks the package private. If an automated release has already bumped the version, bootstrap that release's version instead.
+
+From `quota-usage/`, while authenticated to npm as `mholtzscher`:
+
+```sh
+bun install --frozen-lockfile
+bun run typecheck
+bun test
+npm pack --dry-run
+npm login
+npm publish --access public
+```
+
+The allowlist ships the TypeScript server and TUI entries, parser, shared RPC contracts, documentation, changelog, and MIT license, excluding tests and development configuration. OpenCode loads these source entries directly; no compilation step is needed.
+
+After the first version is public, add a trusted publisher in the npm package settings using the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow `release-please.yml`, and no environment. Allow direct publishing. No `NPM_TOKEN` secret is needed. Complete a successful trusted publish within two days or recreate the publisher after expiry. Do not republish an existing npm version.
+
 ## Automated npm releases
 
-After Release Please creates a Classify or Workflow tools release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
+After Release Please creates a Classify, Workflow tools, or Quota usage release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
@@ -79,6 +98,12 @@ For Workflow tools, supply its optional tag input instead:
 
 ```sh
 gh workflow run release-please.yml --ref main -f workflow_tools_tag=workflow-tools-v1.0.1
+```
+
+For Quota usage, supply its optional tag input:
+
+```sh
+gh workflow run release-please.yml --ref main -f quota_usage_tag=quota-usage-v1.1.1
 ```
 
 Supply at least one tag input. Each publisher runs only for its component's tag; Classify's existing recovery input remains supported.

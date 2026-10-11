@@ -14,6 +14,10 @@ on:
         description: Existing Workflow tools release tag to publish
         required: false
         type: string
+      quota_usage_tag:
+        description: Existing Quota usage release tag to publish
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -35,6 +39,8 @@ jobs:
       classify_tag: ${{ steps.release.outputs['classify--tag_name'] }}
       workflow_tools_released: ${{ steps.release.outputs['workflow-tools--release_created'] }}
       workflow_tools_tag: ${{ steps.release.outputs['workflow-tools--tag_name'] }}
+      quota_usage_released: ${{ steps.release.outputs['quota-usage--release_created'] }}
+      quota_usage_tag: ${{ steps.release.outputs['quota-usage--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
@@ -43,7 +49,7 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # GITHUB_TOKEN-created releases do not trigger another workflow. Publish in
-  # this run, as in pi-extensions. Classify and Workflow tools opt into npm.
+  # this run, as in pi-extensions. Classify, Workflow tools, and Quota usage opt into npm.
   publish-classify:
     needs: release
     if: >-
@@ -137,6 +143,58 @@ jobs:
         run: |
           test "$RELEASE_TAG" = "workflow-tools-v$(node -p 'require("./package.json").version')"
           test "$(node -p 'require("./package.json").name')" = "@mholtzscher/opencode-workflow-tools"
+          gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx false
+
+      # The pinned Node runtime bundles npm >= 11.5.1 for trusted publishing.
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: npm pack --dry-run
+
+      # Configure release-please.yml as this package's npm trusted publisher.
+      - run: npm publish --registry https://registry.npmjs.org --access public --loglevel verbose
+
+  publish-quota-usage:
+    needs: release
+    if: >-
+      always() && (needs.release.outputs.quota_usage_released == 'true' ||
+       (github.event_name == 'workflow_dispatch' && startsWith(inputs.quota_usage_tag, 'quota-usage-v')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: quota-usage
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.quota_usage_tag || inputs.quota_usage_tag }}
+
+      # Use the workflow's environment pins, including when recovering older tags.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .ci-env
+          sparse-checkout: mise.toml
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Use workflow environment
+        working-directory: ${{ github.workspace }}
+        run: cp .ci-env/mise.toml mise.toml
+
+      - uses: jdx/mise-action@v3
+        with:
+          install_args: bun node
+
+      - name: Verify release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release.outputs.quota_usage_tag || inputs.quota_usage_tag }}
+        run: |
+          test "$RELEASE_TAG" = "quota-usage-v$(node -p 'require("./package.json").version')"
+          test "$(node -p 'require("./package.json").name')" = "@mholtzscher/opencode-quota-usage"
           gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx false
 
       # The pinned Node runtime bundles npm >= 11.5.1 for trusted publishing.
