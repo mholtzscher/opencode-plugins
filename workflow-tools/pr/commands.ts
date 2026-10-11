@@ -1,4 +1,6 @@
+import { NodeServices } from "@effect/platform-node";
 import type { Plugin } from "@opencode/plugin/effect";
+import type { Session } from "@opencode/schema/session";
 import { Context, Effect, Layer } from "effect";
 import type { Scope } from "effect";
 
@@ -9,16 +11,24 @@ import {
 } from "./arguments.js";
 import { GithubLive } from "./github.js";
 import { LogStorageLive } from "./log-storage.js";
+import { ClassifyDecisions, reviewTriageLayer } from "./triage.js";
 import { Workflows, WorkflowsLive } from "./workflows.js";
-
-const workflowsLayer = WorkflowsLive.pipe(
-  Layer.provide(Layer.merge(GithubLive, LogStorageLive))
-);
 
 export const registerPrCommands = (
   ctx: Plugin.Context
 ): Effect.Effect<void, never, Scope.Scope> =>
   Effect.gen(function* registerCommands() {
+    const workflowsLayer = WorkflowsLive.pipe(
+      Layer.provide(
+        Layer.mergeAll(
+          GithubLive,
+          LogStorageLive,
+          reviewTriageLayer((request) =>
+            ctx.rpc(ClassifyDecisions).decide(request)
+          ).pipe(Layer.provide(NodeServices.layer))
+        )
+      )
+    );
     const services = yield* Layer.build(workflowsLayer);
     const workflows = Context.get(services, Workflows);
     yield* ctx.command.transform((editor) => {
@@ -45,8 +55,8 @@ export const registerPrCommands = (
           description:
             "Read-only triage of unresolved inline PR threads; agree verdicts before /pr-fix",
           name: "pr-triage",
-          run: (_args: string, cwd: string) =>
-            workflows.prepareFeedbackReview(cwd),
+          run: (_args: string, cwd: string, sessionID: Session.ID) =>
+            workflows.prepareFeedbackReview(cwd, sessionID),
           validate: (args: string) => requireNoArguments("pr-triage", args),
         },
         {
@@ -77,7 +87,8 @@ export const registerPrCommands = (
                 const session = yield* ctx.session.get({ sessionID });
                 return yield* command.run(
                   prompt.text,
-                  session.location.directory
+                  session.location.directory,
+                  sessionID
                 );
               });
               yield* prepareAndAdmit(ctx, invocation, preparation);
