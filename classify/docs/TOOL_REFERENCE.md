@@ -239,9 +239,3 @@ The exported [`./rpc`](../rpc.ts) entry defines `ClassifyBackends` (`classify-ba
 Pass the session ID and the session's location when calling RPC from a client; omit `backend` in `setSelection` to reset. Requests outside the plugin instance's location are rejected. If a stored profile was removed, `getSelection` returns the declared `unknown_backend` error with `data.defaultBackend` for recovery. Storage and session-access failures remain `unavailable`.
 
 Events are live-only: read selection again after reconnecting. See [session selection](./CONFIGURATION.md#session-selection) for persistence, switching, and recovery behavior.
-
-## Inline decision RPC
-
-The exported `ClassifyDecisions` definition (`classify-decisions`) exposes `decide({ sessionID, state, questions })` for server-side consumers such as Workflow tools. `state` must be a string containing the supplied evidence; `questions` uses the same ad hoc question contract as the tool. The result is the normal structured success/error envelope, with the same input limits, backend selection, response validation, usage, and timing fields.
-
-This path does not create session messages or tool turns. It checks that the session belongs to the plugin's location and uses that session's configured backend. It accepts no file/image/diff resolution, named classifier, or per-call backend override. JSON serialized into `state` remains text, even if it contains an evidence marker. Callers own evidence collection, result handling, and cancellation; classification interruption propagates. The RPC's `unavailable` error covers invalid request envelopes and inaccessible or out-of-location sessions. Provider/input failures use the usual `ok: false` envelope.

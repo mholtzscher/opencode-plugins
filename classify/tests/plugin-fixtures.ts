@@ -11,11 +11,7 @@ import type { Schema } from "effect";
 import { Effect, Exit, Scope } from "effect";
 
 import plugin from "../index.js";
-import type {
-  ClassifyBackends,
-  ClassifyDecisions,
-  SelectionSchema,
-} from "../rpc.js";
+import type { ClassifyBackends, SelectionSchema } from "../rpc.js";
 import type { JsonValue } from "../types.js";
 
 type PluginContext = Parameters<typeof plugin.effect>[0];
@@ -28,7 +24,6 @@ interface PluginRuntime {
   disposed?: () => void;
   commands?: CommandDefinition[];
   handlers?: (handlers: RpcHandlers<typeof ClassifyBackends>) => void;
-  decisions?: (handlers: RpcHandlers<typeof ClassifyDecisions>) => void;
   messages?: string[];
   events?: unknown[];
   emit?: (
@@ -78,17 +73,11 @@ export const createPluginFixture = (setup = plugin.effect) => {
       options,
       rpc: {
         register: (
-          _definition: typeof ClassifyBackends | typeof ClassifyDecisions,
-          handlers:
-            | RpcHandlers<typeof ClassifyBackends>
-            | RpcHandlers<typeof ClassifyDecisions>
+          _definition: typeof ClassifyBackends,
+          handlers: RpcHandlers<typeof ClassifyBackends>
         ) =>
           Effect.sync(() => {
-            if ("decide" in handlers) {
-              runtime?.decisions?.(handlers);
-            } else {
-              runtime?.handlers?.(handlers);
-            }
+            runtime?.handlers?.(handlers);
             return {
               events: {
                 emit: (_name: string, value: typeof SelectionSchema.Type) =>
