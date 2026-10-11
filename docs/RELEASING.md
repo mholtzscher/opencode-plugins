@@ -16,7 +16,7 @@ GitHub does not start other workflows for PRs or releases created using `GITHUB_
 
 ## First Classify publish
 
-Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools and Quota usage are also npm-enabled; Cache metrics and Marketplace retain `private: true` and receive GitHub releases only.
+Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools, Quota usage, and Cache metrics are also npm-enabled; Marketplace retains `private: true` and receives GitHub releases only.
 
 Before merging the first automated release PR, publish Classify once while authenticated to npm as `mholtzscher`. npm requires the package to exist before a trusted publisher can be attached. From `classify/` in the checkout containing this setup:
 
@@ -82,9 +82,29 @@ The allowlist ships the TypeScript server and TUI entries, parser, shared RPC co
 
 After the first version is public, add a trusted publisher in the npm package settings using the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow `release-please.yml`, and no environment. Allow direct publishing. No `NPM_TOKEN` secret is needed. Complete a successful trusted publish within two days or recreate the publisher after expiry. Do not republish an existing npm version.
 
+## First Cache metrics publish
+
+The package name is `@mholtzscher/opencode-cache-metrics`; the publishing setup preserves its current `1.0.0` version. Publish from a checkout containing the scoped, public metadata, not an older tag that still marks the package private. If an automated release has already bumped the version, bootstrap that release's version instead.
+
+From `cache-metrics/`, while authenticated to npm as `mholtzscher`:
+
+```sh
+bun install --frozen-lockfile
+bun run build:tui
+bun run typecheck
+bun test
+npm pack --dry-run
+npm login
+npm publish --access public
+```
+
+The allowlist ships the empty TypeScript server entry, prebuilt `dist/tui.js`, metric calculation and history modules, documentation, changelog, and MIT license. Tests, build scripts, and raw TUI source are excluded. The bundle keeps OpenCode, OpenTUI, and Solid external to share the host runtimes. No install or packaging lifecycle hooks are needed.
+
+After the first version is public, add a trusted publisher in the npm package settings using the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow `release-please.yml`, and no environment. Allow direct publishing. No `NPM_TOKEN` secret is needed. Complete a successful trusted publish within two days or recreate the publisher after expiry. Do not republish an existing npm version.
+
 ## Automated npm releases
 
-After Release Please creates a Classify, Workflow tools, or Quota usage release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
+After Release Please creates a Classify, Workflow tools, Quota usage, or Cache metrics release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Cache metrics also verifies and rebuilds its committed TUI bundle. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
@@ -107,6 +127,8 @@ gh workflow run release-please.yml --ref main -f quota_usage_tag=quota-usage-v1.
 ```
 
 Supply at least one tag input. Each publisher runs only for its component's tag; Classify's existing recovery input remains supported.
+
+For Cache metrics, use `-f cache_metrics_tag=cache-metrics-v1.0.1` with the same workflow dispatch command.
 
 This publishes the tagged package using the current workflow. It skips Release Please, so it does not create another release or version bump. npm verbose logs include OIDC exchange errors to help diagnose trusted-publisher mismatches.
 
