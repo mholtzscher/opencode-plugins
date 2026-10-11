@@ -37,6 +37,7 @@ const fixture = (
     treeUnavailable?: boolean;
     headMoves?: boolean;
     recheckFails?: boolean;
+    relatedPaths?: readonly string[];
   } = {}
 ) => {
   const calls: string[] = [];
@@ -72,6 +73,7 @@ const fixture = (
               "pkg/experiments/host.ts",
               "pkg/experiments/host-plugin.ts",
               ...(options.ambiguous ? ["other/host-plugin.ts"] : []),
+              ...(options.relatedPaths ?? []),
             ].map((file) => ({ path: file, type: "blob" })),
             truncated: false,
           });
@@ -255,6 +257,42 @@ describe("revision-pinned review evidence", () => {
       "Partial file"
     );
     expect(result.threads.one.sources[0].text).not.toContain("source line 400");
+  });
+
+  test("dotted basenames retain complete paths and cited lines, including root-level references", async () => {
+    const fake = fixture({
+      relatedPaths: ["src/foo.test.ts", "vite.config.ts"],
+    });
+    const result = await Effect.runPromise(
+      collectReviewEvidence(
+        fake.github,
+        "owner/repo",
+        18,
+        [
+          thread(
+            "See `src/foo.test.ts:202`, `vite.config.ts`, and `missing.config.ts`."
+          ),
+        ],
+        "/session"
+      )
+    );
+    const { sources, limitations } = result.threads.one;
+    expect(sources.map((source) => source.path)).toEqual([
+      "pkg/index.ts",
+      "src/foo.test.ts",
+      "vite.config.ts",
+    ]);
+    expect(sources[1].text.split("\n")[202 - sources[1].startLine]).toBe(
+      "source line 202"
+    );
+    expect(limitations).toEqual([
+      "Unresolved repository reference: missing.config.ts",
+    ]);
+    expect(fake.calls.filter((call) => call.includes("/contents/"))).toEqual([
+      `repos/owner/repo/contents/pkg/index.ts?ref=${head}`,
+      `repos/owner/repo/contents/src/foo.test.ts?ref=${head}`,
+      `repos/owner/repo/contents/vite.config.ts?ref=${head}`,
+    ]);
   });
 
   test("ambiguous, traversal and nonexistent references are limitations, not guessed or read", async () => {

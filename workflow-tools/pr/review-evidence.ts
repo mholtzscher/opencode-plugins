@@ -65,7 +65,7 @@ const references = (thread: ReviewThread) => {
     remaining -= body.length;
     truncated ||= body.length < comment.body.length;
     for (const match of body.matchAll(
-      /(?:^|[\s`("'])(?<path>(?:[\w.-]+\/)*[\w-]+\.[a-zA-Z0-9]+)(?::(?<line>\d+))?/gu
+      /(?:^|[\s`("'])(?<path>(?:[\w.-]+\/)*[\w.-]+\.[a-zA-Z0-9]+)(?::(?<line>\d+))?/gu
     )) {
       if (!match.groups?.path) {
         continue;
