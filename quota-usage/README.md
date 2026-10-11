@@ -15,6 +15,8 @@ Use [OpenCode V2](https://opencode.ai/v2/docs/) with an active connection to at 
 
 OpenCode installs the package and loads its server and TUI entries. No checkout, manual dependency install, plugin options, or extra skills are needed. Keep only one copy of the plugin in your configuration. See [OpenCode's plugin guide](https://opencode.ai/v2/docs/plugins) for updates and reloads.
 
+The npm package target is `@mholtzscher/opencode-quota-usage`. Once the first npm version is public, replace the Git entry above with that target; do not load both. See [Releasing](../docs/RELEASING.md#first-quota-usage-publish) for bootstrap and automated publishing setup.
+
 Run `/connect` to add or activate an account. See [provider accounts](https://opencode.ai/v2/docs/cli/providers) for the authentication steps.
 
 | Provider | Credentials | Display |

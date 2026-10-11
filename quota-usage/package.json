@@ -1,13 +1,43 @@
 {
-  "name": "opencode-quota-usage-plugin",
+  "name": "@mholtzscher/opencode-quota-usage",
   "version": "1.1.0",
-  "private": true,
+  "description": "OpenCode V2 plugin for Codex and OpenCode Go account quotas in chat and the TUI sidebar",
+  "keywords": [
+    "codex",
+    "opencode",
+    "opencode-plugin",
+    "quota"
+  ],
+  "homepage": "https://github.com/mholtzscher/opencode-plugins/tree/main/quota-usage#readme",
+  "bugs": {
+    "url": "https://github.com/mholtzscher/opencode-plugins/issues"
+  },
+  "license": "MIT",
+  "author": "Michael Holtzscher",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mholtzscher/opencode-plugins.git",
+    "directory": "quota-usage"
+  },
+  "files": [
+    "index.ts",
+    "parse.ts",
+    "rpc.ts",
+    "tui.tsx",
+    "docs/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
   "type": "module",
   "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
     "./tui": "./tui.tsx",
     "./rpc": "./rpc.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "bun test",
