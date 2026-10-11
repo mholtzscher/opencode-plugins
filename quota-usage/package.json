@@ -1,6 +1,6 @@
 {
   "name": "@mholtzscher/opencode-quota-usage",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "OpenCode V2 plugin for Codex and OpenCode Go account quotas in chat and the TUI sidebar",
   "keywords": [
     "codex",

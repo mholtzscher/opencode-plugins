@@ -1,6 +1,6 @@
 {
   "name": "@mholtzscher/opencode-workflow-tools",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "OpenCode V2 server plugin for specification and pull-request workflows",
   "keywords": [
     "opencode",
