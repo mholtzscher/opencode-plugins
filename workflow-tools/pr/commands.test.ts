@@ -18,9 +18,15 @@ describe("PR command preparation", () => {
                 Effect.sync(() => {
                   expect(host.admissions).toHaveLength(0);
                   expect(request.sessionID).toBe(sessionID);
-                  expect(request.state).toContain("DUPLICATE_BODY_ONLY");
-                  expect(request.state).toContain("SOURCE_ONLY_MARKER");
-                  expect(request.state).toContain("DIFF_ONLY_MARKER");
+                  expect(JSON.stringify(request.input.state)).toContain(
+                    "DUPLICATE_BODY_ONLY"
+                  );
+                  expect(JSON.stringify(request.input.state)).toContain(
+                    "SOURCE_ONLY_MARKER"
+                  );
+                  expect(JSON.stringify(request.input.state)).toContain(
+                    "DIFF_ONLY_MARKER"
+                  );
                   return {
                     ok: true,
                     result: {

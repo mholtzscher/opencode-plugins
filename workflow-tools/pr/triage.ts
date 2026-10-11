@@ -30,11 +30,10 @@ export const ClassifyDecisions = Rpc.define({
       input: {
         additionalProperties: false,
         properties: {
-          questions: { additionalProperties: true, type: "object" },
+          input: { additionalProperties: true, type: "object" },
           sessionID: { type: "string" },
-          state: { type: "string" },
         },
-        required: ["sessionID", "state", "questions"],
+        required: ["sessionID", "input"],
         type: "object",
       },
       output: { additionalProperties: true, type: "object" },
@@ -47,11 +46,7 @@ interface ChoiceQuestion {
   readonly instructions: string;
   readonly criteria: Readonly<Record<string, string>>;
 }
-export interface TriageRequest {
-  readonly sessionID: Session.ID;
-  readonly state: string;
-  readonly questions: Readonly<Record<string, ChoiceQuestion>>;
-}
+export type TriageRequest = ReturnType<typeof makeRequest>;
 export type Decide = (
   request: TriageRequest
 ) => Effect.Effect<unknown, unknown>;
@@ -114,7 +109,7 @@ const makeRequest = (
   entries: readonly RoutedThread[],
   sessionID: Session.ID,
   evidence: ReviewEvidence
-): TriageRequest => {
+) => {
   const questions: Record<string, ChoiceQuestion> = {};
   const sources: SourceEvidence[] = [];
   const sourceIndex = new Map<string, number>();
@@ -131,7 +126,8 @@ const makeRequest = (
         }
         const id = sources.length;
         sourceIndex.set(key, id);
-        sources.push(item);
+        const { patch, ...excerpt } = item;
+        sources.push(patch === undefined ? excerpt : { ...excerpt, patch });
         return id;
       }),
     },
@@ -179,15 +175,17 @@ const makeRequest = (
     );
   }
   return {
-    questions,
+    input: {
+      questions,
+      state: {
+        baseSha: evidence.baseSha ?? null,
+        headSha: evidence.headSha ?? null,
+        limitations: evidence.limitations,
+        sources,
+        threads,
+      },
+    },
     sessionID,
-    state: JSON.stringify({
-      baseSha: evidence.baseSha,
-      headSha: evidence.headSha,
-      limitations: evidence.limitations,
-      sources,
-      threads,
-    }),
   };
 };
 
@@ -198,8 +196,9 @@ const applyAnswers = (
 ): RoutedThread[] | undefined => {
   const { answers } = output.result;
   if (
-    Object.keys(answers).length !== Object.keys(request.questions).length ||
-    Object.entries(request.questions).some(
+    Object.keys(answers).length !==
+      Object.keys(request.input.questions).length ||
+    Object.entries(request.input.questions).some(
       ([id, question]) =>
         !answers[id] || !Object.hasOwn(question.criteria, answers[id].choice)
     )

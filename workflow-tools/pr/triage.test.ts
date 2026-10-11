@@ -54,7 +54,7 @@ const routingResponse = (
   ok: true,
   result: {
     answers: Object.fromEntries(
-      Object.keys(request.questions).map((id) => [
+      Object.keys(request.input.questions).map((id) => [
         id,
         {
           choice: labels[id] ?? defaultChoice(id),
@@ -143,6 +143,37 @@ const requireRouted = (report: TriageReport) => {
 };
 
 describe("server-side review routing", () => {
+  test("structured RPC payloads contain only JSON values even when optional evidence is missing", async () => {
+    const fake = harness((request) => Effect.succeed(routingResponse(request)));
+    await Effect.runPromise(
+      fake.prepare([thread("1", "claim")], {
+        headSha: "a".repeat(40),
+        limitations: [],
+        threads: {
+          "1": {
+            limitations: [],
+            sources: [
+              {
+                endLine: 1,
+                limitations: [],
+                patch: undefined,
+                path: "src/cache.ts",
+                startLine: 1,
+                text: "source",
+              },
+            ],
+          },
+        },
+      })
+    );
+    expect(fake.calls).toHaveLength(1);
+    expect(fake.calls[0].input.state.baseSha).toBeNull();
+    expect(Object.hasOwn(fake.calls[0].input.state.sources[0], "patch")).toBe(
+      false
+    );
+    const wire = JSON.stringify(fake.calls[0].input);
+    expect(fake.calls[0].input).toStrictEqual(JSON.parse(wire));
+  });
   test("failed report persistence removes its partial evidence directory", async () => {
     const fake = harness(
       (request) => Effect.succeed(routingResponse(request)),
@@ -158,7 +189,7 @@ describe("server-side review routing", () => {
     await Effect.runPromise(
       fake.prepare([thread("1", "claim"), thread("2", "different claim")])
     );
-    const state = JSON.parse(fake.calls[0].state);
+    const { state } = fake.calls[0].input;
     expect(state.sources).toHaveLength(1);
     expect(
       state.threads.map(
@@ -264,10 +295,16 @@ describe("server-side review routing", () => {
     const report = await Effect.runPromise(fake.prepare(threads));
     expect(report.mode).toBe("routed");
     expect(fake.calls).toHaveLength(1);
-    expect(fake.calls[0].state).toContain("SOURCE_ONLY_MARKER");
-    expect(fake.calls[0].state).toContain("DIFF_ONLY_MARKER");
-    expect(fake.calls[0].state).toContain("Reply correcting the initial claim");
-    expect(fake.calls[0].questions.t0_grounding.criteria).toHaveProperty(
+    expect(JSON.stringify(fake.calls[0].input.state)).toContain(
+      "SOURCE_ONLY_MARKER"
+    );
+    expect(JSON.stringify(fake.calls[0].input.state)).toContain(
+      "DIFF_ONLY_MARKER"
+    );
+    expect(JSON.stringify(fake.calls[0].input.state)).toContain(
+      "Reply correcting the initial claim"
+    );
+    expect(fake.calls[0].input.questions.t0_grounding.criteria).toHaveProperty(
       "contradicted"
     );
     const prompt = buildFeedbackReviewPrompt(pr, report);
@@ -328,7 +365,7 @@ describe("server-side review routing", () => {
       "HIDDEN_DUPLICATE",
       "HIDDEN_PREFERENCE",
     ]) {
-      expect(fake.calls[0].state).toContain(marker);
+      expect(JSON.stringify(fake.calls[0].input.state)).toContain(marker);
       expect([...fake.files.values()].join("\n")).toContain(marker);
       expect(prompt).not.toContain(marker);
     }
@@ -421,7 +458,9 @@ describe("server-side review routing", () => {
     );
     expect(fake.calls.length).toBeGreaterThan(1);
     for (const request of fake.calls) {
-      expect(Object.keys(request.questions).length).toBeLessThanOrEqual(36);
+      expect(Object.keys(request.input.questions).length).toBeLessThanOrEqual(
+        36
+      );
       expect(Buffer.byteLength(JSON.stringify(request))).toBeLessThanOrEqual(
         48_000
       );
