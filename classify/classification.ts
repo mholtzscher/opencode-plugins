@@ -2,7 +2,7 @@ import type { Tool } from "@opencode/schema/tool";
 import { Clock, Context, Effect, Layer, Result } from "effect";
 
 import type { ClassifyOptions } from "./config.js";
-import type { ClassificationError } from "./errors.js";
+import { ClassificationError } from "./errors.js";
 import { EvidenceAccess } from "./evidence.js";
 import { ImageEvidence } from "./image-evidence.js";
 import { captureOutcome } from "./outcome.js";
@@ -23,6 +23,11 @@ interface ResolvedRequest {
   questions: Questions;
   state: Content | EvidenceState;
 }
+
+/** RPC callers supply literal content; only tool calls can resolve evidence. */
+export type ClassificationContext =
+  | Tool.Context
+  | { readonly mode: "inline"; readonly sessionID: Tool.Context["sessionID"] };
 
 type ClassificationResponse = Omit<
   ClassifyResult,
@@ -72,7 +77,7 @@ export class Classification extends Context.Service<
     classify: (
       // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This boundary parses tool input and returns structured validation failures.
       value: unknown,
-      context: Tool.Context
+      context: ClassificationContext
     ) => Effect.Effect<ClassifyOutput>;
   }
 >()("classify/Classification") {}
@@ -85,10 +90,18 @@ const makeClassification = (options: ClassifyOptions) =>
 
     const resolveState = Effect.fn("resolveState")(function* resolveState(
       source: Content | EvidenceState,
-      context: Tool.Context
+      context: ClassificationContext
     ) {
       if (!isEvidence(source)) {
         return source;
+      }
+      if ("mode" in context) {
+        return yield* Effect.fail(
+          new ClassificationError(
+            "INVALID_INPUT",
+            "RPC accepts inline content only."
+          )
+        );
       }
       if (!(source.files || source.diffs || source.code)) {
         return source.text === undefined ? {} : { text: source.text };
@@ -100,10 +113,18 @@ const makeClassification = (options: ClassifyOptions) =>
       function* executeRequest(
         // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This is the parsing boundary for external tool input.
         value: unknown,
-        context: Tool.Context
+        context: ClassificationContext
       ): Effect.fn.Return<ClassificationResponse, ClassificationError> {
         const input = yield* parseInput(value, options.classifiers);
         const { questions, state: source } = resolveRequest(input, options);
+        if ("mode" in context && isEvidence(source)) {
+          return yield* Effect.fail(
+            new ClassificationError(
+              "INVALID_INPUT",
+              "RPC accepts inline content only."
+            )
+          );
+        }
         const imageReferences = isEvidence(source) ? source.images : undefined;
         yield* backend.preflight(questions, {
           images: imageReferences !== undefined,
@@ -113,7 +134,7 @@ const makeClassification = (options: ClassifyOptions) =>
           : source;
         const resolved = yield* resolveState(textSource, context);
         let response: ClassificationResponse;
-        if (imageReferences === undefined) {
+        if (imageReferences === undefined || "mode" in context) {
           response = yield* backend.decide({ questions, state: resolved });
         } else {
           const images = yield* imageEvidence.resolve(imageReferences, context);
@@ -134,7 +155,7 @@ const makeClassification = (options: ClassifyOptions) =>
     const classify = Effect.fn("classify")(function* classify(
       // oxlint-disable-next-line anti-slop/no-unknown-parameters -- executeRequest parses input inside the public error boundary.
       value: unknown,
-      context: Tool.Context
+      context: ClassificationContext
     ): Effect.fn.Return<ClassifyOutput> {
       const start = yield* Clock.monotonicTimeNanos;
       const outcome = yield* captureOutcome(
