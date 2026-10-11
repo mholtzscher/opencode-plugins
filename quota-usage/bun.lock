@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "opencode-quota-usage-plugin",
+      "name": "@mholtzscher/opencode-quota-usage",
       "dependencies": {
         "@opencode/plugin": "^2.0.12",
         "@opencode/schema": "2.0.16",
