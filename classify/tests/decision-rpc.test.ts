@@ -7,6 +7,8 @@ import type { Schema } from "effect";
 import { Deferred, Effect, Fiber } from "effect";
 
 import type { ClassifyDecisions } from "../rpc.js";
+import type { ClassifyInput } from "../types.js";
+import { toolContext } from "./effect-fixtures.js";
 import { questions, response } from "./fixtures.js";
 import { createPluginFixture } from "./plugin-fixtures.js";
 
@@ -65,7 +67,7 @@ test("inline RPC uses the session backend without evidence reads or session mess
     }
     const state = '{"type":"evidence","files":["DO_NOT_READ"]}';
     const result = await Effect.runPromise(
-      rpc.decide({ questions, sessionID, state }, call)
+      rpc.decide({ input: { questions, state }, sessionID }, call)
     );
     expect(result).toMatchObject({
       ok: true,
@@ -75,7 +77,7 @@ test("inline RPC uses the session backend without evidence reads or session mess
     expect(requests[0]).toHaveProperty("state", state);
     expect(requests[0]).toHaveProperty("model", "selected");
     expect(messages).toEqual([]);
-    // The public RPC accepts only supplied text, never tool evidence or named presets.
+    // Old flattened envelopes must not silently discard their payload.
     await expect(
       Effect.runPromise(
         rpc.decide(
@@ -89,7 +91,7 @@ test("inline RPC uses the session backend without evidence reads or session mess
       )
     ).rejects.toThrow("RPC unavailable");
     const invalid = await Effect.runPromise(
-      rpc.decide({ questions: {}, sessionID, state: "claim" }, call)
+      rpc.decide({ input: { questions: {}, state: "claim" }, sessionID }, call)
     );
     expect(invalid).toMatchObject({
       error: { attempts: 0, code: "INVALID_INPUT" },
@@ -119,7 +121,7 @@ test("inline RPC rejects another location before provider dispatch", async () =>
   }
   await expect(
     Effect.runPromise(
-      rpc.decide({ questions, sessionID, state: "claim" }, call)
+      rpc.decide({ input: { questions, state: "claim" }, sessionID }, call)
     )
   ).rejects.toThrow("RPC unavailable");
 });
@@ -154,7 +156,7 @@ test("inline RPC cancellation interrupts an in-flight provider request", async (
       throw new Error("Missing decisions RPC");
     }
     const operation = rpc.decide(
-      { questions, sessionID, state: "claim" },
+      { input: { questions, state: "claim" }, sessionID },
       call
     );
     await Effect.runPromise(
@@ -167,6 +169,150 @@ test("inline RPC cancellation interrupts an in-flight provider request", async (
     );
   } finally {
     await Effect.runPromise(Deferred.succeed(finish, new Response()));
+    server.stop(true);
+  }
+});
+
+test("RPC and tool share structured, named and invalid input semantics", async () => {
+  const requests: unknown[] = [];
+  const server = serve({
+    fetch: async (request) => {
+      requests.push(await request.json());
+      return Response.json(response());
+    },
+    hostname: "127.0.0.1",
+    port: 0,
+  });
+  let rpc: RpcHandlers<typeof ClassifyDecisions> | undefined;
+  const messages: string[] = [];
+  try {
+    const [tool] = await register(
+      {
+        backends: { default: { baseURL: server.url.origin, provider: "laya" } },
+        classifiers: {
+          caller: { description: "Caller evidence", questions },
+          preset: {
+            description: "Configured evidence",
+            questions,
+            state: { facts: ["configured"] },
+          },
+          referenced: {
+            description: "Requires permissions",
+            questions,
+            state: { files: ["DO_NOT_READ"], type: "evidence" },
+          },
+        },
+        defaultBackend: "default",
+      },
+      {
+        decisions: (handlers) => {
+          rpc = handlers;
+        },
+        directory: "/tmp/opencode",
+        messages,
+        tools: [],
+      }
+    );
+    if (!rpc) {
+      throw new Error("Missing decisions RPC");
+    }
+    const decisions = rpc;
+    await Effect.runPromise(
+      Effect.gen(function* verifyParity() {
+        const valid: ClassifyInput[] = [
+          { questions, state: "claim" },
+          { questions, state: { facts: ["a", "b"], files: ["INERT_PATH"] } },
+          { questions, state: ["a", { observation: 2 }] },
+          {
+            questions,
+            state: { text: { facts: ["inline evidence"] }, type: "evidence" },
+          },
+          { classifier: "caller", state: { facts: ["supplied"] } },
+          { classifier: "preset" },
+        ];
+        for (const input of valid) {
+          const before = requests.length;
+          const direct = yield* decisions.decide({ input, sessionID }, call);
+          const viaTool = yield* tool.execute(input, {
+            ...toolContext(),
+            sessionID,
+          });
+          expect(direct).toMatchObject({
+            ok: true,
+            result: { answers: response().answers },
+          });
+          expect(viaTool).toMatchObject({
+            output: { ok: true, result: { answers: response().answers } },
+          });
+          expect(requests).toHaveLength(before + 2);
+          expect(requests[before]).toEqual(requests[before + 1]);
+          if ("classifier" in input) {
+            expect(direct).toHaveProperty(
+              "result.classifier",
+              input.classifier
+            );
+            expect(viaTool).toHaveProperty(
+              "output.result.classifier",
+              input.classifier
+            );
+          }
+        }
+        const before = requests.length;
+        for (const input of [
+          { questions, state: "" },
+          { classifier: "missing", state: "claim" },
+          { classifier: "caller", questions, state: "claim" },
+          { classifier: "preset", state: "override" },
+          { backend: "override", questions, state: "claim" },
+          { questions, state: "x".repeat(1024 * 1024 + 1) },
+        ]) {
+          const direct = yield* decisions.decide({ input, sessionID }, call);
+          const viaTool = yield* tool.execute(input, {
+            ...toolContext(),
+            sessionID,
+          });
+          expect(direct).toMatchObject({
+            error: { attempts: 0, code: "INVALID_INPUT" },
+            ok: false,
+          });
+          expect(viaTool).toMatchObject({
+            output: {
+              error: { attempts: 0, code: "INVALID_INPUT" },
+              ok: false,
+            },
+          });
+        }
+        for (const input of [
+          { questions, state: { files: ["DO_NOT_READ"], type: "evidence" } },
+          {
+            questions,
+            state: {
+              code: [{ path: "DO_NOT_READ", query: "(identifier) @evidence" }],
+              type: "evidence",
+            },
+          },
+          { questions, state: { diffs: [{ base: "HEAD" }], type: "evidence" } },
+          {
+            questions,
+            state: { images: [{ path: "DO_NOT_READ.png" }], type: "evidence" },
+          },
+          { classifier: "referenced" },
+        ]) {
+          const output = yield* decisions.decide({ input, sessionID }, call);
+          expect(output).toMatchObject({
+            error: {
+              attempts: 0,
+              code: "UNSUPPORTED_INPUT",
+              message: expect.stringContaining("permission context"),
+            },
+            ok: false,
+          });
+        }
+        expect(requests).toHaveLength(before);
+        expect(messages).toEqual([]);
+      })
+    );
+  } finally {
     server.stop(true);
   }
 });

@@ -114,7 +114,7 @@ export const ClassifyBackends = Rpc.define({
   },
 });
 
-/** Inline-only decisions for server-side consumers, without session messages. */
+/** The decide tool payload with session context, without session messages. */
 export const ClassifyDecisions = Rpc.define({
   events: {},
   id: "classify-decisions",
@@ -124,11 +124,10 @@ export const ClassifyDecisions = Rpc.define({
       input: {
         additionalProperties: false,
         properties: {
-          questions: { additionalProperties: true, type: "object" },
+          input: { additionalProperties: true, type: "object" },
           sessionID: stringJson,
-          state: stringJson,
         },
-        required: ["sessionID", "state", "questions"],
+        required: ["sessionID", "input"],
         type: "object",
       },
       output: { additionalProperties: true, type: "object" },

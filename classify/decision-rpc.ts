@@ -6,9 +6,8 @@ import type { Classification } from "./classification.js";
 import { ClassifyDecisions } from "./rpc.js";
 
 const Request = Schema.Struct({
-  questions: Schema.Unknown,
+  input: Schema.Unknown,
   sessionID: Session.ID,
-  state: Schema.String,
 });
 
 export const registerDecisionRpc = Effect.fn("ClassifyDecisions.register")(
@@ -18,10 +17,12 @@ export const registerDecisionRpc = Effect.fn("ClassifyDecisions.register")(
   ) {
     yield* context.rpc
       .register(ClassifyDecisions, {
-        decide: (input, call) =>
+        decide: (request, call) =>
           Effect.gen(function* decide() {
-            const { sessionID, state, questions } =
-              yield* Schema.decodeUnknownEffect(Request)(input);
+            const { sessionID, input } = yield* Schema.decodeUnknownEffect(
+              Request,
+              { onExcessProperty: "error" }
+            )(request);
             const session = yield* context.session.get({ sessionID });
             if (
               session.location.directory !== context.location.directory ||
@@ -35,10 +36,10 @@ export const registerDecisionRpc = Effect.fn("ClassifyDecisions.register")(
                 )
               );
             }
-            return yield* classification.classify(
-              { questions, state },
-              { mode: "inline", sessionID }
-            );
+            return yield* classification.classify(input, {
+              mode: "inline",
+              sessionID,
+            });
           }).pipe(
             Effect.mapError(() =>
               call.error(

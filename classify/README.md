@@ -79,7 +79,7 @@ Confidence is a provider-native uncertainty metric, not a probability of correct
 
 See the [tool reference](./docs/TOOL_REFERENCE.md) for criteria rules, complete success/error examples, diagnostics, and parser exports.
 
-Server plugins can use the [inline decision RPC](./docs/TOOL_REFERENCE.md#inline-decision-rpc) to classify supplied text before admitting it into the main model's conversation. It uses the same session backend and structured result contract without creating a tool turn or resolving file evidence.
+Server plugins can use the [inline decision RPC](./docs/TOOL_REFERENCE.md#inline-decision-rpc) with `decide({ sessionID, input })`, where `input` is the decide tool's payload: structured state and questions, or a configured named classifier. It shares the tool's validation, session backend, and result contract without creating a tool turn; evidence references require the tool's permission context.
 
 ## Additional judgment patterns
 
