@@ -13,6 +13,7 @@ import { Deferred, Effect, FileSystem, Queue, Sink, Stream } from "effect";
 import { ChildProcessSpawner } from "effect/unstable/process";
 
 import plugin from "../index.js";
+import type { Decide, TriageRequest } from "../pr/triage.js";
 
 export const sessionID = Session.ID.make("ses_workflow_test");
 export const otherSessionID = Session.ID.make("ses_other_test");
@@ -33,6 +34,8 @@ interface TestEvent {
   readonly data: { readonly sessionID: Session.ID };
 }
 export interface Controls {
+  readonly decide?: Decide;
+  readonly github?: typeof githubResponse;
   readonly read?: Effect.Effect<void, unknown>;
   readonly admission?: Effect.Effect<void, unknown>;
   readonly process?: Effect.Effect<void>;
@@ -72,6 +75,30 @@ export const githubResponse = (args: readonly string[]) => {
     return JSON.stringify({ nameWithOwner: "owner/repo" });
   }
   if (args[0] === "api") {
+    if (args[1]?.includes("/pulls/")) {
+      return JSON.stringify({
+        base: { sha: "b".repeat(40) },
+        head: { sha: "a".repeat(40) },
+      });
+    }
+    if (args[1]?.includes("/git/trees/")) {
+      return JSON.stringify({
+        tree: [{ path: "src/cache.ts", type: "blob" }],
+        truncated: false,
+      });
+    }
+    if (args[1]?.includes("/compare/")) {
+      return JSON.stringify({
+        files: [{ filename: "src/cache.ts", patch: "DIFF_ONLY_MARKER" }],
+      });
+    }
+    if (args[1]?.includes("/contents/")) {
+      return JSON.stringify({
+        content: Buffer.from("SOURCE_ONLY_MARKER").toString("base64"),
+        encoding: "base64",
+        type: "file",
+      });
+    }
     return JSON.stringify([
       {
         data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } },
@@ -138,6 +165,7 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
   const reads: Session.ID[] = [];
   const processes: { args: readonly string[]; cwd: string | undefined }[] = [];
   const filesystemReads: string[] = [];
+  const classifications: TriageRequest[] = [];
   let subscriptions = 0;
   let closedProcesses = 0;
   let forbiddenCalls = 0;
@@ -167,7 +195,7 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
           pid: ChildProcessSpawner.ProcessId(123),
           stderr: Stream.empty,
           stdin: Sink.drain,
-          stdout: bytes(githubResponse(command.args)),
+          stdout: bytes((controls.github ?? githubResponse)(command.args)),
           unref: Effect.succeed(Effect.void),
         });
       }),
@@ -218,6 +246,15 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
         ),
     },
     location: { directory: `${directory}/plugin` },
+    rpc: () => ({
+      decide: (request: TriageRequest) =>
+        Effect.suspend(() => {
+          classifications.push(request);
+          return (
+            controls.decide?.(request) ?? Effect.fail("Classify unavailable")
+          );
+        }),
+    }),
     session: {
       command: forbidden,
       get: (input: { sessionID: Session.ID }) =>
@@ -301,6 +338,7 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
   };
   return {
     admissions,
+    classifications,
     get closedProcesses() {
       return closedProcesses;
     },
