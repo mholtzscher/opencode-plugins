@@ -11,11 +11,13 @@ Add this entry to the `plugins` array in your project or global `opencode.jsonc`
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["github:mholtzscher/opencode-plugins#main::path:cache-metrics"],
+  "plugins": ["@mholtzscher/opencode-cache-metrics"],
 }
 ```
 
 OpenCode installs the plugin with its prebuilt TUI bundle. See [plugin configuration](https://opencode.ai/v2/docs/plugins) for updates and reload behavior.
+
+For a Git install, use `"github:mholtzscher/opencode-plugins#main::path:cache-metrics"` instead. Load only one source of this plugin. See [releasing](../docs/RELEASING.md#first-cache-metrics-publish) for publication setup.
 
 Open a session in the terminal UI. The **Cache** sidebar card shows its input cache-hit rate. Expand **Show additional metrics** for token totals. Click the rate or choose **Open cache history** from the command palette to inspect responses.
 

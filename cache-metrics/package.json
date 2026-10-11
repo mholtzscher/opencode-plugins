@@ -1,11 +1,42 @@
 {
-  "name": "opencode-cache-metrics-plugin",
+  "name": "@mholtzscher/opencode-cache-metrics",
   "version": "1.0.0",
-  "private": true,
+  "description": "OpenCode V2 plugin for input cache-hit rates, token totals, response history, and JSON export in the TUI",
+  "keywords": [
+    "cache",
+    "opencode",
+    "opencode-plugin",
+    "tokens"
+  ],
+  "homepage": "https://github.com/mholtzscher/opencode-plugins/tree/main/cache-metrics#readme",
+  "bugs": {
+    "url": "https://github.com/mholtzscher/opencode-plugins/issues"
+  },
+  "license": "MIT",
+  "author": "Michael Holtzscher",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mholtzscher/opencode-plugins.git",
+    "directory": "cache-metrics"
+  },
+  "files": [
+    "index.ts",
+    "dist/tui.js",
+    "cache-rate.ts",
+    "cache-history.ts",
+    "docs/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
   "type": "module",
+  "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
     "./tui": "./dist/tui.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build:tui": "bun run build.ts",
