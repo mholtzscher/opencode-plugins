@@ -116,7 +116,7 @@ export const WorkflowsLive = Layer.effect(
         );
         return threads.length === 0
           ? "No unresolved inline review threads found"
-          : buildFeedbackReviewPrompt(pr, threads);
+          : buildFeedbackReviewPrompt(owner, name, pr, threads);
       }
     );
     const prepareFeedbackFix = Effect.fn("Workflows.prepareFeedbackFix")(

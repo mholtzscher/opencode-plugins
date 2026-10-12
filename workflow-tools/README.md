@@ -25,6 +25,7 @@ Install the dependencies for the commands you use on the OpenCode server. The pl
 | `/spec-implement` | [`agent-orchestrator`](https://github.com/mholtzscher/skills/tree/main/agent-orchestrator) skill, repository development tools, authenticated `gh` |
 | `/spec-refine` | [`unslop`](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) skill; question tool |
 | PR commands | Authenticated `gh` and repository access; Git and development tools when publishing code |
+| Inbox triage (optional) | Plannotator Inbox MCP `send_message` and `wait_for_reply` tools available to the agent |
 | Background monitoring | Host tool for background subagents and completion notifications |
 
 ## Commands
@@ -36,7 +37,7 @@ Install the dependencies for the commands you use on the OpenCode server. The pl
 | `/spec-refine <path>` | Propose clearer wording and simpler designs, then apply approved changes |
 | `/pr-publish [--no-watch] [guidance]` | Commit and publish changes, then monitor checks in the background |
 | `/pr-rewrite [guidance]` | Rewrite and verify the current PR's title and description |
-| `/pr-triage` | Evaluate unresolved inline review threads without changing code or GitHub state |
+| `/pr-triage` | Review inline threads in Inbox, wait for decisions, then deliver approved fixes and resolve agreed threads; read-only chat fallback |
 | `/pr-fix` | Apply agreed feedback, publish fixes, then react to comments and resolve threads |
 | `/pr-checks` | Report current checks and investigate completed failures without waiting for CI |
 
@@ -65,17 +66,25 @@ Any file extension is accepted. Symlinks to regular files are accepted, includin
 
 Spec creation asks for approval of the spec. Refinement proposes changes and waits for your selection before editing, including wording changes.
 
-Running `/spec-implement`, `/pr-publish`, or `/pr-fix` authorizes commits and publication of the relevant changes. The agent asks for help if access is missing or the intended target is unclear. `/pr-rewrite` changes only the current PR's title and description. `/pr-triage` and `/pr-checks` are read-only.
+Running `/spec-implement`, `/pr-publish`, or `/pr-fix` authorizes commits and publication of the relevant changes. `/pr-triage` starts with read-only investigation; when Inbox is available, actual user decisions authorize the actions described below. Merely running triage or receiving a waiting response does not authorize edits. The agent asks for help if access is missing or the intended target is unclear. `/pr-rewrite` changes only the current PR's title and description. `/pr-checks` and triage's conversation-only fallback are read-only.
 
 PR commands use the current repository and PR. They do not accept a PR URL selector. `/pr-triage`, `/pr-fix`, and `/pr-checks` accept no arguments.
 
 ### Applying review feedback
 
 1. Run `/pr-triage` to evaluate unresolved inline review threads. It excludes PR-level review summaries and conversation comments.
-2. Discuss the report and agree on outcomes.
-3. Run `/pr-fix` in the same conversation. It handles all agreed outcomes and leaves unclear or unapproved items pending.
+2. When Inbox tools are available, the agent sends individual issue cards and waits for your choices, notes, and annotations. Each card shows the verdict, reviewer claim, current code/evidence, reasoning, an optional Mermaid diagram, the smallest proposed diff (or existing protective code/published fix), verification, and an explicit decision question.
+3. Submit your decisions. The waiting agent processes approved outcomes directly, without a separate `/pr-fix` invocation. Approval of a fix authorizes scoped edits, validation, commits, pushes to the intended PR, and thread resolution after successful delivery. Agreement that an issue is invalid authorizes resolution without code changes. Agreement that it is already addressed authorizes resolution after verifying the fix is in the published revision.
 
-The agent validates and publishes fixes before reacting to comments or resolving threads. It verifies already-addressed fixes against the published revision. Missing discussion, comment IDs, or a matching PR blocks execution. In a fresh conversation, start with `/pr-triage` again. The plugin does not save verdicts across sessions.
+Deferred, skipped, unanswered, or ambiguous items stay untouched and unresolved. Challenges and requests for investigation produce updated cards and another wait, not automatic fixes. A materially different proposed fix needs new approval. The Inbox path does not add GitHub reactions or post GitHub replies.
+
+The agent processes each submitted response, groups approved fixes for validation/publication, and sends later batches or follow-ups in the same Inbox thread. Failed validation or publication leaves the affected fixes unresolved. No-code invalid/already-addressed outcomes need no empty commit or push. Posting/waiting failures stop the approval path with the known Inbox references; they do not silently switch approval channels. The agent does not automatically restore waiting after cancellation or a restart.
+
+By design, Inbox delivery skips pre-action freshness comparisons of the PR head, working-tree fingerprints, and changed review evidence against the earlier report. Approval may therefore be applied after code changes during review. Correct repository/PR/branch/thread targeting, scoped edits, validation, and successful publication before resolving fixed issues still apply.
+
+If Inbox tools are unavailable before posting, triage presents the same evidence-led cards in the conversation and stays read-only. Discuss the report, agree on outcomes, then run `/pr-fix` in the same conversation. That command retains its existing reaction/resolution and monitoring behavior. It handles all agreed outcomes and leaves unclear or unapproved items pending.
+
+Missing agreement, comment IDs, or a matching PR blocks execution. In a fresh conversation, start with `/pr-triage` again. The plugin does not save verdicts across sessions or provide a persistent Inbox reply watcher. Inbox behavior is implemented through agent instructions, not runtime-enforced approval gates.
 
 ### Monitoring and check reports
 

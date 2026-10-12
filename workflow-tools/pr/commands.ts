@@ -43,7 +43,7 @@ export const registerPrCommands = (
         },
         {
           description:
-            "Read-only triage of unresolved inline PR threads; agree verdicts before /pr-fix",
+            "Review inline PR threads in Inbox, wait for decisions, then publish approved fixes and resolve agreed threads; chat fallback is read-only",
           name: "pr-triage",
           run: (_args: string, cwd: string) =>
             workflows.prepareFeedbackReview(cwd),

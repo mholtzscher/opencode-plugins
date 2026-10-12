@@ -154,7 +154,7 @@ describe("retained Effect PR workflows", () => {
       ).toBe("GithubDecodeError");
     }
   );
-  test("paginated unresolved inline threads preserve IDs, delimiters and read-only triage", async () => {
+  test("paginated inline threads preserve IDs and untrusted evidence for Inbox triage", async () => {
     const fake = harness((args, options) => {
       if (args[0] !== "api") {
         return repoReply(args, options);
@@ -187,6 +187,11 @@ describe("retained Effect PR workflows", () => {
       "no local edits, reactions, replies, or thread resolution",
       "not user approval",
       "/pr-fix only after verdicts are agreed",
+      "owner/repo, PR #17 (https://github.com/owner/repo/pull/17)",
+      "send_message and wait_for_reply",
+      "On each submitted response, continue directly",
+      "Skip pre-action freshness checks",
+      "Conversation-only fallback",
     ]) {
       expect(prompt).toContain(text);
     }
