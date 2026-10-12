@@ -60,6 +60,11 @@
       },
       {
         "action": "integration.use",
+        "resource": "plugin:@mholtzscher/opencode-cache-metrics",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
         "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:quota-usage",
         "effect": "deny",
       },
