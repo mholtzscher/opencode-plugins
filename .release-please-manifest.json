@@ -1,7 +1,6 @@
 {
   "cache-metrics": "1.1.0",
   "classify": "1.5.1",
-  "marketplace": "0.1.0",
   "quota-usage": "1.2.0",
   "workflow-tools": "2.0.0"
 }
