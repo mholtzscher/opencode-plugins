@@ -11,9 +11,6 @@
     "classify": {
       "component": "classify"
     },
-    "marketplace": {
-      "component": "marketplace"
-    },
     "quota-usage": {
       "component": "quota-usage"
     },

@@ -12,12 +12,11 @@ pitchfork = "2.25.0"
 "npm:oxfmt" = "0.71.0"
 
 [tasks.install]
-description = "Install locked dependencies for the root and all five plugins"
+description = "Install locked dependencies for the root and all four plugins"
 run = [
   "bun install --frozen-lockfile",
   "bun install --cwd cache-metrics --frozen-lockfile",
   "bun install --cwd classify --frozen-lockfile",
-  "bun install --cwd marketplace --frozen-lockfile",
   "bun install --cwd quota-usage --frozen-lockfile",
   "bun install --cwd workflow-tools --frozen-lockfile",
 ]
@@ -31,17 +30,16 @@ description = "Apply repository lint and formatting fixes"
 run = "bun run fix"
 
 [tasks.typecheck]
-description = "Typecheck all five plugins"
+description = "Typecheck all four plugins"
 run = [
   "bun run --cwd cache-metrics typecheck",
   "bun run --cwd classify typecheck",
-  "bun run --cwd marketplace typecheck",
   "bun run --cwd quota-usage typecheck",
   "bun run --cwd workflow-tools typecheck",
 ]
 
 [tasks.test]
-description = "Run all four plugin test suites (Marketplace has none)"
+description = "Run all four plugin test suites"
 run = [
   "bun test --cwd cache-metrics",
   "bun test --cwd classify",
