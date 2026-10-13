@@ -1,4 +1,5 @@
 import { escapeDelimiters } from "./evidence-format.js";
+import { buildInboxFeedbackInstructions } from "./inbox-prompts.js";
 import type { PrMetadata, ReviewThread } from "./schemas.js";
 import { PUBLICATION_WATCHER_INSTRUCTIONS } from "./watcher-prompts.js";
 
@@ -33,6 +34,8 @@ const formatReviewThread = (thread: ReviewThread): string => {
 };
 
 export const buildFeedbackReviewPrompt = (
+  owner: string,
+  name: string,
   pr: PrMetadata,
   threads: readonly ReviewThread[]
 ): string => {
@@ -63,11 +66,14 @@ For each unresolved review thread:
 Triage boundaries:
 - Distinguish correctness/security issues, maintainability suggestions, preferences, and non-actionable chatter; prioritize actionability rather than treating every comment as equally urgent.
 - Check current relevance: outdated, duplicate, superseded, or already-addressed claims.
-- Explain disagreements with concrete evidence. Use the question tool when product intent is uncertain.
-- This is read-only inline-thread triage, not PR-level review summaries or conversation comments: no local edits, reactions, replies, or thread resolution.
+- Explain disagreements with concrete evidence. Use Inbox questions when available, otherwise the question tool when product intent is uncertain.
+- Evaluate inline threads only, not PR-level review summaries or conversation comments. Investigation and card preparation are read-only: no local edits, reactions, replies, or thread resolution before actual user approval. The Inbox path can deliver approved outcomes after a response; the conversation-only fallback remains read-only.
 - An agent verdict is not user approval to edit.
 
-Present a concise report grouped by verdict. Preserve PR identity, file/line references, URLs, authors, Thread IDs and Comment IDs so /pr-fix can reuse agreed verdicts without refetching in this conversation. Suggest /pr-fix only after verdicts are agreed; it handles the entire settled report. A fresh conversation must first establish verdicts and IDs with /pr-triage. State payload truncation or inaccessible-context limitations honestly.
+${buildInboxFeedbackInstructions(owner, name, pr)}
+
+Conversation-only fallback (only if Inbox tools were unavailable before posting):
+Present individual issue cards using the same evidence/code/diff structure in this conversation. Preserve PR identity, file/line references, URLs, authors, Thread IDs and Comment IDs so /pr-fix can reuse agreed verdicts without refetching in this conversation. Suggest /pr-fix only after verdicts are agreed; it handles the entire settled report. Do not edit, publish, or resolve directly in this fallback. A fresh conversation must first establish verdicts and IDs with /pr-triage. State payload truncation or inaccessible-context limitations honestly.
 
 <github-pr-review-threads>
 ${payload}

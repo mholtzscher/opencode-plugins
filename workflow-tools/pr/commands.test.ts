@@ -44,6 +44,9 @@ describe("PR command preparation", () => {
           ).toBe(false);
           host.processes.length = 0;
           yield* host.run("pr-triage");
+          expect(host.commands.get("pr-triage")?.description).toContain(
+            "wait for decisions, then publish approved fixes"
+          );
           expect(
             host.processes.some(
               (process) =>
