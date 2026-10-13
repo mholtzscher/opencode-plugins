@@ -55,16 +55,24 @@ export const rejectTruncated =
 
 const responseSchema = (questions: Questions) =>
   Schema.Struct({
-    answers: Schema.Struct(
-      Object.fromEntries(
-        Object.entries(questions).map(([id, question]) => [
-          id,
-          buildAnswerSchema(question).annotate({
-            parseOptions: { onExcessProperty: "ignore" },
-          }),
-        ])
+    answers: Schema.Record(Schema.String, JsonValueSchema)
+      .check(
+        Schema.makeFilter((value) =>
+          Object.keys(value).every((id) => Object.hasOwn(questions, id))
+        )
       )
-    ).annotate({ parseOptions: { onExcessProperty: "error" } }),
+      .pipe(
+        Schema.decodeTo(
+          Schema.Struct(
+            Object.fromEntries(
+              Object.entries(questions).map(([id, question]) => [
+                id,
+                buildAnswerSchema(question),
+              ])
+            )
+          )
+        )
+      ),
     model: NonblankSchema,
     usage: UsageSchema,
   });

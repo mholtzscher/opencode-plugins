@@ -1,6 +1,6 @@
 # Workflow tools
 
-Commands for planning specs, implementing them, and handling pull requests in OpenCode. Commands run on the server for terminal, web, and desktop clients. See the `@opencode/plugin` dependency in [package.json](./package.json) for the supported OpenCode range.
+Commands for planning specs, implementing them, and handling pull requests in OpenCode. Commands run on the server for terminal, web, and desktop clients. Requires OpenCode **2.0.27 or later** with stable Effect 4; see the peer dependencies in [package.json](./package.json) for the supported range.
 
 ## Install
 

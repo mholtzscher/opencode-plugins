@@ -76,13 +76,13 @@ test("image evidence is strict, bounded, local-only, and does not reinterpret li
   ).toBeDefined();
 });
 
-// The rc.112 importer cannot represent `not`. Project out that one constraint
+// The JSON Schema importer cannot represent `not`. Project out that one constraint
 // for structural round-trip tests; the native codec tests enforce the reserved
 // evidence marker. All patterns here come from our own trusted schemas.
 const imported = (schema: Schema.Constraint) =>
   Schema.make<Schema.Codec<unknown>>(
     SchemaRepresentation.fromJsonSchemaDocument(
-      Schema.toJsonSchemaDocument(schema),
+      Schema.toJsonSchemaDocument(schema, { onExcessProperty: "error" }),
       { onEnter: ({ not: _not, ...node }) => node, patterns: "apply" }
     ).ast
   );

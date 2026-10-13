@@ -10,8 +10,8 @@ import {
   Layer,
   Result,
 } from "effect";
+import { HttpClient } from "effect/http";
 import { TestClock } from "effect/testing";
-import { HttpClient } from "effect/unstable/http";
 
 import { loadOptions } from "../config.js";
 import { Credentials } from "../credentials.js";

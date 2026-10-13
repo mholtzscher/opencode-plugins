@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import { Deferred, Effect, Fiber, Layer, Sink, Stream } from "effect";
+import { ChildProcessSpawner } from "effect/process";
 import { TestClock } from "effect/testing";
-import { ChildProcessSpawner } from "effect/unstable/process";
 
 import { Github, GithubLayer } from "./github.js";
 

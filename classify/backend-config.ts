@@ -4,7 +4,6 @@ import { Effect, Schema } from "effect";
 
 import { NonblankSchema } from "./classification-schemas.js";
 
-const strict = { parseOptions: { onExcessProperty: "error" as const } };
 const KeySourceFields = {
   apiKeyEnv: Schema.optional(
     NonblankSchema.check(Schema.isPattern(/^[A-Za-z_][A-Za-z0-9_]*$/u))
@@ -47,7 +46,7 @@ const CloudflareBackendSchema = Schema.Struct({
     Schema.withDecodingDefaultKey(Effect.succeed("clef"))
   ),
   provider: Schema.Literal("cloudflare"),
-}).annotate(strict);
+});
 
 const TypesafeBackendSchema = Schema.Struct({
   ...KeySourceFields,
@@ -55,7 +54,7 @@ const TypesafeBackendSchema = Schema.Struct({
     Schema.withDecodingDefaultKey(Effect.succeed("jev-latest"))
   ),
   provider: Schema.Literal("typesafe"),
-}).annotate(strict);
+});
 
 const LayaBackendSchema = Schema.Struct({
   ...KeySourceFields,
@@ -66,7 +65,7 @@ const LayaBackendSchema = Schema.Struct({
     Schema.withDecodingDefaultKey(Effect.succeed("english"))
   ),
   provider: Schema.Literal("laya"),
-}).annotate(strict);
+});
 
 const OllamaBackendSchema = Schema.Struct({
   ...KeySourceFields,
@@ -77,7 +76,7 @@ const OllamaBackendSchema = Schema.Struct({
     Schema.withDecodingDefaultKey(Effect.succeed("nimble"))
   ),
   provider: Schema.Literal("ollama"),
-}).annotate(strict);
+});
 
 const OpenaiDecisionsBackendSchema = Schema.Struct({
   ...KeySourceFields,
@@ -85,7 +84,7 @@ const OpenaiDecisionsBackendSchema = Schema.Struct({
     Schema.withDecodingDefaultKey(Effect.succeed("gpt-6-luna"))
   ),
   provider: Schema.Literal("openai-decisions"),
-}).annotate(strict);
+});
 
 export const BackendSchema = Schema.Union([
   CloudflareBackendSchema,

@@ -4,6 +4,8 @@ An OpenCode V2 plugin for typed judgments using OpenAI Decisions, TypeSafe AI, C
 
 Credentials, evidence reads, backend selection, and classification run on the **OpenCode server**, including when clients connect remotely. The TUI adds a backend picker and session status indicator. Setup makes no network calls and downloads no models.
 
+Requires OpenCode **2.0.27 or later** with stable Effect 4. Earlier releases using Effect prereleases are not supported.
+
 ## Quick start
 
 ### 1. Install and choose a backend

@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 
 import { Cause, Effect, Exit, Fiber, Layer, Redacted } from "effect";
-import { HttpClient, HttpClientResponse } from "effect/unstable/http";
-import type { HttpClientRequest } from "effect/unstable/http";
+import { HttpClient, HttpClientResponse } from "effect/http";
+import type { HttpClientRequest } from "effect/http";
 
 import { loadOptions } from "../config.js";
 import { Credentials } from "../credentials.js";

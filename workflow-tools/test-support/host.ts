@@ -10,7 +10,7 @@ import { Session } from "@opencode/schema/session";
 import { Skill } from "@opencode/schema/skill";
 import type { PlatformError } from "effect";
 import { Deferred, Effect, FileSystem, Queue, Sink, Stream } from "effect";
-import { ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcessSpawner } from "effect/process";
 
 import plugin from "../index.js";
 

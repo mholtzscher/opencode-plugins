@@ -4,11 +4,11 @@
 
 ## Setup and validation
 
-Use an OpenCode release compatible with the `@opencode/plugin` dependency in [package.json](../package.json). When loading this checkout alongside global installs, follow [local-plugin setup](../../README.md#local-plugins-versus-global-installs).
+Use an OpenCode release compatible with the peer dependencies in [package.json](../package.json). When loading this checkout alongside global installs, follow [local-plugin setup](../../README.md#local-plugins-versus-global-installs).
 
 From `workflow-tools/`, run `bun install`, `bun run typecheck`, and `bun test`. From the repository root, run `bun run check`. Use `bun install --frozen-lockfile` for reproducible installs.
 
-Keep Effect prereleases aligned. Pin the shared Node adapter as a direct dependency as well as an override. Published consumers do not inherit overrides, and incompatible adapter releases break the pinned APIs.
+OpenCode 2.0.27 supplies Effect 4.0.1 at runtime. Keep `effect` and `@opencode/plugin` as peer dependencies with pinned development installations; never bundle them. Use stable public paths such as `effect/process`, not prerelease `effect/unstable/*` paths. Pin compatible Node adapters, including the shared adapter as a direct dependency as well as an override. Published consumers do not inherit overrides. Restart the server after dependency upgrades if its module cache still contains old adapters.
 
 Run `npm pack --dry-run` before publishing. Confirm the package contains TypeScript production modules, documentation, the changelog, and the license. Exclude tests, fixtures, the lockfile, and development config. OpenCode loads TypeScript directly, without build or install hooks. Release Please updates versions and changelogs. Follow [Releasing](../../docs/RELEASING.md) for publication.
 

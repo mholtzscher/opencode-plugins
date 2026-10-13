@@ -1,5 +1,5 @@
 import { Effect, Layer, Redacted } from "effect";
-import { HttpClient } from "effect/unstable/http";
+import { HttpClient } from "effect/http";
 
 import type { BackendOptions, ClassifyOptions } from "../config.js";
 import { Credentials } from "../credentials.js";

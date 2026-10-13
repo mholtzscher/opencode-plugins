@@ -5,7 +5,7 @@ import path from "node:path";
 
 import type { Tool } from "@opencode/schema/tool";
 import { Context, Effect, Layer, Predicate } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import { readRegularFile } from "./bounded-file.js";
 import type { ReadFailure } from "./bounded-file.js";

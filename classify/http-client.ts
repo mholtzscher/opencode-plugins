@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
+import { FetchHttpClient } from "effect/http";
 
 export type Fetcher = (
   input: string | URL | Request,
