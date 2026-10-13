@@ -5,6 +5,7 @@ import { registerBackendControls } from "./backend-controls.js";
 import { createClassifyTool } from "./classification-tool.js";
 import { Classification } from "./classification.js";
 import { loadOptions } from "./config.js";
+import { registerDecisionRpc } from "./decision-rpc.js";
 import { loadDecisionSkill } from "./decision-skill.js";
 // import { grammarTool } from "./grammar-tool.js";
 import { classifyLayer } from "./layers.js";
@@ -34,11 +35,9 @@ export default Plugin.define({
         //   yield* FileSearch.pipe(Effect.provideContext(services))
         // );
       }
+      const classification = routeClassification(options, selection, backends);
       const tool = yield* createClassifyTool(options).pipe(
-        Effect.provideService(
-          Classification,
-          routeClassification(options, selection, backends)
-        )
+        Effect.provideService(Classification, classification)
       );
       // const searchTool = yield* createSearchTool(options).pipe(
       //   Effect.provideService(
@@ -48,6 +47,7 @@ export default Plugin.define({
       // );
 
       yield* registerBackendControls(context, options, selection);
+      yield* registerDecisionRpc(context, classification);
       const skill = yield* loadDecisionSkill().pipe(Effect.orDie);
       yield* context.skill.transform((editor) => {
         editor.add(skill);

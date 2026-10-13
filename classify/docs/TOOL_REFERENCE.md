@@ -239,3 +239,33 @@ The exported [`./rpc`](../rpc.ts) entry defines `ClassifyBackends` (`classify-ba
 Pass the session ID and the session's location when calling RPC from a client; omit `backend` in `setSelection` to reset. Requests outside the plugin instance's location are rejected. If a stored profile was removed, `getSelection` returns the declared `unknown_backend` error with `data.defaultBackend` for recovery. Storage and session-access failures remain `unavailable`.
 
 Events are live-only: read selection again after reconnecting. See [session selection](./CONFIGURATION.md#session-selection) for persistence, switching, and recovery behavior.
+
+## Inline decision RPC
+
+The exported `ClassifyDecisions` definition (`classify-decisions`) exposes `decide({ sessionID, input })` for server-side consumers such as Workflow tools. `input` is the same payload accepted by the decide tool: `{ state, questions }` or a configured `{ classifier, state? }` invocation. State can be a string, object, or array; no JSON stringification is required. Named classifier state rules and all input validation use the tool's existing configured schema. Results use the same structured success/error envelope, input limits, backend selection, response validation, usage, and timing fields.
+
+```ts
+await decisions.decide({
+  sessionID,
+  input: {
+    state: {
+      claim: "All checks passed",
+      observations: ["A passed", "B failed"],
+    },
+    questions: {
+      supported: {
+        type: "noul",
+        instructions: "Do the observations support the claim?",
+      },
+    },
+  },
+});
+await decisions.decide({
+  sessionID,
+  input: { classifier: "configured-preset" },
+});
+```
+
+This path does not create session messages or tool turns. It checks that the session belongs to the plugin's location and uses that session's configured backend; per-call backend overrides remain invalid. Literal state and text-only evidence wrappers work as they do through the tool. File, code, diff, and image references return `ok: false` with `UNSUPPORTED_INPUT` and zero provider attempts because RPC calls lack a tool permission context. This also applies to references in named presets; the RPC never bypasses the tool's permission-checked evidence resolver. JSON serialized into a string remains literal text, even if it contains an evidence marker.
+
+Callers own evidence collection, result handling, and cancellation; classification interruption propagates. The RPC's `unavailable` error covers invalid outer request envelopes and inaccessible or out-of-location sessions. Invalid tool payloads and provider failures use the normal `ok: false` envelope.

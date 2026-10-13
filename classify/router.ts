@@ -2,6 +2,7 @@ import type { Tool } from "@opencode/schema/tool";
 import { Effect } from "effect";
 
 import { Classification } from "./classification.js";
+import type { ClassificationContext } from "./classification.js";
 import type { ClassifyOptions } from "./config.js";
 import { preserveInterruption } from "./outcome.js";
 import { FileSearch } from "./search.js";
@@ -13,7 +14,7 @@ const selectBackendService = Effect.fn("BackendSelection.selectService")(
     options: ClassifyOptions,
     selection: BackendSelection,
     services: ReadonlyMap<string, Service>,
-    context: Tool.Context
+    context: Pick<Tool.Context, "sessionID">
   ) {
     const selected = yield* selection
       .get(context.sessionID)
@@ -59,7 +60,7 @@ export const routeClassification = (
   Classification.of({
     classify: Effect.fn("Classification.route")(
       // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Classification validates external input in the selected service.
-      function* routeRequest(value: unknown, context: Tool.Context) {
+      function* routeRequest(value: unknown, context: ClassificationContext) {
         const selected = yield* selectBackendService(
           options,
           selection,

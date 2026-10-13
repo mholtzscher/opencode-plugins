@@ -11,7 +11,11 @@ import type { Schema } from "effect";
 import { Effect, Exit, Scope } from "effect";
 
 import plugin from "../index.js";
-import type { ClassifyBackends, SelectionSchema } from "../rpc.js";
+import type {
+  ClassifyBackends,
+  ClassifyDecisions,
+  SelectionSchema,
+} from "../rpc.js";
 import type { JsonValue } from "../types.js";
 
 type PluginContext = Parameters<typeof plugin.effect>[0];
@@ -19,11 +23,13 @@ type PluginContext = Parameters<typeof plugin.effect>[0];
 interface PluginRuntime {
   directory: string;
   sessionDirectory?: string;
+  sessionGet?: PluginContext["session"]["get"];
   sessionRequests?: Tool.Context["sessionID"][];
   tools: Tool.Info[];
   disposed?: () => void;
   commands?: CommandDefinition[];
   handlers?: (handlers: RpcHandlers<typeof ClassifyBackends>) => void;
+  decisions?: (handlers: RpcHandlers<typeof ClassifyDecisions>) => void;
   messages?: string[];
   events?: unknown[];
   emit?: (
@@ -73,11 +79,17 @@ export const createPluginFixture = (setup = plugin.effect) => {
       options,
       rpc: {
         register: (
-          _definition: typeof ClassifyBackends,
-          handlers: RpcHandlers<typeof ClassifyBackends>
+          _definition: typeof ClassifyBackends | typeof ClassifyDecisions,
+          handlers:
+            | RpcHandlers<typeof ClassifyBackends>
+            | RpcHandlers<typeof ClassifyDecisions>
         ) =>
           Effect.sync(() => {
-            runtime?.handlers?.(handlers);
+            if ("decide" in handlers) {
+              runtime?.decisions?.(handlers);
+            } else {
+              runtime?.handlers?.(handlers);
+            }
             return {
               events: {
                 emit: (_name: string, value: typeof SelectionSchema.Type) =>
@@ -91,6 +103,7 @@ export const createPluginFixture = (setup = plugin.effect) => {
       },
       session: {
         get: (input: { sessionID: Tool.Context["sessionID"] }) =>
+          runtime?.sessionGet?.(input) ??
           Effect.sync(() => {
             runtime?.sessionRequests?.push(input.sessionID);
             return {

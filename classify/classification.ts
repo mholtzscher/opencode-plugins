@@ -2,7 +2,7 @@ import type { Tool } from "@opencode/schema/tool";
 import { Clock, Context, Effect, Layer, Result } from "effect";
 
 import type { ClassifyOptions } from "./config.js";
-import type { ClassificationError } from "./errors.js";
+import { ClassificationError } from "./errors.js";
 import { EvidenceAccess } from "./evidence.js";
 import { ImageEvidence } from "./image-evidence.js";
 import { captureOutcome } from "./outcome.js";
@@ -12,6 +12,7 @@ import type {
   ClassifyOutput,
   ClassifyResult,
   Content,
+  DecisionRequest,
   EvidenceState,
   ProviderID,
   Questions,
@@ -23,6 +24,14 @@ interface ResolvedRequest {
   questions: Questions;
   state: Content | EvidenceState;
 }
+
+const inlineEvidence = (source: EvidenceState): Content =>
+  source.text === undefined ? {} : { text: source.text };
+
+/** Both entrypoints share input validation; only tool calls have evidence permissions. */
+export type ClassificationContext =
+  | Tool.Context
+  | { readonly mode: "inline"; readonly sessionID: Tool.Context["sessionID"] };
 
 type ClassificationResponse = Omit<
   ClassifyResult,
@@ -72,7 +81,7 @@ export class Classification extends Context.Service<
     classify: (
       // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This boundary parses tool input and returns structured validation failures.
       value: unknown,
-      context: Tool.Context
+      context: ClassificationContext
     ) => Effect.Effect<ClassifyOutput>;
   }
 >()("classify/Classification") {}
@@ -83,47 +92,60 @@ const makeClassification = (options: ClassifyOptions) =>
     const evidence = yield* EvidenceAccess;
     const imageEvidence = yield* ImageEvidence;
 
-    const resolveState = Effect.fn("resolveState")(function* resolveState(
-      source: Content | EvidenceState,
-      context: Tool.Context
-    ) {
-      if (!isEvidence(source)) {
-        return source;
+    const prepareRequest = Effect.fn("prepareClassificationRequest")(
+      function* prepareRequest(
+        { questions, state: source }: ResolvedRequest,
+        context: ClassificationContext
+      ): Effect.fn.Return<DecisionRequest, ClassificationError> {
+        if (
+          !isEvidence(source) ||
+          !(source.files || source.diffs || source.code || source.images)
+        ) {
+          yield* backend.preflight(questions, { images: false });
+          const state = isEvidence(source) ? inlineEvidence(source) : source;
+          return { questions, state };
+        }
+        if ("mode" in context) {
+          return yield* Effect.fail(
+            new ClassificationError(
+              "UNSUPPORTED_INPUT",
+              "RPC evidence references require a tool permission context. Supply inline evidence or use the decide tool."
+            )
+          );
+        }
+        const { images: imageReferences, ...textSource } = source;
+        yield* backend.preflight(questions, {
+          images: imageReferences !== undefined,
+        });
+        const resolved =
+          source.files || source.diffs || source.code
+            ? yield* evidence.resolve(textSource, context)
+            : inlineEvidence(source);
+        if (imageReferences === undefined) {
+          return { questions, state: resolved };
+        }
+        const images = yield* imageEvidence.resolve(imageReferences, context);
+        const state = {
+          evidence: resolved,
+          images: images.map((_image, index) => ({ index: index + 1 })),
+        };
+        yield* requireBoundedJson({ questions, state });
+        return { images, questions, state };
       }
-      if (!(source.files || source.diffs || source.code)) {
-        return source.text === undefined ? {} : { text: source.text };
-      }
-      return yield* evidence.resolve(source, context);
-    });
+    );
 
     const executeRequest = Effect.fn("executeClassificationRequest")(
       function* executeRequest(
         // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This is the parsing boundary for external tool input.
         value: unknown,
-        context: Tool.Context
+        context: ClassificationContext
       ): Effect.fn.Return<ClassificationResponse, ClassificationError> {
         const input = yield* parseInput(value, options.classifiers);
-        const { questions, state: source } = resolveRequest(input, options);
-        const imageReferences = isEvidence(source) ? source.images : undefined;
-        yield* backend.preflight(questions, {
-          images: imageReferences !== undefined,
-        });
-        const textSource = isEvidence(source)
-          ? (({ images: _images, ...rest }) => rest)(source)
-          : source;
-        const resolved = yield* resolveState(textSource, context);
-        let response: ClassificationResponse;
-        if (imageReferences === undefined) {
-          response = yield* backend.decide({ questions, state: resolved });
-        } else {
-          const images = yield* imageEvidence.resolve(imageReferences, context);
-          const state = {
-            evidence: resolved,
-            images: images.map((_image, index) => ({ index: index + 1 })),
-          };
-          yield* requireBoundedJson({ questions, state });
-          response = yield* backend.decide({ images, questions, state });
-        }
+        const request = yield* prepareRequest(
+          resolveRequest(input, options),
+          context
+        );
+        const response = yield* backend.decide(request);
         return input.classifier === undefined
           ? response
           : { ...response, classifier: input.classifier };
@@ -134,7 +156,7 @@ const makeClassification = (options: ClassifyOptions) =>
     const classify = Effect.fn("classify")(function* classify(
       // oxlint-disable-next-line anti-slop/no-unknown-parameters -- executeRequest parses input inside the public error boundary.
       value: unknown,
-      context: Tool.Context
+      context: ClassificationContext
     ): Effect.fn.Return<ClassifyOutput> {
       const start = yield* Clock.monotonicTimeNanos;
       const outcome = yield* captureOutcome(
