@@ -33,6 +33,7 @@ interface TestEvent {
   readonly data: { readonly sessionID: Session.ID };
 }
 export interface Controls {
+  readonly existingSkills?: readonly Skill.Info[];
   readonly read?: Effect.Effect<void, unknown>;
   readonly admission?: Effect.Effect<void, unknown>;
   readonly process?: Effect.Effect<void>;
@@ -134,6 +135,9 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
   const observed = yield* Queue.unbounded<TestEvent>();
   const subscribed = yield* Deferred.make<boolean>();
   const commands = new Map<string, CommandDefinition>();
+  const registeredSkills = new Map<string, Skill.Info>(
+    controls.existingSkills?.map((skill) => [skill.id, skill])
+  );
   const admissions: Admission[] = [];
   const reads: Session.ID[] = [];
   const processes: { args: readonly string[]; cwd: string | undefined }[] = [];
@@ -236,7 +240,25 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
           )
         ),
     },
-    skill: { list: forbidden },
+    skill: {
+      list: forbidden,
+      transform: (
+        transform: (editor: {
+          get: (id: string) => Skill.Info | undefined;
+          add: (skill: Skill.Info) => void;
+        }) => void
+      ) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            transform({
+              add: (skill) => registeredSkills.set(skill.id, skill),
+              get: (id) => registeredSkills.get(id),
+            });
+            return { dispose: Effect.void };
+          }),
+          () => Effect.sync(() => registeredSkills.clear())
+        ),
+    },
     tool: { list: forbidden },
   };
   const originalFilesystemOf = FileSystem.FileSystem.of;
@@ -314,6 +336,7 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
     observed,
     processes,
     reads,
+    registeredSkills,
     run,
     subscribed,
     get subscriptions() {

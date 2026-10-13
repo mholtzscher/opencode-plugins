@@ -1,6 +1,6 @@
 # Workflow tools
 
-Commands for planning specs, implementing them, and handling pull requests in OpenCode. Commands run on the server for terminal, web, and desktop clients. Requires OpenCode **2.0.27 or later** with stable Effect 4; see the peer dependencies in [package.json](./package.json) for the supported range.
+Commands for planning specs, implementing them, and handling pull requests in OpenCode, plus bundled original pstack skills. Commands and skill registration run on the server for terminal, web, and desktop clients. Requires OpenCode **2.0.27 or later** with stable Effect 4; see the peer dependencies in [package.json](./package.json) for the supported range.
 
 ## Install
 
@@ -26,6 +26,24 @@ Install the dependencies for the commands you use on the OpenCode server. The pl
 | `/spec-refine` | [`unslop`](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) skill; question tool |
 | PR commands | Authenticated `gh` and repository access; Git and development tools when publishing code |
 | Background monitoring | Host tool for background subagents and completion notifications |
+
+## Pstack skills
+
+The plugin bundles Lauren Tan's pstack 0.15.21 with selective OpenCode portability fixes informed by pstack-claude. It registers 51 skills with their playbooks, references, helper scripts, and delegate instructions. The Cursor-only `make-bot-ui` source is retained but not registered. Invoke the supported skills explicitly:
+
+```text
+@setup-pstack
+@poteto-mode Fix the search filter resetting after reload. Reproduce it first.
+@interrogate Review this branch for correctness.
+```
+
+`@poteto-mode` selects the upstream playbook and loads supporting skills as needed. There is no automatic routing, persistent mode, or extra slash command. Existing spec and PR commands retain their contracts. Skill content remains in conversation history after invocation, as with other OpenCode skills.
+
+The [OpenCode adapter](./pstack/OPENCODE.md) translates host tools, delegate instructions, model setup, and project paths. `@setup-pstack` selects available OpenCode models and writes a confirmed project-local `.opencode/pstack-models.md`. Original Cursor model IDs are not assumed available. Bundled delegate files are instructions for available host agents, not installed custom agents. Cloud-worker defaults map to local delegates in isolated worktrees; explicit remote-machine requirements need a backend. The [porting ledger](./pstack/PORTING.md) records adopted fixes and the pinned pstack-claude reference.
+
+Existing registered skills with matching IDs take precedence. If an invocation loads another installation, inspect the skill's source path. Bundled workflows are directed to their own sibling files for upstream behavior.
+
+This is a skills distribution, not a complete Cursor runtime. Background agents, multi-model selection, browser/terminal control, authenticated `gh`, and optional Graphite depend on the server environment. Cursor cloud workers and `/loop` are not supplied. The original helper bootstrap may install its locked dependencies when explicitly run; loading skills does not execute it. See [provenance and adaptations](./pstack/UPSTREAM.md) for the pinned source, license, and capability limits.
 
 ## Commands
 
