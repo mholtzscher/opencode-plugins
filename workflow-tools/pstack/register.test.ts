@@ -61,7 +61,11 @@ describe("bundled pstack", () => {
       Effect.scoped(
         Effect.gen(function* checkRegistration() {
           const host = yield* makeHost();
-          expect(host.registeredSkills.size).toBe(51);
+          expect(host.registeredSkills.size).toBe(52);
+          expect(host.registeredSkills.get("deslop")?.path).toContain(
+            "team-kit/skills/deslop/SKILL.md"
+          );
+          expect(host.registeredSkills.get("deslop")?.autoinvoke).toBe(false);
           expect(host.registeredSkills.has("make-bot-ui")).toBe(false);
           expect(host.registeredSkills.has("poteto-mode")).toBe(true);
           expect(host.registeredSkills.has("setup-pstack")).toBe(true);
@@ -80,20 +84,20 @@ describe("bundled pstack", () => {
 
   test("preserves an existing installation with the same skill ID", async () => {
     const skills = await loadPstackSkills();
-    const mode = skills.find((skill) => skill.id === "poteto-mode");
+    const mode = skills.find((skill) => skill.id === "deslop");
     if (!mode) {
-      throw new Error("Missing poteto-mode");
+      throw new Error("Missing deslop");
     }
     const existing = {
       ...mode,
       autoinvoke: true,
-      content: "Project-specific poteto mode",
+      content: "Project-specific deslop",
     };
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* checkCollision() {
           const host = yield* makeHost({ existingSkills: [existing] });
-          expect(host.registeredSkills.get("poteto-mode")).toEqual(existing);
+          expect(host.registeredSkills.get("deslop")).toEqual(existing);
           expect(host.registeredSkills.has("arena")).toBe(true);
         })
       )

@@ -29,12 +29,13 @@ Install the dependencies for the commands you use on the OpenCode server. The pl
 
 ## Pstack skills
 
-The plugin bundles Lauren Tan's pstack 0.15.21 with selective OpenCode portability fixes informed by pstack-claude. It registers 51 skills with their playbooks, references, helper scripts, and delegate instructions. The Cursor-only `make-bot-ui` source is retained but not registered. Invoke the supported skills explicitly:
+The plugin bundles Lauren Tan's pstack 0.15.21 with selective OpenCode portability fixes informed by pstack-claude. It registers 51 pstack skills plus the pinned Cursor Team Kit `deslop` companion, with their playbooks, references, helper scripts, and delegate instructions. The Cursor-only `make-bot-ui` source is retained but not registered. Invoke the supported skills explicitly:
 
 ```text
 @setup-pstack
 @poteto-mode Fix the search filter resetting after reload. Reproduce it first.
 @interrogate Review this branch for correctness.
+@deslop Clean up code style in this branch's diff.
 ```
 
 `@poteto-mode` selects the upstream playbook and loads supporting skills as needed. There is no automatic routing, persistent mode, or extra slash command. Existing spec and PR commands retain their contracts. Skill content remains in conversation history after invocation, as with other OpenCode skills.

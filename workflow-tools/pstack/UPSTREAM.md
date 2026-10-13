@@ -10,6 +10,12 @@ The `upstream/` directory contains the pinned `skills/`, `agents/`, README, guid
 
 ## Adaptations
 
+### Cursor Team Kit companion
+
+`team-kit/skills/deslop/SKILL.md` is copied unchanged from [Cursor Team Kit](https://github.com/cursor/plugins/tree/dbf49813a39c1a5389c5e28cb8e4c1c2379e2454/cursor-team-kit/skills/deslop), revision `dbf49813a39c1a5389c5e28cb8e4c1c2379e2454`. Its directory contains only the skill file upstream; no supporting files are omitted. The MIT license, copyright 2026 Cursor, is retained at `team-kit/LICENSE`. It is separate from the pinned pstack tree and registered explicit-only with existing-ID precedence. The adapter maps its assumed `main` comparison to the discovered or requested base. No other Team Kit skills are bundled.
+
+### Pstack mappings
+
 - `registerPstackAgents` installs `poteto-agent` and `comment-sicko` as subagent-only profiles with packaged role bodies and adapter paths. Existing agent IDs win. Models inherit; background execution stays a dispatch option. Poteto delegates cannot spawn children. Comment Sicko denies native edits, shell execution, and delegation; MCP mutation permissions remain the host's responsibility.
 
 - `register.ts` registers 51 skills using their directory IDs and packaged names/descriptions. The Cursor-only `make-bot-ui` skill is excluded. All registered skills are explicit-only, including the few upstream skills that allow implicit invocation. There is no context hook or automatic mode activation.

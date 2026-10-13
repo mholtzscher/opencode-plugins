@@ -7,6 +7,7 @@ import { YAML } from "bun";
 import { Effect, Schema } from "effect";
 
 const root = new URL("upstream/skills/", import.meta.url);
+const companions = new URL("team-kit/skills/", import.meta.url);
 const adapter = fileURLToPath(new URL("OPENCODE.md", import.meta.url));
 const agents = fileURLToPath(new URL("upstream/agents/", import.meta.url));
 const Frontmatter = Schema.Struct({
@@ -15,13 +16,23 @@ const Frontmatter = Schema.Struct({
 });
 
 export const loadPstackSkills = async (): Promise<readonly Skill.Info[]> => {
-  const directories = await readdir(root, { withFileTypes: true });
+  const collections = await Promise.all(
+    [root, companions].map(async (directory) => {
+      const entries = await readdir(directory, { withFileTypes: true });
+      return entries
+        .filter((entry) => entry.isDirectory() && entry.name !== "make-bot-ui")
+        .map((entry) => ({
+          name: entry.name,
+          path: fileURLToPath(new URL(`${entry.name}/SKILL.md`, directory)),
+        }));
+    })
+  );
+  const directories = collections.flat();
   return Promise.all(
     directories
-      .filter((entry) => entry.isDirectory() && entry.name !== "make-bot-ui")
       .toSorted((a, b) => a.name.localeCompare(b.name))
       .map(async (entry) => {
-        const path = fileURLToPath(new URL(`${entry.name}/SKILL.md`, root));
+        const { path } = entry;
         const source = await readFile(path, "utf-8");
         const end = source.indexOf("\n---", 4);
         if (!source.startsWith("---\n") || end === -1) {

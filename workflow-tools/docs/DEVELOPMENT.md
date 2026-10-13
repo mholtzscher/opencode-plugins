@@ -27,6 +27,8 @@ Check the package's trusted-publisher settings if direct publication fails. Adva
 
 ## Architecture and invariants
 
+The `deslop` companion is vendored separately under `pstack/team-kit/` with its own upstream pin and license. The same skill loader registers it explicit-only. Preserve its upstream body and apply host mappings in the adapter; packaging must include the companion license as well as the pstack notices.
+
 [index.ts](../index.ts) registers the spec and PR command families and the bundled pstack skills. Commands acquire Effect service layers in plugin scope. The plugin is server-only and keeps no durable workflow state. Executors validate arguments before reads. Successful preparation submits one prompt with the invoking session, attachments, and requested queue or steer delivery. Preparation does not switch agents or models.
 
 Pstack registration reads packaged assets relative to its module, never the session working directory. It adds explicit-only skills, excludes the Cursor-only bot UI, and preserves existing registered IDs. It also registers the two upstream delegate roles as subagent-only profiles without overwriting existing agents. No session hooks are registered. Vendored production assets in `pstack/upstream/` retain upstream formatting and are excluded from repository lint/typechecking; the adapter and registration code remain checked. Selective host edits are recorded in [PORTING.md](../pstack/PORTING.md) and exercised by `pstack/portability.test.ts`. Follow [UPSTREAM.md](../pstack/UPSTREAM.md) when updating the pinned content. Packaging must retain every referenced production asset and both source license notices.

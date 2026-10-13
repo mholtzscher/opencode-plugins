@@ -21,6 +21,8 @@ Reference paths below are in the pinned pstack-claude repository. Destination pa
 
 ## Boundaries
 
+The additional `deslop` companion comes directly from Cursor Team Kit, not pstack-claude. Its separate source revision and license are recorded in `UPSTREAM.md`; the OpenCode adapter resolves its comparison base. The other Team Kit control skills remain external and use the documented installed-tool mappings.
+
 The plugin also registers upstream `poteto-agent` and `comment-sicko` profiles through OpenCode's agent transform. This is a native host adaptation, not an imported fork role. Existing IDs retain precedence; neither role pins a model. Parent-owned fan-out is enforced by denying child spawning. Comment Sicko is report-only with native edit/shell tools denied; that does not guarantee read-only behavior for arbitrary MCP tools.
 
 The `tools/forks.json` policy entries are reviewed, not automatically copied. This port retains upstream merge authority, review rounds, role structure, and workflow scope. It does not import the fork's human-click-only merges, owner-count approval threshold, two-fix-forward limit, extra Thermos/Team Kit workflows, or automatic routing hooks.
