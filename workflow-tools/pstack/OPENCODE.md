@@ -16,6 +16,7 @@ Repository instructions and the user's request govern execution. Explicit Workfl
 - `Task` maps to the host's subagent tool. Map `run_in_background` to its background option and use completion notifications. Use only agent types and model identifiers supported by the actual tool schema.
 - On the standard tool surface, use `subagent({ agent: "general", description, prompt, background: true })`; resume a returned session with `sessionID`. `subagent_type`, `environment`, and `readonly` are not fields on this tool. Read the current schema before dispatch; installed hosts may expose different tools.
 - `poteto-agent` is a delegate role. If it is not a registered host agent, use an available general-purpose agent and require it to read `upstream/agents/poteto-agent.md`, this adapter, and the full poteto-mode skill before doing its bounded work. The receiving parent still owns the playbook.
+- The plugin registers `poteto-agent` and `comment-sicko` as subagent-only profiles, preserving existing same-ID definitions. Use `agent: "poteto-agent"` for upstream poteto delegates and `agent: "comment-sicko"` for its comment reviewer. Both inherit the parent model unless dispatch explicitly selects a confirmed model. Background execution is a dispatch option, not an agent property. Both profiles deny child spawning; the parent owns fan-out. Comment Sicko's profile also denies editing and shell execution. Host configuration can append overriding permissions, and MCP mutation actions require their own rules, so inspect effective permissions before claiming read-only access. Its source-checking shell commands must be performed by the parent and supplied as evidence when shell access is denied.
 - For Comment Sicko, pass `upstream/agents/comment-sicko.md` and use an available read-only reviewer. Check actual tool permissions; a prompt alone does not enforce read-only access. Report a missing required reviewer capability rather than claiming an independent review completed.
 - Apply the same permissions check to How, Interrogate, Arena, and Reflect reviewers. An instruction to report only describes conduct; enforced read-only access requires an appropriately configured agent. Cursor's claim that readonly strips MCP tools does not apply to OpenCode. Discover the tools actually available to the receiving agent.
 - Use isolated worktrees for competing code candidates as Arena requires. Discover the host's available worktree tools or use Git. A local worktree is not a Cursor cloud worker.
@@ -25,16 +26,22 @@ Repository instructions and the user's request govern execution. Explicit Workfl
 
 ## Model setup
 
-Read the session project's `.opencode/pstack-models.md` before a workflow that chooses delegate models. This is the replacement for every upstream `~/.cursor/rules/pstack-models.mdc` reference. It is ordinary project-local Markdown, not an always-applied Cursor rule.
+Before choosing delegate models, use the first existing sheet in this order:
+
+1. The session project's `.opencode/pstack-models.md`, resolved from its current worktree directory.
+2. `~/.config/opencode/pstack-models.md` (or `$XDG_CONFIG_HOME/opencode/pstack-models.md` when set).
+3. Run `@setup-pstack` when neither exists.
+
+The selected sheet replaces every upstream `~/.cursor/rules/pstack-models.mdc` reference. Select one whole sheet, without merging roles across scopes. A missing role, unreadable sheet, or unavailable model needs setup or an explicit user decision, not a silent lower-scope fallback. Pass the selected absolute path and relevant role choices into delegate briefs. These are Markdown instructions, not native `opencode.json(c)` settings or automatically applied host rules.
 
 `@setup-pstack` follows the upstream setup steps with these substitutions:
 
 1. Discover models and supported variants using the current host's model-discovery tools. Cursor model slugs are not OpenCode IDs. If discovery is unavailable, ask the user for available IDs instead of guessing.
-2. Read the project-local file. Keep upstream's role labels, panel lists, aliases, budget question, and confirmation step.
+2. Follow the setup skill's scope selection and current-state steps. Keep upstream's role labels, panel lists, aliases, budget question, and confirmation step.
 3. Store exact supported provider/model IDs and variants in the syntax accepted by the host's subagent tool. Translate reasoning budgets by choosing supported variants; do not edit a model ID's suffix as though it were a Cursor slug. Show unavailable choices before confirmation.
-4. After confirmation, write `.opencode/pstack-models.md`. Retain the role table and budget comment; omit Cursor's YAML frontmatter. Report the actual path. This does not edit global OpenCode configuration.
+4. After confirming the destination and choices, write the selected sheet. Setup defaults to global sharing and offers a project-local option. Retain the role table and budget comment; omit Cursor's YAML frontmatter. Report the actual path and any project sheet masking a global update. This does not edit `opencode.json(c)`.
 
-An absent role uses an available equivalent of upstream's role default only after model discovery and user selection. Run setup for missing choices rather than silently selecting an unrelated model. `auto` and `inherit-parent` omit the delegate model override. A requested multi-model panel needs actual model diversity; report any unavailable capability or agreed fallback explicitly.
+Run setup for missing choices rather than using upstream Cursor defaults or silently inheriting the parent model. `auto` and `inherit-parent` omit the delegate model override only when explicitly selected. Keep confirmed per-model budget exceptions intact when supported variants differ (for example, a max-only model under a high budget). A requested multi-model panel needs actual model diversity; report any unavailable capability or agreed fallback explicitly.
 
 ## Long-running and host-specific workflows
 

@@ -2,7 +2,10 @@ import { Plugin } from "@opencode/plugin/effect";
 import { Effect } from "effect";
 
 import { registerPrCommands } from "./pr/commands.js";
-import { registerPstackSkills } from "./pstack/register.js";
+import {
+  registerPstackAgents,
+  registerPstackSkills,
+} from "./pstack/register.js";
 import { registerSpecCommands } from "./specs/commands.js";
 
 export default Plugin.define({
@@ -11,6 +14,7 @@ export default Plugin.define({
       yield* registerSpecCommands(ctx);
       yield* registerPrCommands(ctx);
       yield* registerPstackSkills(ctx);
+      yield* registerPstackAgents(ctx);
     }),
   id: "workflow-tools",
 });

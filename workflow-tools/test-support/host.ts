@@ -6,9 +6,10 @@ import type {
   CommandDefinition,
   CommandInvocation,
 } from "@opencode/plugin/effect/command";
+import { Agent } from "@opencode/schema/agent";
 import { Session } from "@opencode/schema/session";
 import { Skill } from "@opencode/schema/skill";
-import type { PlatformError } from "effect";
+import type { PlatformError, Types } from "effect";
 import { Deferred, Effect, FileSystem, Queue, Sink, Stream } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
@@ -33,6 +34,7 @@ interface TestEvent {
   readonly data: { readonly sessionID: Session.ID };
 }
 export interface Controls {
+  readonly existingAgents?: readonly Agent.Info[];
   readonly existingSkills?: readonly Skill.Info[];
   readonly read?: Effect.Effect<void, unknown>;
   readonly admission?: Effect.Effect<void, unknown>;
@@ -138,6 +140,15 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
   const registeredSkills = new Map<string, Skill.Info>(
     controls.existingSkills?.map((skill) => [skill.id, skill])
   );
+  const registeredAgents = new Map<string, Types.DeepMutable<Agent.Info>>(
+    controls.existingAgents?.map((agent) => [
+      agent.id,
+      {
+        ...structuredClone(agent),
+        permissions: agent.permissions.map((rule) => ({ ...rule })),
+      },
+    ])
+  );
   const admissions: Admission[] = [];
   const reads: Session.ID[] = [];
   const processes: { args: readonly string[]; cwd: string | undefined }[] = [];
@@ -183,6 +194,32 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
   );
 
   const context = {
+    agent: {
+      transform: (
+        transform: Parameters<Plugin.Context["agent"]["transform"]>[0]
+      ) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            transform({
+              default: forbidden,
+              get: (id) => registeredAgents.get(id),
+              list: () => [...registeredAgents.values()],
+              remove: (id) => {
+                registeredAgents.delete(id);
+              },
+              update: (id, update) => {
+                const agent =
+                  registeredAgents.get(id) ??
+                  Agent.Info.default(Agent.ID.make(id));
+                update(agent);
+                registeredAgents.set(id, agent);
+              },
+            });
+            return { dispose: Effect.void };
+          }),
+          () => Effect.sync(() => registeredAgents.clear())
+        ),
+    },
     command: {
       list: forbidden,
       transform: (
@@ -336,6 +373,7 @@ export const makeHost = Effect.fn("Test.makeHost")(function* makeHost(
     observed,
     processes,
     reads,
+    registeredAgents,
     registeredSkills,
     run,
     subscribed,

@@ -2,12 +2,60 @@ import { describe, expect, test } from "bun:test";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { Agent } from "@opencode/schema/agent";
 import { Effect } from "effect";
 
 import { makeHost } from "../test-support/host.js";
 import { loadPstackSkills } from "./register.js";
 
 describe("bundled pstack", () => {
+  test("registers delegates with inherited models, packaged instructions, and reviewer restrictions", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* checkAgents() {
+          const host = yield* makeHost();
+          expect([...host.registeredAgents.keys()]).toEqual([
+            "poteto-agent",
+            "comment-sicko",
+          ]);
+          for (const agent of host.registeredAgents.values()) {
+            expect(agent.mode).toBe("subagent");
+            expect(agent.model).toBeUndefined();
+            expect(agent.system).toContain("OPENCODE.md");
+            expect(agent.system).toContain("poteto-mode/SKILL.md");
+          }
+          expect(host.registeredAgents.get("poteto-agent")?.system).toContain(
+            "You are one of its delegates."
+          );
+          expect(
+            host.registeredAgents.get("comment-sicko")?.permissions.slice(-3)
+          ).toEqual([
+            { action: "edit", effect: "deny", resource: "*" },
+            { action: "shell", effect: "deny", resource: "*" },
+            { action: "subagent", effect: "deny", resource: "*" },
+          ]);
+        })
+      )
+    );
+  });
+
+  test("preserves existing same-ID agents", async () => {
+    const existing = {
+      ...Agent.Info.default(Agent.ID.make("poteto-agent")),
+      system: "My project delegate",
+    };
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* checkAgentCollision() {
+          const host = yield* makeHost({ existingAgents: [existing] });
+          expect(host.registeredAgents.get("poteto-agent")).toEqual(existing);
+          expect(host.registeredAgents.get("comment-sicko")?.mode).toBe(
+            "subagent"
+          );
+        })
+      )
+    );
+  });
   test("registers explicit skills with real supporting files and no prompt admission", async () => {
     await Effect.runPromise(
       Effect.scoped(

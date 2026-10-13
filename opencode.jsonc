@@ -79,6 +79,11 @@
       },
       {
         "action": "integration.use",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#bundle-pstack-skills::path:workflow-tools",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
         "resource": "plugin:@mholtzscher/opencode-workflow-tools",
         "effect": "deny",
       },

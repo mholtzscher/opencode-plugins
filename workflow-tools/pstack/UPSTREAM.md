@@ -10,6 +10,8 @@ The `upstream/` directory contains the pinned `skills/`, `agents/`, README, guid
 
 ## Adaptations
 
+- `registerPstackAgents` installs `poteto-agent` and `comment-sicko` as subagent-only profiles with packaged role bodies and adapter paths. Existing agent IDs win. Models inherit; background execution stays a dispatch option. Poteto delegates cannot spawn children. Comment Sicko denies native edits, shell execution, and delegation; MCP mutation permissions remain the host's responsibility.
+
 - `register.ts` registers 51 skills using their directory IDs and packaged names/descriptions. The Cursor-only `make-bot-ui` skill is excluded. All registered skills are explicit-only, including the few upstream skills that allow implicit invocation. There is no context hook or automatic mode activation.
 - Existing skill IDs win over the bundle. Internal workflows can read bundled sibling files by absolute path to retain upstream behavior. Remove a conflicting installation if `@poteto-mode` resolves to another source.
 - A short preamble on each registered skill points to `OPENCODE.md`. That adapter translates host operations, model setup, file locations, and dependencies. Selected source files also carry direct host fixes; compare them with the pinned original revision using the adaptation ledger.
