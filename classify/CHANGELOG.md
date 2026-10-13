@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.5.1...classify-v1.5.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* **plugins:** restore loading with stable effect 4 ([#40](https://github.com/mholtzscher/opencode-plugins/issues/40)) ([d143a08](https://github.com/mholtzscher/opencode-plugins/commit/d143a087fc23446be4696cef4a5389bc103f1645))
+
 ## [1.5.1](https://github.com/mholtzscher/opencode-plugins/compare/classify-v1.5.0...classify-v1.5.1) (2026-10-11)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v2.0.0...workflow-tools-v2.0.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **plugins:** restore loading with stable effect 4 ([#40](https://github.com/mholtzscher/opencode-plugins/issues/40)) ([d143a08](https://github.com/mholtzscher/opencode-plugins/commit/d143a087fc23446be4696cef4a5389bc103f1645))
+
 ## [2.0.0](https://github.com/mholtzscher/opencode-plugins/compare/workflow-tools-v1.0.1...workflow-tools-v2.0.0) (2026-10-11)
 
 
