@@ -5,7 +5,6 @@
     "build": { "model": "openai/gpt-6.1-sol" },
   },
   "plugins": [
-    "./marketplace",
     "./cache-metrics",
     "./quota-usage",
     "./workflow-tools",

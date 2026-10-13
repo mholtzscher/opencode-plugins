@@ -1,6 +1,6 @@
 # Releasing plugins
 
-[`release-please-config.json`](../release-please-config.json) tracks all five plugin directories independently. [`.release-please-manifest.json`](../.release-please-manifest.json) starts from their current package versions. The initial `bootstrap-sha` marks the commit before release automation was added, so the first automated release considers only newer changes.
+[`release-please-config.json`](../release-please-config.json) tracks all four plugin directories independently. [`.release-please-manifest.json`](../.release-please-manifest.json) starts from their current package versions. The initial `bootstrap-sha` marks the commit before release automation was added, so the first automated release considers only newer changes.
 
 On pushes to `main`, [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens or updates a combined release PR. It updates each changed plugin's `package.json` and `CHANGELOG.md`. Merging the PR creates component tags such as `classify-v1.1.0` and matching GitHub releases.
 
@@ -10,13 +10,13 @@ Use Conventional Commits. `feat(classify): ...` bumps Classify's minor version. 
 
 In repository Settings, Actions, General, enable **Allow GitHub Actions to create and approve pull requests**. The workflow uses `GITHUB_TOKEN`, so no GitHub personal access token is needed.
 
-The `check` workflow runs lint, typechecks all five plugins, and runs the four plugin test suites on PRs and pushes to `main`; Marketplace has no test suite. External live smoke checks are separate from CI.
+The `check` workflow runs lint, typechecks all four plugins, and runs the four plugin test suites on PRs and pushes to `main`. External live smoke checks are separate from CI.
 
 GitHub does not start other workflows for PRs or releases created using `GITHUB_TOKEN`. The npm publish job therefore runs in the same workflow as Release Please. Before merging a bot-created release PR, run its checks explicitly with `gh workflow run check.yml --ref <release-pr-branch>` and verify that run succeeds.
 
 ## First Classify publish
 
-Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools, Quota usage, and Cache metrics are also npm-enabled; Marketplace retains `private: true` and receives GitHub releases only.
+Classify's name is `@mholtzscher/opencode-classify`, and its initial version was `1.0.0`. Workflow tools, Quota usage, and Cache metrics are also npm-enabled.
 
 Before merging the first automated release PR, publish Classify once while authenticated to npm as `mholtzscher`. npm requires the package to exist before a trusted publisher can be attached. From `classify/` in the checkout containing this setup:
 

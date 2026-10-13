@@ -29,7 +29,6 @@ jobs:
         path:
           - cache-metrics
           - classify
-          - marketplace
           - quota-usage
           - workflow-tools
     defaults:
@@ -43,4 +42,3 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test
-        if: matrix.path != 'marketplace'

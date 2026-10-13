@@ -55,7 +55,7 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # GITHUB_TOKEN-created releases do not trigger another workflow. Publish in
-  # this run, as in pi-extensions. All plugins except Marketplace opt into npm.
+  # this run, as in pi-extensions. All plugins opt into npm.
   publish-classify:
     needs: release
     if: >-
