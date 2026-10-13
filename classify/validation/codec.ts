@@ -125,7 +125,8 @@ const sanitizeIssue = (issue: SchemaIssue.Issue): SchemaIssue.Issue => {
 // publishes the concrete contract without putting structural parsing before the guard.
 export const boundedCodec = <S extends Schema.Codec<unknown, unknown>>(
   schema: S,
-  limits = DEFAULT_JSON_LIMITS
+  limits = DEFAULT_JSON_LIMITS,
+  onExcessProperty: "error" | "ignore" = "error"
 ) =>
   Schema.declareConstructor<S["Type"], S["Encoded"]>()(
     [schema],
@@ -137,6 +138,7 @@ export const boundedCodec = <S extends Schema.Codec<unknown, unknown>>(
           }
           return SchemaParser.decodeUnknownEffect(inner)(value, {
             ...options,
+            onExcessProperty,
             reportInput: false,
           }).pipe(
             Effect.mapError(sanitizeIssue),

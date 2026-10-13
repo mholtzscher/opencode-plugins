@@ -14,7 +14,6 @@ import { SearchConfigSchema } from "./search-config.js";
 import type { SearchConfig } from "./search-config.js";
 import { boundedCodec } from "./validation/codec.js";
 
-const strict = { parseOptions: { onExcessProperty: "error" as const } };
 const pathSchema = NonblankSchema.check(
   Schema.isMaxLength(4096),
   Schema.makeFilter((value) => !value.includes("\0"))
@@ -57,7 +56,7 @@ export const searchInputSchema = (config: SearchConfig) =>
               "Optional 1-8 nonblank literal terms of at most 128 characters each. Case-insensitive OR matching against evaluated prefixes only.",
           })
       ),
-    }).annotate(strict)
+    })
   );
 
 export type SearchInput = ReturnType<typeof searchInputSchema>["Encoded"];
@@ -69,7 +68,7 @@ export const SearchFileSchema = Schema.Struct({
   startLine: CountSchema,
 });
 export const SearchEvidenceSchema = Schema.Struct({
-  files: Schema.Array(SearchFileSchema).check(Schema.isLengthBetween(1, 1)),
+  files: Schema.Array(SearchFileSchema).check(Schema.isBetweenLength(1, 1)),
 });
 export type SearchFile = typeof SearchFileSchema.Type;
 export const SearchMatchSchema = Schema.Struct({

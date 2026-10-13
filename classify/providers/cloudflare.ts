@@ -10,7 +10,9 @@ export const CloudflareResponseSchema = boundedCodec(
   Schema.Struct({
     result: Schema.Record(Schema.String, JsonValueSchema),
     success: Schema.Literal(true),
-  })
+  }),
+  undefined,
+  "ignore"
 );
 
 export const cloudflare: SystemOneDefinition<

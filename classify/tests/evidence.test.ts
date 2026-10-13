@@ -20,8 +20,8 @@ import { Session } from "@opencode/schema/session";
 import { SessionMessage } from "@opencode/schema/session-message";
 import { Tool } from "@opencode/schema/tool";
 import { Deferred, Effect, Fiber, Layer } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { TestClock } from "effect/testing";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import { EvidenceAccess, EvidenceAccessLive } from "../evidence.js";
 import { processLayer } from "../layers.js";

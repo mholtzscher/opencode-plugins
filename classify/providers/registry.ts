@@ -1,5 +1,5 @@
 import type { Layer } from "effect";
-import type { HttpClient } from "effect/unstable/http";
+import type { HttpClient } from "effect/http";
 
 import type { BackendOptions, ClassifyOptions } from "../config.js";
 import type { Credentials } from "../credentials.js";

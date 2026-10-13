@@ -8,7 +8,7 @@ import { ClassificationError } from "./errors.js";
 const inputSchema = Schema.Struct({
   node: Schema.optional(NonblankSchema),
   path: NonblankSchema,
-}).annotate({ parseOptions: { onExcessProperty: "error" as const } });
+});
 
 const outputSchema = Schema.Union([
   Schema.Struct({
@@ -35,9 +35,9 @@ export const grammarTool = {
   execute: Effect.fn("classify_grammar")(
     // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Tool input is decoded at this boundary.
     function* execute(input: unknown) {
-      const { path, node } = yield* Schema.decodeUnknownEffect(inputSchema)(
-        input
-      ).pipe(
+      const { path, node } = yield* Schema.decodeUnknownEffect(inputSchema, {
+        onExcessProperty: "error",
+      })(input).pipe(
         Effect.mapError(
           () =>
             new Tool.Error({
@@ -59,7 +59,9 @@ export const grammarTool = {
     }
   ),
   // Publish portable schemas for the live host; execution still validates with the native codec.
-  input: Schema.toJsonSchemaDocument(inputSchema).schema,
+  input: Schema.toJsonSchemaDocument(inputSchema, {
+    onExcessProperty: "error",
+  }).schema,
   name: "grammar",
   options: { codemode: true, namespace: "classify" },
   output: Schema.toJsonSchemaDocument(outputSchema).schema,

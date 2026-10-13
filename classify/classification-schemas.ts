@@ -24,7 +24,6 @@ import { boundedCodec, CONTENT_MESSAGE } from "./validation/codec.js";
 
 export { boundedCodec, schemaIssueDetails } from "./validation/codec.js";
 
-const strict = { parseOptions: { onExcessProperty: "error" as const } };
 export const NonblankSchema = Schema.String.check(
   Schema.isPattern(/\S/u, { message: CONTENT_MESSAGE })
 );
@@ -64,34 +63,32 @@ const LabelSchema = NonblankSchema.check(Schema.isMaxLength(MAX_LABEL_LENGTH));
 const ChoiceMapSchema = Schema.Record(
   Schema.String,
   Schema.NullOr(ContentSchema)
-)
-  .check(
-    Schema.isMinProperties(MIN_CHOICES),
-    Schema.isMaxProperties(MAX_CHOICES),
-    Schema.makeFilter(
-      (value) =>
-        Object.keys(value).every(
-          (key) => key.trim().length > 0 && key.length <= MAX_LABEL_LENGTH
-        ),
-      {
-        message:
-          "Choice labels must be nonblank strings of at most 128 characters.",
-        toJsonSchema: () => ({
-          propertyNames: {
-            maxLength: MAX_LABEL_LENGTH,
-            pattern: "\\S",
-            type: "string",
-          },
-        }),
-      }
-    )
+).check(
+  Schema.isMinProperties(MIN_CHOICES),
+  Schema.isMaxProperties(MAX_CHOICES),
+  Schema.makeFilter(
+    (value) =>
+      Object.keys(value).every(
+        (key) => key.trim().length > 0 && key.length <= MAX_LABEL_LENGTH
+      ),
+    {
+      message:
+        "Choice labels must be nonblank strings of at most 128 characters.",
+      toJsonSchema: () => ({
+        propertyNames: {
+          maxLength: MAX_LABEL_LENGTH,
+          pattern: "\\S",
+          type: "string",
+        },
+      }),
+    }
   )
-  .annotate(strict);
+);
 const ChoiceListSchema = Schema.Array(
   Schema.Struct({
     description: Schema.NullOr(ContentSchema),
     label: LabelSchema,
-  }).annotate(strict)
+  })
 )
   .pipe(Schema.mutable)
   .check(
@@ -123,22 +120,20 @@ const NoulQuestionSchema = Schema.Struct({
     Schema.Struct({
       false: Schema.optional(ContentSchema),
       true: Schema.optional(ContentSchema),
-    })
-      .check(
-        Schema.isMinProperties(1, {
-          message: 'Noul criteria must define "true", "false", or both.',
-        })
-      )
-      .annotate(strict)
+    }).check(
+      Schema.isMinProperties(1, {
+        message: 'Noul criteria must define "true", "false", or both.',
+      })
+    )
   ),
   instructions: ContentSchema,
   type: Schema.Literal("noul"),
-}).annotate(strict);
+});
 const ChoiceQuestionSchema = Schema.Struct({
   criteria: ChoiceCriteriaSchema,
   instructions: ContentSchema,
   type: Schema.Literal("choice"),
-}).annotate(strict);
+});
 const ScoreQuestionSchema = Schema.Struct({
   criteria: Schema.Array(ContentSchema)
     .pipe(Schema.mutable)
@@ -152,7 +147,7 @@ const ScoreQuestionSchema = Schema.Struct({
     ),
   instructions: ContentSchema,
   type: Schema.Literal("score"),
-}).annotate(strict);
+});
 export const QuestionSchema = Schema.Union([
   NoulQuestionSchema,
   ChoiceQuestionSchema,
@@ -165,13 +160,14 @@ export const nameKeys = Schema.makeFilter<Record<string, JsonValue>>(
     toJsonSchema: () => ({ propertyNames: { pattern: NAME_PATTERN.source } }),
   }
 );
-export const QuestionsStructure = Schema.Record(Schema.String, QuestionSchema)
-  .check(
-    Schema.isMinProperties(1),
-    Schema.isMaxProperties(MAX_QUESTIONS),
-    nameKeys
-  )
-  .annotate(strict);
+export const QuestionsStructure = Schema.Record(
+  Schema.String,
+  QuestionSchema
+).check(
+  Schema.isMinProperties(1),
+  Schema.isMaxProperties(MAX_QUESTIONS),
+  nameKeys
+);
 
 const PathSchema = NonblankSchema.check(
   Schema.makeFilter((value) => !value.includes("\0"), {
@@ -197,7 +193,7 @@ export const EvidenceImageSchema = Schema.Struct({
     description:
       "Local image path relative to the invoking session directory. PNG, JPEG, or static WebP only. No URLs or inline bytes.",
   }),
-}).annotate(strict);
+});
 export const EvidenceFileSchema = Schema.Union([
   PathSchema,
   Schema.Struct({
@@ -214,7 +210,7 @@ export const EvidenceFileSchema = Schema.Union([
       })
     ),
     path: PathSchema,
-  }).annotate(strict),
+  }),
 ]);
 const RevisionSchema = NonblankSchema.check(
   Schema.makeFilter(
@@ -232,7 +228,7 @@ export const EvidenceSchema = Schema.Struct({
       Schema.Struct({
         path: PathSchema,
         query: NonblankSchema.check(Schema.isMaxLength(MAX_CODE_QUERY_LENGTH)),
-      }).annotate(strict)
+      })
     )
       .pipe(Schema.mutable)
       .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_PATHS))
@@ -242,7 +238,7 @@ export const EvidenceSchema = Schema.Struct({
       Schema.Struct({
         base: RevisionSchema,
         paths: Schema.optional(PathsSchema),
-      }).annotate(strict)
+      })
     )
       .pipe(Schema.mutable)
       .check(Schema.isMinLength(1), Schema.isMaxLength(MAX_EVIDENCE_DIFFS))
@@ -263,28 +259,26 @@ export const EvidenceSchema = Schema.Struct({
   ),
   text: Schema.optional(ContentSchema),
   type: Schema.Literal("evidence"),
-})
-  .check(
-    Schema.makeFilter(
-      (value) =>
-        ["text", "files", "diffs", "code", "images"].some((key) =>
-          Object.hasOwn(value, key)
-        ),
-      {
-        message: "Evidence requires text, files, diffs, code, or images.",
-        toJsonSchema: () => ({
-          anyOf: [
-            { required: ["text"] },
-            { required: ["files"] },
-            { required: ["diffs"] },
-            { required: ["code"] },
-            { required: ["images"] },
-          ],
-        }),
-      }
-    )
+}).check(
+  Schema.makeFilter(
+    (value) =>
+      ["text", "files", "diffs", "code", "images"].some((key) =>
+        Object.hasOwn(value, key)
+      ),
+    {
+      message: "Evidence requires text, files, diffs, code, or images.",
+      toJsonSchema: () => ({
+        anyOf: [
+          { required: ["text"] },
+          { required: ["files"] },
+          { required: ["diffs"] },
+          { required: ["code"] },
+          { required: ["images"] },
+        ],
+      }),
+    }
   )
-  .annotate(strict);
+);
 const LiteralStateSchema = ContentSchema.check(
   Schema.makeFilter(
     (value) =>
@@ -311,7 +305,7 @@ export const StateStructure = Schema.Union([
 const AdHocSchema = Schema.Struct({
   questions: QuestionsStructure,
   state: StateStructure,
-}).annotate(strict);
+});
 export const buildInputSchema = (
   classifiers: Record<string, ClassifierDefinition>
 ) => {
@@ -331,14 +325,14 @@ export const buildInputSchema = (
             Schema.Struct({
               classifier: Schema.Literals(callerState),
               state: StateStructure,
-            }).annotate(strict),
+            }),
           ]),
       ...(presetState.length === 0
         ? []
         : [
             Schema.Struct({
               classifier: Schema.Literals(presetState),
-            }).annotate(strict),
+            }),
           ]),
     ])
   );
@@ -532,7 +526,6 @@ export const ClassifyOutputStructure = Schema.Union([
   Schema.Struct({ ok: Schema.Literal(true), result: ResultSchema }),
   Schema.Struct({ error: FailureSchema, ok: Schema.Literal(false) }),
 ]).annotate({
-  ...strict,
   description: `Classification output. Distributions have absolute sum error below ${DISTRIBUTION_TOLERANCE}. Choice must belong to its distribution. Score scale, legend, and distribution use the same contiguous zero-based indices; score is within scale bounds. Native values are never rounded or renormalized.`,
 });
 

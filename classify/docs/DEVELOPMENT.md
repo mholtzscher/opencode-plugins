@@ -10,6 +10,10 @@ From `classify/`, run `bun install`, `bun run typecheck`, and `bun test`. From t
 
 The server entry uses `@opencode/plugin/effect` with Effect 4. OpenCode owns registration scope and interruption. Effect Schema defines structured inputs and outputs. Services provide credentials, evidence access, OpenCode integration, and transport.
 
+OpenCode 2.0.27 supplies Effect 4.0.1 at runtime. Keep `effect` and `@opencode/plugin` as peer dependencies with pinned development installations; never bundle them. Platform adapters must target the same stable Effect APIs. Use public paths such as `effect/process` and `effect/http`, not prerelease `effect/unstable/*` paths. Restart the server after dependency upgrades if its module cache still contains old adapters.
+
+Stable Effect does not enforce `parseOptions` annotations. `boundedCodec` supplies strict excess-property parsing in both directions; provider envelopes may explicitly opt into ignoring extras. JSON Schema generation also needs `onExcessProperty: "error"` when publishing a strict structural contract.
+
 The plugin builds backend layers once. Each invocation supplies its OpenCode execution context and captures one backend for evidence, dispatch, and retries.
 
 JSON security checks enforce byte and depth limits before structural decoding. Response validation checks distributions and legends against the request. `outcome.ts` logs unexpected defects and sanitizes public errors. Preserve interruption even when cleanup also fails, rather than returning an error envelope.

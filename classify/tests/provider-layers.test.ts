@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 
 import { Deferred, Effect, Fiber, Layer, Redacted } from "effect";
+import { HttpClient, HttpClientResponse } from "effect/http";
+import type { HttpClientRequest } from "effect/http";
 import { TestClock } from "effect/testing";
-import { HttpClient, HttpClientResponse } from "effect/unstable/http";
-import type { HttpClientRequest } from "effect/unstable/http";
 
 import { loadOptions } from "../config.js";
 import type { ClassifyOptions } from "../config.js";

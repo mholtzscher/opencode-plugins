@@ -1,6 +1,6 @@
 import { Clock, Duration, Effect, Ref, Result, Schedule, Stream } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/unstable/http";
-import type { HttpClientResponse } from "effect/unstable/http";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import type { HttpClientResponse } from "effect/http";
 
 import { readBoundedBytes } from "./bounded-stream.js";
 import { ClassificationError } from "./errors.js";

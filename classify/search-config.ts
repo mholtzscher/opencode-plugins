@@ -40,6 +40,6 @@ export const SearchConfigSchema = Schema.Struct({
   maxPaths: positive(64, 16),
   maxResults: positive(128, 32),
   timeoutMs: positive(3_600_000, 120_000),
-}).annotate({ parseOptions: { onExcessProperty: "error" as const } });
+});
 
 export type SearchConfig = typeof SearchConfigSchema.Type;

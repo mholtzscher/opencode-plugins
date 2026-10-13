@@ -8,7 +8,9 @@ import type { ClassifyOutput } from "./types.js";
 
 export { ClassifyOutputSchema } from "./classification-schemas.js";
 
-const document = Schema.toJsonSchemaDocument(ClassifyOutputStructure);
+const document = Schema.toJsonSchemaDocument(ClassifyOutputStructure, {
+  onExcessProperty: "error",
+});
 
 /** Structural schema. The parser also checks distribution sums and cross-field consistency. */
 export const classifyOutputSchema = {

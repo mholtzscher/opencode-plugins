@@ -78,7 +78,7 @@ export const resolveKey = Effect.fn("resolveKey")(function* resolveCredentials(
       yield* Effect.context(),
       ConfigProvider.ConfigProvider
     ) ?? ConfigProvider.fromEnv();
-  const key = yield* Config.redacted(env)
+  const key = yield* Config.Redacted(env)
     .parse(provider)
     .pipe(Effect.mapError(missingEnvironmentKey));
   if (!Redacted.value(key).trim()) {

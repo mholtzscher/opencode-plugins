@@ -11,24 +11,20 @@ import { ClassificationError } from "./errors.js";
 import { SearchConfigSchema } from "./search-config.js";
 import { boundedCodec } from "./validation/codec.js";
 
-const strict = { parseOptions: { onExcessProperty: "error" as const } };
 const ClassifierDefinitionSchema = Schema.Struct({
   description: NonblankSchema.check(Schema.isMaxLength(512)),
   questions: QuestionsStructure,
   state: Schema.optional(StateStructure),
-}).annotate(strict);
+});
 
 const ClassifiersSchema = Schema.Record(
   Schema.String,
   ClassifierDefinitionSchema
-)
-  .check(Schema.isMaxProperties(32), nameKeys)
-  .annotate(strict);
+).check(Schema.isMaxProperties(32), nameKeys);
 
 const BackendsSchema = Schema.Record(Schema.String, BackendSchema)
   .check(Schema.isMinProperties(1), Schema.isMaxProperties(32), nameKeys)
-  .check(Schema.makeFilter((backends) => !Object.hasOwn(backends, "reset")))
-  .annotate(strict);
+  .check(Schema.makeFilter((backends) => !Object.hasOwn(backends, "reset")));
 
 export const OptionsSchema = boundedCodec(
   Schema.Struct({
@@ -46,13 +42,11 @@ export const OptionsSchema = boundedCodec(
     timeoutMs: Schema.Int.check(
       Schema.isBetween({ maximum: 300_000, minimum: 1000 })
     ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(30_000))),
-  })
-    .check(
-      Schema.makeFilter((options) =>
-        Object.hasOwn(options.backends, options.defaultBackend)
-      )
+  }).check(
+    Schema.makeFilter((options) =>
+      Object.hasOwn(options.backends, options.defaultBackend)
     )
-    .annotate(strict)
+  )
 );
 
 export type ClassifyOptions = typeof OptionsSchema.Type;

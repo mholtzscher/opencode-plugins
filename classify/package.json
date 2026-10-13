@@ -49,22 +49,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-rc.112",
-    "@effect/platform-node-shared": "4.0.0-rc.112",
-    "@opencode/plugin": "2.0.21",
-    "@opencode/schema": "2.0.21",
-    "effect": "4.0.0-rc.112",
+    "@effect/platform-node": "4.0.1",
+    "@effect/platform-node-shared": "4.0.1",
+    "@opencode/schema": "2.0.27",
     "tree-sitter-wasms": "0.1.13",
     "web-tree-sitter": "0.25.10"
   },
   "devDependencies": {
+    "@opencode/plugin": "2.0.27",
     "@types/bun": "latest",
     "@types/node": "latest",
+    "effect": "4.0.1",
     "typescript": "^6.0.0"
   },
   "peerDependencies": {
+    "@opencode/plugin": ">=2.0.27 <3.0.0",
     "@opentui/core": ">=0.5.10",
     "@opentui/solid": ">=0.5.10",
+    "effect": "^4.0.1",
     "solid-js": ">=1.9.0"
   }
 }
