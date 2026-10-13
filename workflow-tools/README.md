@@ -25,6 +25,7 @@ Install the dependencies for the commands you use on the OpenCode server. The pl
 | `/spec-implement` | [`agent-orchestrator`](https://github.com/mholtzscher/skills/tree/main/agent-orchestrator) skill, repository development tools, authenticated `gh` |
 | `/spec-refine` | [`unslop`](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) skill; question tool |
 | PR commands | Authenticated `gh` and repository access; Git and development tools when publishing code |
+| `/pr-triage` preliminary routing (optional) | [Classify](../classify/README.md) with a configured backend and the `classify-decisions` RPC |
 | Background monitoring | Host tool for background subagents and completion notifications |
 
 ## Commands
@@ -76,6 +77,14 @@ PR commands use the current repository and PR. They do not accept a PR URL selec
 3. Run `/pr-fix` in the same conversation. It handles all agreed outcomes and leaves unclear or unapproved items pending.
 
 The agent validates and publishes fixes before reacting to comments or resolving threads. It verifies already-addressed fixes against the published revision. Missing discussion, comment IDs, or a matching PR blocks execution. In a fresh conversation, start with `/pr-triage` again. The plugin does not save verdicts across sessions.
+
+`/pr-triage` collects source and diff evidence on the server before submitting a prompt. It captures the PR head and base commit SHAs, then reads the commented file and explicit file references in comments at that head. Related references resolve as repository paths, paths relative to the commented file, or unique suffix matches; ambiguous references remain missing evidence. Each thread gets at most four files, with complete small files or bounded excerpts centered on cited lines. A failed tree lookup still permits reading the known commented path. The PR revisions are rechecked after collection; changed or unverifiable revisions skip classification. It does not recursively discover callers or infer behavioral contracts.
+
+Classify receives the comments, source excerpts, scoped patches, revision identity, and collection limitations. It assesses **supported, contradicted, mixed, or unresolved**, plus claim type and possible duplicates. This runs for small reports too. These assessments concern the captured PR revision; the agent still checks current working-tree relevance and missing callers/contracts before a final verdict.
+
+Full discussions and collected source evidence are saved to unique server-side evidence files. The main model receives IDs, assessments, revision and source-range references, evidence paths, and initial-claim excerpts capped at 1,200 characters for distinct investigation candidates. Likely duplicates and preferences receive metadata and file references only. The agent retrieves omitted discussion as needed and retains a verified verdict or an unclear outcome for every thread.
+
+Classification uses the invoking session's backend, with at most four batches of 12 threads and 48 KB of encoded input each. Shared source excerpts are sent once per batch. Collection is limited to 48 threads, 24 unique source reads, and 60 seconds. Threads without stable pinned source evidence or over the request budget remain unresolved without inference. Every discussion remains available, including overflow threads. A missing RPC, invalid result, or 20-second batch timeout stops further classification for that invocation. Failed or cancelled preparation removes its partial evidence directory. Completed evidence is stored under the server's temporary `opencode/pr-triage/` directory until temporary-file cleanup; retrieval requires those files to remain available. Comments and collected repository source go to the configured Classify provider. Cost/latency savings depend on the backend and avoided main-model work.
 
 ### Monitoring and check reports
 

@@ -1,3 +1,4 @@
+import type { Session } from "@opencode/schema/session";
 import { Context, Effect, Layer } from "effect";
 
 import { collectGitHubActionsUrlContexts } from "./actions.js";
@@ -14,6 +15,7 @@ import { Github } from "./github.js";
 import { LogStorage } from "./log-storage.js";
 import { buildMetadataRewritePrompt } from "./metadata-prompts.js";
 import { buildPublicationPrompt } from "./publication-prompts.js";
+import { collectReviewEvidence } from "./review-evidence.js";
 import { readUnresolvedReviewThreads } from "./review-threads.js";
 import {
   decodeJson,
@@ -21,6 +23,7 @@ import {
   PrMetadata,
   RepoView,
 } from "./schemas.js";
+import { ReviewTriage } from "./triage.js";
 
 export type WorkflowError = GithubError | GithubDecodeError | LogStorageError;
 
@@ -37,7 +40,8 @@ export class Workflows extends Context.Service<
       cwd: string
     ) => Effect.Effect<string, WorkflowError>;
     readonly prepareFeedbackReview: (
-      cwd: string
+      cwd: string,
+      sessionID: Session.ID
     ) => Effect.Effect<string, WorkflowError>;
     readonly prepareFeedbackFix: (
       cwd: string
@@ -53,6 +57,7 @@ export const WorkflowsLive = Layer.effect(
   Effect.gen(function* workflowsLayer() {
     const github = yield* Github;
     const logs = yield* LogStorage;
+    const triage = yield* ReviewTriage;
     const readMetadata = Effect.fn("Workflows.readMetadata")(
       function* readMetadata(cwd: string) {
         const result = yield* github.execute(
@@ -105,7 +110,7 @@ export const WorkflowsLive = Layer.effect(
       return buildMetadataRewritePrompt(pr, parsed.request);
     });
     const prepareFeedbackReview = Effect.fn("Workflows.prepareFeedbackReview")(
-      function* prepareFeedbackReview(cwd: string) {
+      function* prepareFeedbackReview(cwd: string, sessionID: Session.ID) {
         const { owner, name, pr } = yield* readRepository(cwd);
         const threads = yield* readUnresolvedReviewThreads(
           github,
@@ -116,7 +121,21 @@ export const WorkflowsLive = Layer.effect(
         );
         return threads.length === 0
           ? "No unresolved inline review threads found"
-          : buildFeedbackReviewPrompt(pr, threads);
+          : buildFeedbackReviewPrompt(
+              pr,
+              yield* triage.prepare(
+                pr,
+                threads,
+                sessionID,
+                yield* collectReviewEvidence(
+                  github,
+                  `${owner}/${name}`,
+                  pr.number,
+                  threads,
+                  cwd
+                )
+              )
+            );
       }
     );
     const prepareFeedbackFix = Effect.fn("Workflows.prepareFeedbackFix")(
