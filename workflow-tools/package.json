@@ -27,6 +27,8 @@
     "!pr/**/*.test.ts",
     "specs/**/*.ts",
     "!specs/**/*.test.ts",
+    "pstack/",
+    "!pstack/**/*.test.ts",
     "docs/",
     "CHANGELOG.md",
     "LICENSE",
