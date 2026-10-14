@@ -2,11 +2,11 @@
 
 Invoked at the end of every other playbook.
 
-**Worktree.** Work from a git worktree off main. Subagents inherit it. Multiple `Task` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.
+**Worktree and base.** Discover the remote's default branch and honor an explicitly selected comparison or PR base. Keep the current authorized delivery branch/worktree rather than switching an existing non-default branch. Give concurrent writing delegates isolated worktrees or output targets when needed, with absolute paths in their briefs. Inspect tracked and untracked changes first and preserve unrelated work. Do not reset the checkout or move unrelated edits as a recovery recipe. If isolation would move or discard user work, stop for help. Creating a PR does not authorize unrelated cleanup, shared-branch force-pushes, or merges.
 
 **Commits.** Commit liberally. Rebase into small, ordered commits before opening PRs. Each commit is a future PR: landable, ordered to tell the story. Amend when the fix belongs in a just-made commit. New commit when separable. Commit bodies don't restate the subject.
 
-**PRs.** Run `/deslop` from `cursor-team-kit` over the diff before commit and `/no-comments` before review. Write every PR title, description, and commit body with `/technical-writing` (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply `/unslop`.
+**PRs.** Load the bundled **deslop** companion over the scoped diff before commit and **no-comments** before review, resolving their installed paths through the OpenCode adapter. Write every PR title, description, and commit body with **technical-writing** (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply **unslop**.
 
 **Titles.** Conventional Commits `type(scope): subject`, no trailing period. Type such as `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `perf`. Scope is the area, such as `pstack` or `poteto-mode`. Subject is short, imperative, and names a real symbol when one carries the change, for example `fix(pstack): retarget opening-a-pr babysit trigger`.
 

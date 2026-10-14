@@ -21,7 +21,8 @@ The `upstream/` directory contains the pinned `skills/`, `agents/`, README, guid
 - `register.ts` registers 51 skills using their directory IDs and packaged names/descriptions. The Cursor-only `make-bot-ui` skill is excluded. All registered skills are explicit-only, including the few upstream skills that allow implicit invocation. There is no context hook or automatic mode activation.
 - Existing skill IDs win over the bundle. Internal workflows can read bundled sibling files by absolute path to retain upstream behavior. Remove a conflicting installation if `@poteto-mode` resolves to another source.
 - A short preamble on each registered skill points to `OPENCODE.md`. That adapter translates host operations, model setup, file locations, and dependencies. Selected source files also carry direct host fixes; compare them with the pinned original revision using the adaptation ledger.
-- Original delegate definitions are packaged as instructions, not registered as OpenCode agents. The adapter describes loading them into an available host agent.
+- The approved playbook pass in `PORTING.md` replaces executable Cursor references and adds truthful scheduler, nesting, history, and stopping gates. Branch/reset and untracked-file cleanup advice has operator-approved safety changes; these are recorded departures rather than an unchanged upstream policy claim.
+- Original delegate bodies are packaged and loaded into the registered OpenCode profiles described above. The adapter covers fallback loading when an expected role is unavailable.
 - Companion tools and skills, cloud provisioning, transcript adapters, scheduling, and global configuration are not installed automatically. See the adapter for available substitutions and capability limits.
 
 ## Updating

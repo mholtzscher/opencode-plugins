@@ -33,6 +33,25 @@ The Pi implementation of scheduling, agent messaging, and cancellation runs Pi p
 
 ## Updating and verification
 
+### Approved playbook compatibility pass
+
+The operator approved all eight bounded proposals in Inbox on 2026-10-13. These edits change host instructions in the playbooks, not the original source pin. They do not implement scheduling, supervision, nested-agent permissions, or history export.
+
+| Approved group | Edited responsibilities |
+| --- | --- |
+| Actions, models, package paths | Authoring, feature, bug-fix, perf-issue, refactoring, hillclimb, shipping, and multi-phase-plan use real installed drivers, registered roles, confirmed sheet choices, and package-local helpers. Independent reviewers remain distinct from implementation delegates. |
+| Active-session loops and bounded watchers | Bug-fix, hillclimb, and visual-parity iterate only while executing. Babysit/shipping track explicit repositories, PRs/heads, deadlines, and stop conditions; completion notifications are not durable scheduling. |
+| Durable program gates | Autonomous-run, both autopilots, and the plan execution checklist require actual scheduler/control capabilities before spawning. The plan checker requires `durable scheduler`, `hourly audit`, and `leave execution unstarted` markers instead of a literal Cursor loop command. |
+| Nested orchestration | Orchestrate and autopilot owner hierarchies check receiving-agent nesting permissions, placement, liveness, and recovery. Parent-owned fan-out does not pretend to implement nested programs. |
+| Verified stopping | Pause-safely and program stand-down instructions verify terminal states or report `children still running`; an unconfirmed child's worktree remains held. |
+| Scoped history | Eval requires actual candidate tool events from public APIs or supplied exports. Session-pickup can use an adequate handoff/branch trail while identifying missing history. Neither assumes Cursor transcript directories. |
+| Branch and checkout safety | Opening-a-pr and program base examples discover the base and preserve authorized branches/unrelated work. Destructive reset recovery is removed. |
+| Cleanup safety | Worktree-cleanup treats tracked, untracked, and ignored files as user state, holds unknown usage, prefers ordinary removal, and requires scoped authorization for irreversible loss. Cursor application cleanup is removed; OpenCode persistent state is not a cache target. |
+
+The last two groups are deliberate operator-approved safety departures from upstream, not merely tool-name substitutions. Merge authority, independent review counts, verification evidence, and program cadence remain unchanged except that bounded watcher expiry is explicitly reported as pending. Updating from upstream must preserve these decisions. Sequential Classify assessments are triage, not proof of runtime behavior.
+
+### Update checklist
+
 1. Pin both source revisions before comparison. Review the reference port's `tools/substitutions.json`, `tools/forks.json`, and `tools/upstream.json` against this ledger.
 2. Diff original pstack with `upstream/`. Reapply only the listed adaptations, and add a ledger row for any new host change. Keep upstream guides as historical Cursor documentation; the OpenCode adapter owns installation and host behavior.
 3. Run `bun run typecheck` and `bun test` in Workflow tools and `bun run check` at the repository root. `pstack/portability.test.ts` exercises real Git worktrees, absent/unmatched/recent/stale transcript exports, and the plan checker without GitHub access.

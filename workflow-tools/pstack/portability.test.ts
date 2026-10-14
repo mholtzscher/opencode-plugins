@@ -118,7 +118,7 @@ ${rule}
 ### PR mechanics
 ### Verdict and merge
 ### Boot recipe
-Read from the installed plugin. /loop 1h status message
+Read from the installed plugin. Verify a durable scheduler for the hourly audit or leave execution unstarted. Post a status message.
 
 ## PR 1
 **Depends on.** None.
@@ -157,6 +157,10 @@ Recorded.
     );
   };
   expect(run(plan).status).toBe(0);
+  expect(run(plan.replace("durable scheduler", "/loop 1h")).status).toBe(1);
+  expect(
+    run(plan.replace("leave execution unstarted", "proceed anyway")).status
+  ).toBe(1);
   expect(
     run(plan.replace("installed plugin", "git show origin/main:")).status
   ).toBe(1);
