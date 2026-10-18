@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/mholtzscher/opencode-plugins/compare/quota-usage-v1.2.0...quota-usage-v1.2.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **quota-usage:** support Console credentials and project RPC routing ([#44](https://github.com/mholtzscher/opencode-plugins/issues/44)) ([1fe3677](https://github.com/mholtzscher/opencode-plugins/commit/1fe3677f1596f4a9bd06465d633941b505e65f18))
+
 ## [1.2.0](https://github.com/mholtzscher/opencode-plugins/compare/quota-usage-v1.1.0...quota-usage-v1.2.0) (2026-10-11)
 
 
