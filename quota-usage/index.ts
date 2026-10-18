@@ -12,7 +12,7 @@ import type { QuotaProvider } from "./rpc.js";
 import { CodexUsage, OpenCodeGoUsage, QuotaProviderSchema } from "./rpc.js";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const OPENCODE_GO_USAGE_URL = "https://opencode.ai/zen/go/v1/usage";
+const OPENCODE_GO_USAGE_URL = "https://opencode.ai/inference/go/v1/usage";
 const USAGE_TIMEOUT = "15 seconds";
 
 type JsonValue = Schema.Json;
@@ -86,12 +86,24 @@ const codexQuota = (
     } satisfies QuotaProvider;
   });
 
-const openCodeGoQuota = (
-  context: Plugin.Context
+interface OpenCodeGoContext {
+  integration: Pick<Plugin.Context["integration"], "connection">;
+  provider: Pick<Plugin.Context["provider"], "list">;
+}
+
+export const openCodeGoQuota = (
+  context: OpenCodeGoContext,
+  request: typeof fetchUsage = fetchUsage
 ): Effect.Effect<QuotaProvider, unknown> =>
   Effect.gen(function* openCodeGoQuotaEffect() {
-    const connection =
-      yield* context.integration.connection.active("opencode-go");
+    const available = yield* context.provider.list();
+    const provider = available.data.find((item) => item.id === "opencode-go");
+    if (!provider) {
+      return unavailable("opencode-go", "OpenCode Go");
+    }
+    const connection = yield* context.integration.connection.active(
+      provider.integrationID ?? "opencode-go"
+    );
     if (!connection) {
       return unavailable("opencode-go", "OpenCode Go");
     }
@@ -102,11 +114,19 @@ const openCodeGoQuota = (
       return unavailable("opencode-go", "OpenCode Go");
     }
 
-    const payload = yield* fetchUsage(OPENCODE_GO_USAGE_URL, {
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${token}`,
-      },
+    const orgID = Schema.decodeUnknownOption(Schema.String)(
+      provider.headers?.["x-opencode-org-id"] ?? credential?.metadata?.orgID
+    );
+    const headers = new Headers({
+      accept: "application/json",
+      authorization: `Bearer ${token}`,
+    });
+    if (orgID._tag === "Some") {
+      headers.set("x-opencode-org-id", orgID.value);
+    }
+    const payload = yield* request(OPENCODE_GO_USAGE_URL, {
+      headers,
+      redirect: "error",
     });
     return {
       fetchedAt: Date.now(),

@@ -181,7 +181,7 @@ export default Plugin.define({
             (async () => {
               try {
                 const provider = Schema.decodeUnknownSync(QuotaProviderSchema)(
-                  await codex.get({})
+                  await codex.get({}, { location })
                 );
                 return { ...provider, windows: [...provider.windows] };
               } catch {
@@ -195,7 +195,7 @@ export default Plugin.define({
             (async () => {
               try {
                 const provider = Schema.decodeUnknownSync(QuotaProviderSchema)(
-                  await openCodeGo.get({})
+                  await openCodeGo.get({}, { location })
                 );
                 return { ...provider, windows: [...provider.windows] };
               } catch {
