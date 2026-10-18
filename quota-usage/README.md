@@ -22,7 +22,9 @@ Run `/connect` to add or activate an account. See [provider accounts](https://op
 | Provider | Credentials | Display |
 | --- | --- | --- |
 | Codex, `openai` | ChatGPT account sign-in, not a standard OpenAI API key | Weekly quota remaining |
-| [OpenCode Go](https://opencode.ai/v2/docs/console/go), `opencode-go` | API key for an active Go subscription | Monthly, rolling, and weekly quotas when returned |
+| [OpenCode Go](https://opencode.ai/v2/docs/console/go), `opencode-go` | Active OpenCode Console connection (`opencode`) for a workspace with Go, or a legacy Go API key | Monthly, rolling, and weekly quotas when returned |
+
+Go quota uses the integration assigned to the Go provider. With the Console backend, it resolves the active Console account and includes the Go workspace header. Legacy `opencode-go` connections remain supported. A Console connection without an available Go provider does not add a Go quota panel.
 
 For local development, see [DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 

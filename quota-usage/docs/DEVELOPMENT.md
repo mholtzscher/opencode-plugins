@@ -14,7 +14,7 @@ bun run typecheck
 bun test
 ```
 
-Run `bun run check` from the repository root. [Parser tests](../parse.test.ts) cover credential extraction and provider-response parsing. They do not test live requests, server registration, or TUI behavior.
+Run `bun run check` from the repository root. [Parser tests](../parse.test.ts) cover credential extraction and provider-response parsing. [Request tests](../index.test.ts) cover Console and legacy Go credential selection, workspace headers, and the shared RPC output schema with a stubbed HTTP request. They do not test live requests, server registration, or TUI rendering.
 
 ## Implementation
 
@@ -27,6 +27,10 @@ Run `bun run check` from the repository root. [Parser tests](../parse.test.ts) c
 | [package.json](../package.json) | Package exports, dependency requirements, and check scripts |
 
 The chat tool and RPC handlers share server-side fetch functions. The tool does not call RPC; the TUI does. Keep credentials on the server and validate RPC output at the client boundary.
+
+Pass the plugin's location explicitly in TUI RPC call options, matching the location used for provider synchronization. Without it, the shared server can route sidebar requests to its default location and run a globally installed plugin instead of the project's local copy.
+
+Go usage is fetched from `https://opencode.ai/inference/go/v1/usage`. Resolve the Go provider's `integrationID` instead of assuming it has its own credentials: Console-backed Go uses `opencode`. Send `x-opencode-org-id` from the Go provider headers, falling back to the credential's `metadata.orgID` when present. Do not fall back to a different account when the assigned integration is disconnected.
 
 When changing the shared contracts, check both server and TUI consumers. `fetchedAt` uses Unix milliseconds; `resetAt` uses Unix seconds. Preserve that distinction when changing reset handling.
 
