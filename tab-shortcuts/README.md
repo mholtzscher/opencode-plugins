@@ -26,15 +26,15 @@ The commands have no default shortcuts. To add your own, use the plugin's `close
     {
       "package": "@mholtzscher/opencode-tab-shortcuts",
       "options": {
-        "closeOthers": "<leader>shift+w",
-        "closeAll": "<leader>alt+w",
+        "closeOthers": "alt+shift+w",
+        "closeAll": "ctrl+alt+w",
       },
     },
   ],
 }
 ```
 
-Choose keys that do not conflict with your other bindings. `<leader>` defaults to `Ctrl+X`. See the [keybind guide](https://opencode.ai/v2/docs/cli/keybinds).
+Choose keys that do not conflict with your other bindings. Terminal support for modified keys can vary. See the [keybind guide](https://opencode.ai/v2/docs/cli/keybinds).
 
 ## Development
 
