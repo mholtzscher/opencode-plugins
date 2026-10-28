@@ -1,6 +1,6 @@
 {
   "name": "@mholtzscher/opencode-tab-shortcuts",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "OpenCode TUI commands to close all or other session tabs",
   "keywords": [
     "opencode",
