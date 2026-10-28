@@ -1,0 +1,48 @@
+{
+  "name": "@mholtzscher/opencode-tab-shortcuts",
+  "version": "1.0.0",
+  "description": "OpenCode TUI commands to close all or other session tabs",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "tabs"
+  ],
+  "homepage": "https://github.com/mholtzscher/opencode-plugins/tree/main/tab-shortcuts#readme",
+  "bugs": {
+    "url": "https://github.com/mholtzscher/opencode-plugins/issues"
+  },
+  "license": "MIT",
+  "author": "Michael Holtzscher",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mholtzscher/opencode-plugins.git",
+    "directory": "tab-shortcuts"
+  },
+  "files": [
+    "tui.ts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "exports": {
+    "./tui": "./tui.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.0.27",
+    "@types/bun": "1.4.2",
+    "typescript": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.0.27 <3.0.0",
+    "@opentui/solid": ">=0.5.10",
+    "solid-js": ">=1.9.0"
+  }
+}

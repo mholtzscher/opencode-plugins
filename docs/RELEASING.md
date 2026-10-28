@@ -1,6 +1,6 @@
 # Releasing plugins
 
-[`release-please-config.json`](../release-please-config.json) tracks all four plugin directories independently. [`.release-please-manifest.json`](../.release-please-manifest.json) starts from their current package versions. The initial `bootstrap-sha` marks the commit before release automation was added, so the first automated release considers only newer changes.
+[`release-please-config.json`](../release-please-config.json) tracks all five plugin directories independently. [`.release-please-manifest.json`](../.release-please-manifest.json) starts from their current package versions. The initial `bootstrap-sha` marks the commit before release automation was added, so the first automated release considers only newer changes.
 
 On pushes to `main`, [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens or updates a combined release PR. It updates each changed plugin's `package.json` and `CHANGELOG.md`. Merging the PR creates component tags such as `classify-v1.1.0` and matching GitHub releases.
 
@@ -10,7 +10,7 @@ Use Conventional Commits. `feat(classify): ...` bumps Classify's minor version. 
 
 In repository Settings, Actions, General, enable **Allow GitHub Actions to create and approve pull requests**. The workflow uses `GITHUB_TOKEN`, so no GitHub personal access token is needed.
 
-The `check` workflow runs lint, typechecks all four plugins, and runs the four plugin test suites on PRs and pushes to `main`. External live smoke checks are separate from CI.
+The `check` workflow runs lint, typechecks all plugins, and runs their test suites on PRs and pushes to `main`. External live smoke checks are separate from CI.
 
 GitHub does not start other workflows for PRs or releases created using `GITHUB_TOKEN`. The npm publish job therefore runs in the same workflow as Release Please. Before merging a bot-created release PR, run its checks explicitly with `gh workflow run check.yml --ref <release-pr-branch>` and verify that run succeeds.
 
@@ -102,9 +102,24 @@ The allowlist ships the empty TypeScript server entry, prebuilt `dist/tui.js`, m
 
 After the first version is public, add a trusted publisher in the npm package settings using the Classify table above: owner `mholtzscher`, repository `opencode-plugins`, workflow `release-please.yml`, and no environment. Allow direct publishing. No `NPM_TOKEN` secret is needed. Complete a successful trusted publish within two days or recreate the publisher after expiry. Do not republish an existing npm version.
 
+## First Tab shortcuts publish
+
+The package name is `@mholtzscher/opencode-tab-shortcuts`. Before automated publishing, bootstrap the package from a checkout of the release tag while authenticated to npm as `mholtzscher`:
+
+```sh
+bun install --frozen-lockfile
+bun run typecheck
+bun test
+npm pack --dry-run
+npm login
+npm publish --access public
+```
+
+Run these commands in `tab-shortcuts/`. The package ships its TUI entry, README, changelog, and license. After the first version is public, add the trusted publisher using the Classify settings above, and allow direct publishing. Complete a successful trusted publish within two days or recreate the publisher after expiry. Do not publish an existing npm version again. Until the package is public, use a local checkout as described in its README.
+
 ## Automated npm releases
 
-After Release Please creates a Classify, Workflow tools, Quota usage, or Cache metrics release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Cache metrics also verifies and rebuilds its committed TUI bundle. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
+After Release Please creates a plugin release, its publish job checks out the component's tag and verifies its version and GitHub release. The job installs dependencies with Bun, runs typecheck and tests, inspects package contents, and publishes with npm. Cache metrics also verifies and rebuilds its committed TUI bundle. Installation and publication run inside each plugin directory, without workspace flags. `mise-action` installs Bun and Node from the workflow revision's [`mise.toml`](../mise.toml), including when recovering a tag that predates those pins. Publishing uses Node 24's bundled npm 11. Trusted publishing requires npm 11.5.1 or later.
 
 If publication fails before npm accepts the version, fix the cause and rerun the failed job from GitHub Actions. Re-running only the failed job preserves the successful release job's tag output.
 
@@ -129,6 +144,8 @@ gh workflow run release-please.yml --ref main -f quota_usage_tag=quota-usage-v1.
 Supply at least one tag input. Each publisher runs only for its component's tag; Classify's existing recovery input remains supported.
 
 For Cache metrics, use `-f cache_metrics_tag=cache-metrics-v1.0.1` with the same workflow dispatch command.
+
+For Tab shortcuts, use `-f tab_shortcuts_tag=tab-shortcuts-v1.0.1` with the same workflow dispatch command.
 
 This publishes the tagged package using the current workflow. It skips Release Please, so it does not create another release or version bump. npm verbose logs include OIDC exchange errors to help diagnose trusted-publisher mismatches.
 

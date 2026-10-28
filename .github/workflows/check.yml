@@ -30,6 +30,7 @@ jobs:
           - cache-metrics
           - classify
           - quota-usage
+          - tab-shortcuts
           - workflow-tools
     defaults:
       run:
