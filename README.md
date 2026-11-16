@@ -9,7 +9,7 @@ Six independent Bun packages for OpenCode V2. Each plugin owns its dependencies,
 | [Classify](./classify/README.md) | Typed judgments with OpenAI Decisions, TypeSafe AI, Cloudflare Clef, Laya, or Ollama; file/code/diff evidence | Namespaced decision tool and backend-selection command; TUI picker/status. Requires explicit backend configuration. |
 | [Cache metrics](./cache-metrics/README.md) | Session input cache-hit rate, token totals, per-response history, and JSON export | TUI sidebar and history panel. History includes the root session and its subagents by default. |
 | [Quota usage](./quota-usage/README.md) | Remaining Codex and OpenCode Go account quotas | Web/TUI chat tool and automatically refreshed TUI sidebar. Uses active provider accounts on the server. |
-| [Mise daemons](./mise-daemons/README.md) | Running daemons in the current workspace | TUI sidebar and keyboard picker; opens web URLs or copies other endpoints. Requires OpenCode V2.3.0+ and Mise on the server. |
+| [Mise daemons](./mise-daemons/README.md) | Running daemons in the current workspace | TUI sidebar and keyboard picker; opens web URLs, copies endpoints, and confirms workspace Stop All. Requires OpenCode V2.3.0+ and Mise on the server. |
 | [Tab shortcuts](./tab-shortcuts/README.md) | Close all or other session tabs | TUI-only commands with configurable shortcuts. |
 | [Workflow tools](./workflow-tools/README.md) | Spec planning/refinement/implementation, PR publication/metadata, feedback delivery and check investigation | Server commands; see [package.json](./workflow-tools/package.json) for OpenCode requirements. External skills and server-side authenticated `gh` as needed; no TUI entry. |
 

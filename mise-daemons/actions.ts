@@ -9,7 +9,7 @@ interface ActionServices {
 
 export interface DaemonChoice {
   action: DaemonAction;
-  label: "Open" | "Copy" | "Open HTTP";
+  label: "Open" | "Copy";
 }
 
 export interface DaemonSelection {
@@ -34,7 +34,7 @@ export const daemonChoices = (primary: DaemonAction): DaemonChoice[] => {
     if (url) {
       choices.push({
         action: { kind: "open", value: url },
-        label: "Open HTTP",
+        label: "Open",
       });
     }
   }

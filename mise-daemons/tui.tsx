@@ -15,7 +15,7 @@ import {
 import { activate, daemonChoices, matchingChoice } from "./actions.js";
 import { createMonitor } from "./monitor.js";
 import type { SidebarState } from "./monitor.js";
-import { DiscoveryResultSchema, MiseDaemons } from "./rpc.js";
+import { DiscoveryResultSchema, MiseDaemons, StopResultSchema } from "./rpc.js";
 import type { DaemonAction, RunningDaemon } from "./rpc.js";
 
 const createActions =
@@ -97,19 +97,32 @@ const DaemonRow = (props: { daemon: RunningDaemon; stale: boolean }) => {
           {props.daemon.action.value}
         </text>
         <For each={choices()}>
-          {(choice) => (
-            <text
-              fg={
-                props.stale ? context.theme.text.muted : context.theme.text.base
-              }
-              flexShrink={0}
-              onMouseUp={(event) => handleClick(choice.action, event)}
-              selectable={false}
-            >
-              <Show when={hovered() && !props.stale} fallback={choice.label}>
-                <u>{choice.label}</u>
+          {(choice, index) => (
+            <>
+              <Show when={index() > 0}>
+                <text
+                  fg={context.theme.text.muted}
+                  flexShrink={0}
+                  selectable={false}
+                >
+                  |
+                </text>
               </Show>
-            </text>
+              <text
+                fg={
+                  props.stale
+                    ? context.theme.text.muted
+                    : context.theme.text.base
+                }
+                flexShrink={0}
+                onMouseUp={(event) => handleClick(choice.action, event)}
+                selectable={false}
+              >
+                <Show when={hovered() && !props.stale} fallback={choice.label}>
+                  <u>{choice.label}</u>
+                </Show>
+              </text>
+            </>
           )}
         </For>
       </box>
@@ -129,6 +142,10 @@ const WorkspaceDaemons = (props: {
   const context = usePlugin();
   const rpc = context.client.rpc(MiseDaemons);
   const [state, setState] = createSignal<SidebarState>({ status: "loading" });
+  const [stopState, setStopState] = createSignal<
+    "idle" | "confirming" | "stopping"
+  >("idle");
+  const lifetime = new AbortController();
   const monitor = createMonitor(
     props.directory,
     async (signal) =>
@@ -167,12 +184,89 @@ const WorkspaceDaemons = (props: {
       ? `Mise daemons · ${daemons().length}`
       : "Mise daemons";
   };
+  const canStop = () =>
+    stopState() === "idle" &&
+    state().status === "ready" &&
+    daemons().length > 0;
+  const stopAll = async () => {
+    if (!canStop()) {
+      return;
+    }
+    setStopState("confirming");
+    try {
+      const confirmed = await context.ui.dialog.confirm({
+        label: { cancel: "Cancel", confirm: "Stop All" },
+        message: `Stop all Mise project daemons for this workspace?\n\n${props.directory}\n\nDaemon data is kept. Other projects are not stopped.`,
+        title: "Stop workspace daemons?",
+      });
+      const route = context.ui.router.current();
+      if (
+        !confirmed ||
+        lifetime.signal.aborted ||
+        state().status !== "ready" ||
+        daemons().length === 0 ||
+        route.type !== "session" ||
+        context.data.session.get(route.sessionID)?.location.directory !==
+          props.directory
+      ) {
+        return;
+      }
+      setStopState("stopping");
+      const result = StopResultSchema.parse(
+        await rpc.stopAll(
+          {},
+          {
+            location: { directory: props.directory },
+            signal: AbortSignal.any([
+              lifetime.signal,
+              AbortSignal.timeout(35_000),
+            ]),
+          }
+        )
+      );
+      if (lifetime.signal.aborted) {
+        return;
+      }
+      if (result.directory !== props.directory) {
+        context.ui.toast.show({
+          message:
+            "Mise returned another workspace. Refresh to check daemon status.",
+          variant: "error",
+        });
+        return;
+      }
+      context.ui.toast.show({
+        message:
+          result.status === "error" ? result.message : "Stop All completed",
+        variant: result.status === "ok" ? "success" : "error",
+      });
+    } catch {
+      if (!lifetime.signal.aborted) {
+        context.ui.toast.show({
+          message:
+            "Stop All did not complete. Some daemons may have stopped. Refresh to check their status.",
+          variant: "error",
+        });
+      }
+    } finally {
+      if (!lifetime.signal.aborted) {
+        // A failed or interrupted stop can still have stopped some daemons.
+        if (stopState() === "stopping") {
+          await monitor.refresh(true);
+        }
+        if (!lifetime.signal.aborted) {
+          setStopState("idle");
+        }
+      }
+    }
+  };
   const timer = setInterval(() => {
     void monitor.refresh();
   }, 5000);
   const unregister = props.registerRefresh(props.directory, monitor.refresh);
   void monitor.refresh();
   onCleanup(() => {
+    lifetime.abort();
     clearInterval(timer);
     monitor.dispose();
     unregister();
@@ -184,19 +278,52 @@ const WorkspaceDaemons = (props: {
       </Show>
       <For each={daemons()}>
         {(daemon) => (
-          <DaemonRow daemon={daemon} stale={state().status === "error"} />
+          <DaemonRow
+            daemon={daemon}
+            stale={state().status === "error" || stopState() === "stopping"}
+          />
         )}
       </For>
-      <box flexDirection="row" justifyContent="flex-end">
+      <box flexDirection="row" gap={1} justifyContent="flex-end">
         <text
-          fg={context.theme.text.base}
+          fg={canStop() ? context.theme.text.base : context.theme.text.muted}
           onMouseUp={(event) => {
-            if (event.button === 0) {
+            if (
+              event.button === 0 &&
+              !context.renderer.getSelection()?.getSelectedText()
+            ) {
+              event.stopPropagation();
+              void stopAll();
+            }
+          }}
+          selectable={false}
+        >
+          <Show
+            when={canStop()}
+            fallback={stopState() === "stopping" ? "Stopping…" : "Stop All"}
+          >
+            <u>Stop All</u>
+          </Show>
+        </text>
+        <text fg={context.theme.text.muted} selectable={false}>
+          |
+        </text>
+        <text
+          fg={
+            stopState() === "idle"
+              ? context.theme.text.base
+              : context.theme.text.muted
+          }
+          onMouseUp={(event) => {
+            if (event.button === 0 && stopState() === "idle") {
               void monitor.refresh();
             }
           }}
+          selectable={false}
         >
-          <u>Refresh</u>
+          <Show when={stopState() === "idle"} fallback="Refresh">
+            <u>Refresh</u>
+          </Show>
         </text>
       </box>
     </Frame>

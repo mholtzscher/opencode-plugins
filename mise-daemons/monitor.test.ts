@@ -18,6 +18,32 @@ const snapshot: DaemonSnapshot = {
 };
 
 describe("sidebar refresh lifecycle", () => {
+  test("a post-stop refresh starts a new read after an older poll finishes", async () => {
+    const pending = Promise.withResolvers<DiscoveryResult>();
+    const states: SidebarState[] = [];
+    let calls = 0;
+    const monitor = createMonitor(
+      "/shop-a",
+      () => {
+        calls += 1;
+        return calls === 1
+          ? pending.promise
+          : Promise.resolve({ ...snapshot, daemons: [] });
+      },
+      (state) => states.push(state)
+    );
+    const poll = monitor.refresh();
+    const afterStop = monitor.refresh(true);
+    expect(calls).toBe(1);
+    pending.resolve(snapshot);
+    await Promise.all([poll, afterStop]);
+    expect(calls).toBe(2);
+    expect(states.at(-1)).toEqual({
+      snapshot: { ...snapshot, daemons: [] },
+      status: "ready",
+    });
+    monitor.dispose();
+  });
   test("shows loading, a snapshot, explicit stale state, then recovery", async () => {
     const states: SidebarState[] = [];
     let result: DiscoveryResult = snapshot;

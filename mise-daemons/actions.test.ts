@@ -51,17 +51,17 @@ describe("daemon actions", () => {
         { action: { kind: "copy", value: "localhost:6164" }, label: "Copy" },
         {
           action: { kind: "open", value: "http://localhost:6164/" },
-          label: "Open HTTP",
+          label: "Open",
         },
       ]);
     }
   });
-  test("bare localhost endpoints keep Copy first and add an explicit Open HTTP choice", () => {
+  test("bare localhost endpoints keep Copy first and add an explicit Open choice", () => {
     expect(daemonChoices({ kind: "copy", value: "localhost:6164" })).toEqual([
       { action: { kind: "copy", value: "localhost:6164" }, label: "Copy" },
       {
         action: { kind: "open", value: "http://localhost:6164/" },
-        label: "Open HTTP",
+        label: "Open",
       },
     ]);
   });
@@ -75,7 +75,7 @@ describe("daemon actions", () => {
     ]) {
       expect(daemonChoices({ kind: "copy", value: endpoint })).toEqual([
         { action: { kind: "copy", value: endpoint }, label: "Copy" },
-        { action: { kind: "open", value: url }, label: "Open HTTP" },
+        { action: { kind: "open", value: url }, label: "Open" },
       ]);
     }
   });
@@ -112,7 +112,7 @@ describe("daemon actions", () => {
     ]);
   });
 
-  test("Open HTTP requires its own selection and does not replace Copy", async () => {
+  test("Open requires its own selection and does not replace Copy", async () => {
     const app = fixture();
     const choices = daemonChoices({ kind: "copy", value: "localhost:6164" });
     await activate(choices[0].action, app.services);
@@ -126,7 +126,7 @@ describe("daemon actions", () => {
   test("revalidation preserves the displayed action and rejects changed targets or labels", () => {
     const displayed: DaemonChoice = {
       action: { kind: "open", value: "http://localhost:6164/" },
-      label: "Open HTTP",
+      label: "Open",
     };
     const selection: DaemonSelection = {
       choice: displayed,

@@ -42,6 +42,15 @@ var DiscoveryResultSchema = z.discriminatedUnion("status", [
     status: z.literal("error")
   })
 ]);
+var StopResultSchema = z.discriminatedUnion("status", [
+  z.object({ directory: DisplayText, status: z.literal("ok") }),
+  z.object({
+    code: z.enum(["missing", "unsupported", "failed", "busy"]),
+    directory: DisplayText,
+    message: DisplayText,
+    status: z.literal("error")
+  })
+]);
 var MiseDaemons = Rpc.define({
   events: {},
   id: "mise-daemons",
@@ -49,6 +58,10 @@ var MiseDaemons = Rpc.define({
     list: {
       input: z.object({}),
       output: DiscoveryResultSchema
+    },
+    stopAll: {
+      input: z.strictObject({}),
+      output: StopResultSchema
     }
   }
 });
@@ -85,7 +98,7 @@ var daemonChoices = (primary) => {
     if (url) {
       choices.push({
         action: { kind: "open", value: url },
-        label: "Open HTTP"
+        label: "Open"
       });
     }
   }
@@ -155,7 +168,10 @@ var createMonitor = (directory, read, update) => {
     }
   };
   update({ status: "loading" });
-  const refresh = async () => {
+  const refresh = async (fresh = false) => {
+    if (fresh && pending) {
+      await pending;
+    }
     if (disposed) {
       return;
     }
@@ -261,12 +277,24 @@ var DaemonRow = (props) => {
       get each() {
         return choices();
       },
-      children: (choice) => (() => {
-        var _el$9 = _$createElement("text");
-        _$setProp(_el$9, "flexShrink", 0);
-        _$setProp(_el$9, "onMouseUp", (event) => handleClick(choice.action, event));
-        _$setProp(_el$9, "selectable", false);
-        _$insert(_el$9, _$createComponent(Show, {
+      children: (choice, index) => [_$createComponent(Show, {
+        get when() {
+          return index() > 0;
+        },
+        get children() {
+          var _el$9 = _$createElement("text");
+          _$insertNode(_el$9, _$createTextNode(`|`));
+          _$setProp(_el$9, "flexShrink", 0);
+          _$setProp(_el$9, "selectable", false);
+          _$effect((_$p) => _$setProp(_el$9, "fg", context.theme.text.muted, _$p));
+          return _el$9;
+        }
+      }), (() => {
+        var _el$1 = _$createElement("text");
+        _$setProp(_el$1, "flexShrink", 0);
+        _$setProp(_el$1, "onMouseUp", (event) => handleClick(choice.action, event));
+        _$setProp(_el$1, "selectable", false);
+        _$insert(_el$1, _$createComponent(Show, {
           get when() {
             return _$memo(() => !!hovered())() && !props.stale;
           },
@@ -274,14 +302,14 @@ var DaemonRow = (props) => {
             return choice.label;
           },
           get children() {
-            var _el$0 = _$createElement("u");
-            _$insert(_el$0, () => choice.label);
-            return _el$0;
+            var _el$10 = _$createElement("u");
+            _$insert(_el$10, () => choice.label);
+            return _el$10;
           }
         }));
-        _$effect((_$p) => _$setProp(_el$9, "fg", props.stale ? context.theme.text.muted : context.theme.text.base, _$p));
-        return _el$9;
-      })()
+        _$effect((_$p) => _$setProp(_el$1, "fg", props.stale ? context.theme.text.muted : context.theme.text.base, _$p));
+        return _el$1;
+      })()]
     }), null);
     _$effect((_p$) => {
       var _v$4 = context.theme.text.base, _v$5 = context.theme.text.muted, _v$6 = context.theme.text.muted;
@@ -303,6 +331,8 @@ var WorkspaceDaemons = (props) => {
   const [state, setState] = createSignal({
     status: "loading"
   });
+  const [stopState, setStopState] = createSignal("idle");
+  const lifetime = new AbortController;
   const monitor = createMonitor(props.directory, async (signal) => DiscoveryResultSchema.parse(await rpc.list({}, {
     location: {
       directory: props.directory
@@ -329,12 +359,75 @@ var WorkspaceDaemons = (props) => {
     }
     return daemons().length > 0 ? `Mise daemons \xB7 ${daemons().length}` : "Mise daemons";
   };
+  const canStop = () => stopState() === "idle" && state().status === "ready" && daemons().length > 0;
+  const stopAll = async () => {
+    if (!canStop()) {
+      return;
+    }
+    setStopState("confirming");
+    try {
+      const confirmed = await context.ui.dialog.confirm({
+        label: {
+          cancel: "Cancel",
+          confirm: "Stop All"
+        },
+        message: `Stop all Mise project daemons for this workspace?
+
+${props.directory}
+
+Daemon data is kept. Other projects are not stopped.`,
+        title: "Stop workspace daemons?"
+      });
+      const route = context.ui.router.current();
+      if (!confirmed || lifetime.signal.aborted || state().status !== "ready" || daemons().length === 0 || route.type !== "session" || context.data.session.get(route.sessionID)?.location.directory !== props.directory) {
+        return;
+      }
+      setStopState("stopping");
+      const result = StopResultSchema.parse(await rpc.stopAll({}, {
+        location: {
+          directory: props.directory
+        },
+        signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(35000)])
+      }));
+      if (lifetime.signal.aborted) {
+        return;
+      }
+      if (result.directory !== props.directory) {
+        context.ui.toast.show({
+          message: "Mise returned another workspace. Refresh to check daemon status.",
+          variant: "error"
+        });
+        return;
+      }
+      context.ui.toast.show({
+        message: result.status === "error" ? result.message : "Stop All completed",
+        variant: result.status === "ok" ? "success" : "error"
+      });
+    } catch {
+      if (!lifetime.signal.aborted) {
+        context.ui.toast.show({
+          message: "Stop All did not complete. Some daemons may have stopped. Refresh to check their status.",
+          variant: "error"
+        });
+      }
+    } finally {
+      if (!lifetime.signal.aborted) {
+        if (stopState() === "stopping") {
+          await monitor.refresh(true);
+        }
+        if (!lifetime.signal.aborted) {
+          setStopState("idle");
+        }
+      }
+    }
+  };
   const timer = setInterval(() => {
     monitor.refresh();
   }, 5000);
   const unregister = props.registerRefresh(props.directory, monitor.refresh);
   monitor.refresh();
   onCleanup(() => {
+    lifetime.abort();
     clearInterval(timer);
     monitor.dispose();
     unregister();
@@ -349,10 +442,10 @@ var WorkspaceDaemons = (props) => {
           return message();
         },
         children: (value) => (() => {
-          var _el$13 = _$createElement("text");
-          _$insert(_el$13, value);
-          _$effect((_$p) => _$setProp(_el$13, "fg", context.theme.text.muted, _$p));
-          return _el$13;
+          var _el$20 = _$createElement("text");
+          _$insert(_el$20, value);
+          _$effect((_$p) => _$setProp(_el$20, "fg", context.theme.text.muted, _$p));
+          return _el$20;
         })()
       }), _$createComponent(For, {
         get each() {
@@ -361,23 +454,68 @@ var WorkspaceDaemons = (props) => {
         children: (daemon) => _$createComponent(DaemonRow, {
           daemon,
           get stale() {
-            return state().status === "error";
+            return state().status === "error" || stopState() === "stopping";
           }
         })
       }), (() => {
-        var _el$1 = _$createElement("box"), _el$10 = _$createElement("text"), _el$11 = _$createElement("u");
-        _$insertNode(_el$1, _el$10);
-        _$setProp(_el$1, "flexDirection", "row");
-        _$setProp(_el$1, "justifyContent", "flex-end");
-        _$insertNode(_el$10, _el$11);
-        _$setProp(_el$10, "onMouseUp", (event) => {
-          if (event.button === 0) {
+        var _el$11 = _$createElement("box"), _el$12 = _$createElement("text"), _el$15 = _$createElement("text"), _el$17 = _$createElement("text");
+        _$insertNode(_el$11, _el$12);
+        _$insertNode(_el$11, _el$15);
+        _$insertNode(_el$11, _el$17);
+        _$setProp(_el$11, "flexDirection", "row");
+        _$setProp(_el$11, "gap", 1);
+        _$setProp(_el$11, "justifyContent", "flex-end");
+        _$setProp(_el$12, "onMouseUp", (event) => {
+          if (event.button === 0 && !context.renderer.getSelection()?.getSelectedText()) {
+            event.stopPropagation();
+            stopAll();
+          }
+        });
+        _$setProp(_el$12, "selectable", false);
+        _$insert(_el$12, _$createComponent(Show, {
+          get when() {
+            return canStop();
+          },
+          get fallback() {
+            return stopState() === "stopping" ? "Stopping\u2026" : "Stop All";
+          },
+          get children() {
+            var _el$13 = _$createElement("u");
+            _$insertNode(_el$13, _$createTextNode(`Stop All`));
+            return _el$13;
+          }
+        }));
+        _$insertNode(_el$15, _$createTextNode(`|`));
+        _$setProp(_el$15, "selectable", false);
+        _$setProp(_el$17, "onMouseUp", (event) => {
+          if (event.button === 0 && stopState() === "idle") {
             monitor.refresh();
           }
         });
-        _$insertNode(_el$11, _$createTextNode(`Refresh`));
-        _$effect((_$p) => _$setProp(_el$10, "fg", context.theme.text.base, _$p));
-        return _el$1;
+        _$setProp(_el$17, "selectable", false);
+        _$insert(_el$17, _$createComponent(Show, {
+          get when() {
+            return stopState() === "idle";
+          },
+          fallback: "Refresh",
+          get children() {
+            var _el$18 = _$createElement("u");
+            _$insertNode(_el$18, _$createTextNode(`Refresh`));
+            return _el$18;
+          }
+        }));
+        _$effect((_p$) => {
+          var _v$7 = canStop() ? context.theme.text.base : context.theme.text.muted, _v$8 = context.theme.text.muted, _v$9 = stopState() === "idle" ? context.theme.text.base : context.theme.text.muted;
+          _v$7 !== _p$.e && (_p$.e = _$setProp(_el$12, "fg", _v$7, _p$.e));
+          _v$8 !== _p$.t && (_p$.t = _$setProp(_el$15, "fg", _v$8, _p$.t));
+          _v$9 !== _p$.a && (_p$.a = _$setProp(_el$17, "fg", _v$9, _p$.a));
+          return _p$;
+        }, {
+          e: undefined,
+          t: undefined,
+          a: undefined
+        });
+        return _el$11;
       })()];
     }
   });
@@ -389,10 +527,10 @@ var DaemonSidebar = (props) => {
     get fallback() {
       return _$createComponent(Frame, {
         get children() {
-          var _el$14 = _$createElement("text");
-          _$insertNode(_el$14, _$createTextNode(`Loading workspace\u2026`));
-          _$effect((_$p) => _$setProp(_el$14, "fg", context.theme.text.muted, _$p));
-          return _el$14;
+          var _el$21 = _$createElement("text");
+          _$insertNode(_el$21, _$createTextNode(`Loading workspace\u2026`));
+          _$effect((_$p) => _$setProp(_el$21, "fg", context.theme.text.muted, _$p));
+          return _el$21;
         }
       });
     },

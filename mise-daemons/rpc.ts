@@ -38,6 +38,17 @@ export const DiscoveryResultSchema = z.discriminatedUnion("status", [
 export type DiscoveryResult = z.infer<typeof DiscoveryResultSchema>;
 export type DaemonSnapshot = Extract<DiscoveryResult, { status: "ok" }>;
 
+export const StopResultSchema = z.discriminatedUnion("status", [
+  z.object({ directory: DisplayText, status: z.literal("ok") }),
+  z.object({
+    code: z.enum(["missing", "unsupported", "failed", "busy"]),
+    directory: DisplayText,
+    message: DisplayText,
+    status: z.literal("error"),
+  }),
+]);
+export type StopResult = z.infer<typeof StopResultSchema>;
+
 export const MiseDaemons = Rpc.define({
   events: {},
   id: "mise-daemons",
@@ -45,6 +56,10 @@ export const MiseDaemons = Rpc.define({
     list: {
       input: z.object({}),
       output: DiscoveryResultSchema,
+    },
+    stopAll: {
+      input: z.strictObject({}),
+      output: StopResultSchema,
     },
   },
 });
