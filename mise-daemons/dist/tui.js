@@ -71,6 +71,32 @@ var browserURL = (value) => {
 };
 
 // actions.ts
+var daemonChoices = (primary) => {
+  const choices = [
+    { action: primary, label: primary.kind === "open" ? "Open" : "Copy" }
+  ];
+  if (primary.kind !== "copy") {
+    return choices;
+  }
+  const match = /^(?:localhost|127\.0\.0\.1|\[::1\]):(?<port>[0-9]{1,5})$/iu.exec(primary.value);
+  const port = Number(match?.groups?.port ?? 0);
+  if (match?.[0] === primary.value && port > 0 && port <= 65535) {
+    const url = browserURL(`http://${primary.value}`);
+    if (url) {
+      choices.push({
+        action: { kind: "open", value: url },
+        label: "Open HTTP"
+      });
+    }
+  }
+  return choices;
+};
+var matchingChoice = (displayed, primary) => {
+  if (displayed.primary.kind !== primary.kind || displayed.primary.value !== primary.value) {
+    return;
+  }
+  return daemonChoices(primary).find((choice) => choice.label === displayed.choice.label && choice.action.kind === displayed.choice.action.kind && choice.action.value === displayed.choice.action.value);
+};
 var activate = async (action, services) => {
   try {
     if (action.kind === "open") {
@@ -194,14 +220,23 @@ var DaemonRow = (props) => {
   const context = usePlugin();
   const run = createActions(context);
   const [hovered, setHovered] = createSignal(false);
+  const choices = createMemo(() => daemonChoices(props.daemon.action));
+  const handleClick = (action, event) => {
+    if (event.button !== 0 || props.stale || context.renderer.getSelection()?.getSelectedText()) {
+      return;
+    }
+    event.stopPropagation();
+    run(action);
+  };
   return (() => {
-    var _el$2 = _$createElement("box"), _el$3 = _$createElement("box"), _el$4 = _$createElement("text"), _el$5 = _$createElement("b"), _el$6 = _$createElement("text"), _el$7 = _$createElement("box"), _el$8 = _$createElement("text"), _el$9 = _$createElement("text");
+    var _el$2 = _$createElement("box"), _el$3 = _$createElement("box"), _el$4 = _$createElement("text"), _el$5 = _$createElement("b"), _el$6 = _$createElement("text"), _el$7 = _$createElement("box"), _el$8 = _$createElement("text");
     _$insertNode(_el$2, _el$3);
     _$insertNode(_el$2, _el$7);
     _$setProp(_el$2, "flexDirection", "column");
     _$insertNode(_el$3, _el$4);
     _$insertNode(_el$3, _el$6);
     _$setProp(_el$3, "flexDirection", "row");
+    _$setProp(_el$3, "gap", 1);
     _$setProp(_el$3, "justifyContent", "space-between");
     _$insertNode(_el$4, _el$5);
     _$setProp(_el$4, "flexShrink", 1);
@@ -211,50 +246,53 @@ var DaemonRow = (props) => {
     _$setProp(_el$6, "flexShrink", 0);
     _$insert(_el$6, () => props.stale ? "stale" : "running");
     _$insertNode(_el$7, _el$8);
-    _$insertNode(_el$7, _el$9);
     _$setProp(_el$7, "flexDirection", "row");
     _$setProp(_el$7, "gap", 1);
     _$setProp(_el$7, "justifyContent", "space-between");
     _$setProp(_el$7, "onMouseOut", () => setHovered(false));
     _$setProp(_el$7, "onMouseOver", () => setHovered(true));
-    _$setProp(_el$7, "onMouseUp", (event) => {
-      if (event.button !== 0 || props.stale || context.renderer.getSelection()?.getSelectedText()) {
-        return;
-      }
-      event.stopPropagation();
-      run(props.daemon.action);
-    });
     _$setProp(_el$8, "flexGrow", 1);
     _$setProp(_el$8, "flexShrink", 1);
+    _$setProp(_el$8, "onMouseUp", (event) => handleClick(props.daemon.action, event));
     _$setProp(_el$8, "truncate", true);
     _$setProp(_el$8, "wrapMode", "none");
     _$insert(_el$8, () => props.daemon.action.value);
-    _$setProp(_el$9, "flexShrink", 0);
-    _$insert(_el$9, _$createComponent(Show, {
-      get when() {
-        return _$memo(() => !!hovered())() && !props.stale;
+    _$insert(_el$7, _$createComponent(For, {
+      get each() {
+        return choices();
       },
-      get fallback() {
-        return props.daemon.action.kind === "open" ? "Open" : "Copy";
-      },
-      get children() {
-        var _el$0 = _$createElement("u");
-        _$insert(_el$0, () => props.daemon.action.kind === "open" ? "Open" : "Copy");
-        return _el$0;
-      }
-    }));
+      children: (choice) => (() => {
+        var _el$9 = _$createElement("text");
+        _$setProp(_el$9, "flexShrink", 0);
+        _$setProp(_el$9, "onMouseUp", (event) => handleClick(choice.action, event));
+        _$setProp(_el$9, "selectable", false);
+        _$insert(_el$9, _$createComponent(Show, {
+          get when() {
+            return _$memo(() => !!hovered())() && !props.stale;
+          },
+          get fallback() {
+            return choice.label;
+          },
+          get children() {
+            var _el$0 = _$createElement("u");
+            _$insert(_el$0, () => choice.label);
+            return _el$0;
+          }
+        }));
+        _$effect((_$p) => _$setProp(_el$9, "fg", props.stale ? context.theme.text.muted : context.theme.text.base, _$p));
+        return _el$9;
+      })()
+    }), null);
     _$effect((_p$) => {
-      var _v$4 = context.theme.text.base, _v$5 = context.theme.text.muted, _v$6 = context.theme.text.muted, _v$7 = props.stale ? context.theme.text.muted : context.theme.text.base;
+      var _v$4 = context.theme.text.base, _v$5 = context.theme.text.muted, _v$6 = context.theme.text.muted;
       _v$4 !== _p$.e && (_p$.e = _$setProp(_el$4, "fg", _v$4, _p$.e));
       _v$5 !== _p$.t && (_p$.t = _$setProp(_el$6, "fg", _v$5, _p$.t));
       _v$6 !== _p$.a && (_p$.a = _$setProp(_el$8, "fg", _v$6, _p$.a));
-      _v$7 !== _p$.o && (_p$.o = _$setProp(_el$9, "fg", _v$7, _p$.o));
       return _p$;
     }, {
       e: undefined,
       t: undefined,
-      a: undefined,
-      o: undefined
+      a: undefined
     });
     return _el$2;
   })();
@@ -448,30 +486,37 @@ var tui_default = Plugin.define({
               });
               return;
             }
-            const id = await context.ui.dialog.select({
-              options: result.daemons.map((daemon) => ({
-                description: daemon.action.value,
-                title: `${daemon.name} \xB7 ${daemon.action.kind === "open" ? "Open" : "Copy"}`,
-                value: daemon.id
-              })),
+            const selection = await context.ui.dialog.select({
+              options: result.daemons.flatMap((daemon) => daemonChoices(daemon.action).map((choice) => ({
+                category: daemon.name.length > 16 ? `${daemon.name.slice(0, 15)}\u2026` : daemon.name,
+                description: choice.action.value,
+                title: choice.label,
+                value: {
+                  choice,
+                  daemonID: daemon.id,
+                  name: daemon.name,
+                  primary: daemon.action
+                }
+              }))),
+              search: (query, options) => options.filter((option) => `${option.value.name} ${option.title} ${option.description}`.toLowerCase().includes(query.trim().toLowerCase())),
               title: "Mise daemons"
             });
-            const displayed = result.daemons.find((daemon) => daemon.id === id);
-            if (!displayed || currentDirectory() !== directory) {
+            if (!selection || currentDirectory() !== directory) {
               return;
             }
             const latest = await loadCurrent(directory);
             if (!latest) {
               return;
             }
-            const selected = latest.daemons.find((daemon) => daemon.id === id);
-            if (selected && (selected.action.kind !== displayed.action.kind || selected.action.value !== displayed.action.value)) {
+            const selected = latest.daemons.find((daemon) => daemon.id === selection.daemonID);
+            const choice = selected ? matchingChoice(selection, selected.action) : undefined;
+            if (selected && !choice) {
               context.ui.toast.show({
                 message: "Daemon endpoint changed. Select it again.",
                 variant: "warning"
               });
-            } else if (selected) {
-              await run(selected.action);
+            } else if (choice) {
+              await run(choice.action);
             } else {
               context.ui.toast.show({
                 message: "Daemon is no longer running",

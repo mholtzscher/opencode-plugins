@@ -1,5 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin, usePlugin } from "@opencode/plugin/tui";
+import type { MouseEvent } from "@opentui/core";
 import type { JSX } from "@opentui/solid";
 import open from "open";
 import {
@@ -11,7 +12,7 @@ import {
   Show,
 } from "solid-js";
 
-import { activate } from "./actions.js";
+import { activate, daemonChoices, matchingChoice } from "./actions.js";
 import { createMonitor } from "./monitor.js";
 import type { SidebarState } from "./monitor.js";
 import { DiscoveryResultSchema, MiseDaemons } from "./rpc.js";
@@ -51,9 +52,21 @@ const DaemonRow = (props: { daemon: RunningDaemon; stale: boolean }) => {
   const context = usePlugin();
   const run = createActions(context);
   const [hovered, setHovered] = createSignal(false);
+  const choices = createMemo(() => daemonChoices(props.daemon.action));
+  const handleClick = (action: DaemonAction, event: MouseEvent) => {
+    if (
+      event.button !== 0 ||
+      props.stale ||
+      context.renderer.getSelection()?.getSelectedText()
+    ) {
+      return;
+    }
+    event.stopPropagation();
+    void run(action);
+  };
   return (
     <box flexDirection="column">
-      <box flexDirection="row" justifyContent="space-between">
+      <box flexDirection="row" gap={1} justifyContent="space-between">
         <text
           fg={context.theme.text.base}
           flexShrink={1}
@@ -72,38 +85,33 @@ const DaemonRow = (props: { daemon: RunningDaemon; stale: boolean }) => {
         justifyContent="space-between"
         onMouseOut={() => setHovered(false)}
         onMouseOver={() => setHovered(true)}
-        onMouseUp={(event) => {
-          if (
-            event.button !== 0 ||
-            props.stale ||
-            context.renderer.getSelection()?.getSelectedText()
-          ) {
-            return;
-          }
-          event.stopPropagation();
-          void run(props.daemon.action);
-        }}
       >
         <text
           fg={context.theme.text.muted}
           flexGrow={1}
           flexShrink={1}
+          onMouseUp={(event) => handleClick(props.daemon.action, event)}
           truncate
           wrapMode="none"
         >
           {props.daemon.action.value}
         </text>
-        <text
-          fg={props.stale ? context.theme.text.muted : context.theme.text.base}
-          flexShrink={0}
-        >
-          <Show
-            when={hovered() && !props.stale}
-            fallback={props.daemon.action.kind === "open" ? "Open" : "Copy"}
-          >
-            <u>{props.daemon.action.kind === "open" ? "Open" : "Copy"}</u>
-          </Show>
-        </text>
+        <For each={choices()}>
+          {(choice) => (
+            <text
+              fg={
+                props.stale ? context.theme.text.muted : context.theme.text.base
+              }
+              flexShrink={0}
+              onMouseUp={(event) => handleClick(choice.action, event)}
+              selectable={false}
+            >
+              <Show when={hovered() && !props.stale} fallback={choice.label}>
+                <u>{choice.label}</u>
+              </Show>
+            </text>
+          )}
+        </For>
       </box>
     </box>
   );
@@ -313,18 +321,33 @@ export default Plugin.define({
                 });
                 return;
               }
-              const id = await context.ui.dialog.select({
-                options: result.daemons.map((daemon) => ({
-                  description: daemon.action.value,
-                  title: `${daemon.name} · ${daemon.action.kind === "open" ? "Open" : "Copy"}`,
-                  value: daemon.id,
-                })),
+              const selection = await context.ui.dialog.select({
+                options: result.daemons.flatMap((daemon) =>
+                  daemonChoices(daemon.action).map((choice) => ({
+                    // Reserve enough row width to show the loopback URL.
+                    category:
+                      daemon.name.length > 16
+                        ? `${daemon.name.slice(0, 15)}…`
+                        : daemon.name,
+                    description: choice.action.value,
+                    title: choice.label,
+                    value: {
+                      choice,
+                      daemonID: daemon.id,
+                      name: daemon.name,
+                      primary: daemon.action,
+                    },
+                  }))
+                ),
+                search: (query, options) =>
+                  options.filter((option) =>
+                    `${option.value.name} ${option.title} ${option.description}`
+                      .toLowerCase()
+                      .includes(query.trim().toLowerCase())
+                  ),
                 title: "Mise daemons",
               });
-              const displayed = result.daemons.find(
-                (daemon) => daemon.id === id
-              );
-              if (!displayed || currentDirectory() !== directory) {
+              if (!selection || currentDirectory() !== directory) {
                 return;
               }
               // A picker can outlive its snapshot or the daemon it lists.
@@ -333,19 +356,18 @@ export default Plugin.define({
                 return;
               }
               const selected = latest.daemons.find(
-                (daemon) => daemon.id === id
+                (daemon) => daemon.id === selection.daemonID
               );
-              if (
-                selected &&
-                (selected.action.kind !== displayed.action.kind ||
-                  selected.action.value !== displayed.action.value)
-              ) {
+              const choice = selected
+                ? matchingChoice(selection, selected.action)
+                : undefined;
+              if (selected && !choice) {
                 context.ui.toast.show({
                   message: "Daemon endpoint changed. Select it again.",
                   variant: "warning",
                 });
-              } else if (selected) {
-                await run(selected.action);
+              } else if (choice) {
+                await run(choice.action);
               } else {
                 context.ui.toast.show({
                   message: "Daemon is no longer running",

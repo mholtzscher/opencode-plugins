@@ -2,7 +2,7 @@
 
 Show running [Mise daemons](https://mise.jdx.dev/daemons.html) for the current workspace in the OpenCode TUI sidebar. Open web URLs in your browser or copy other endpoints to your clipboard.
 
-![Mise daemon sidebar with Open and Copy actions](docs/images/sidebar.png)
+![Mise daemon sidebar with Copy and explicit Open HTTP actions](docs/images/open-http-sidebar.png)
 
 Captured in OpenCode V2.3.0 with synthetic daemon data.
 
@@ -37,10 +37,13 @@ Only daemons with Mise status `running` appear. Mise resolves inherited project 
 | --- | --- |
 | Absolute HTTP/HTTPS URL without embedded credentials | **Open** in the client's default browser |
 | Another URL or endpoint | **Copy** the exact value |
-| Port without a URL | **Copy** `localhost:<port>` |
+| Bare `localhost:<port>`, `127.0.0.1:<port>`, or `[::1]:<port>` | **Copy** the endpoint, or explicitly **Open HTTP** |
+| Port without a URL | **Copy** `localhost:<port>`, or explicitly **Open HTTP** |
 | Neither a port nor a URL | **Copy** the daemon's full ID |
 
-A port alone is not assumed to serve HTTP. Copying uses the terminal's OSC52 clipboard support; terminals that disable it may ignore the request.
+A port alone is not assumed to serve HTTP. **Open HTTP** is a separate action that opens `http://localhost:<port>` (or the reported loopback address) in your browser. It does not test whether the service speaks HTTP. Click the endpoint or **Copy** to keep copying the original value; the keyboard picker also keeps Copy first. Non-HTTP URIs such as `postgres://localhost:5432/db` remain copy-only.
+
+Copying uses the terminal's OSC52 clipboard support; terminals that disable it may ignore the request.
 
 Use the command palette:
 

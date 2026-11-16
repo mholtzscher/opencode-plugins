@@ -28,7 +28,7 @@ Run `bun run check` from the repository root. Commit `dist/tui.js` after TUI or 
 | `parse.ts` | Mise JSON validation, running filter, sorting, and Open/Copy policy |
 | `rpc.ts` | Portable schemas and typed snapshot contract |
 | `monitor.ts` | Single-flight refresh, stale state, disposal, and workspace reply checks |
-| `actions.ts` | Browser and clipboard operations with feedback |
+| `actions.ts` | Labeled client choices, exact-loopback HTTP eligibility, selection revalidation, and browser/clipboard feedback |
 | `tui.tsx` | Sidebar lifecycle, active workspace routing, picker, and commands |
 
 Pass the session's location explicitly to RPC. Do not use the TUI process's cwd for discovery, or send a caller-supplied directory as a command argument. The server plugin's location owns the process cwd.
@@ -44,11 +44,11 @@ For live checks, launch plain `opencode` from a checkout with dependencies insta
 Check both a wide terminal and a narrow one:
 
 1. Open a session and find **Mise daemons** in the sidebar.
-2. Verify a running web daemon has **Open**, and a port-only daemon has **Copy**.
+2. Verify a running web daemon has **Open**, and a port-only daemon has separate **Copy** and **Open HTTP** choices. Check IPv4/IPv6 loopback endpoints, long values, and non-HTTP URIs.
 3. Click each action and verify the browser target or clipboard value. Use the palette picker for the same actions without a mouse.
 4. Change the daemon list and observe the five-second refresh.
 5. Switch to another workspace, including while a lookup is pending. No old workspace result may appear.
-6. Check empty, failed, and stale states. Stale results must not remain actionable.
+6. Check empty, failed, and stale states. Stale results must not remain actionable. Open the picker, change a daemon's endpoint or remove it, and confirm that neither an old Copy nor Open HTTP action runs.
 7. Hide the sidebar or unload the plugin and verify polling stops.
 
 Record whether real browser launch and clipboard delivery were observed or only their dispatch was tested. A successful OSC52 write does not prove that the terminal updated the system clipboard.
