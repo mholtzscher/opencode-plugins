@@ -7,6 +7,7 @@
   "plugins": [
     "./cache-metrics",
     "./quota-usage",
+    "./mise-daemons",
     "./workflow-tools",
     {
       "package": "./classify",
@@ -52,6 +53,16 @@
   "experimental": {
     "policies": [
       // Exclude installed sources here so the local copies can use the same IDs.
+      {
+        "action": "integration.use",
+        "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:mise-daemons",
+        "effect": "deny",
+      },
+      {
+        "action": "integration.use",
+        "resource": "plugin:@mholtzscher/opencode-mise-daemons",
+        "effect": "deny",
+      },
       {
         "action": "integration.use",
         "resource": "plugin:github:mholtzscher/opencode-plugins#main::path:cache-metrics",

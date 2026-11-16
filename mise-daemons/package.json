@@ -1,0 +1,61 @@
+{
+  "name": "@mholtzscher/opencode-mise-daemons",
+  "version": "0.1.0",
+  "description": "Running workspace Mise daemons with browser and clipboard actions in the OpenCode TUI sidebar",
+  "keywords": [
+    "daemons",
+    "mise",
+    "opencode",
+    "opencode-plugin"
+  ],
+  "homepage": "https://github.com/mholtzscher/opencode-plugins/tree/main/mise-daemons#readme",
+  "bugs": {
+    "url": "https://github.com/mholtzscher/opencode-plugins/issues"
+  },
+  "license": "MIT",
+  "author": "Michael Holtzscher",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mholtzscher/opencode-plugins.git",
+    "directory": "mise-daemons"
+  },
+  "files": [
+    "index.ts",
+    "discovery.ts",
+    "parse.ts",
+    "rpc.ts",
+    "dist/tui.js",
+    "README.md",
+    "docs/",
+    "LICENSE"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./tui": "./dist/tui.js",
+    "./rpc": "./rpc.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build:tui": "bun run build.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.3.0",
+    "open": "^11.0.4",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@types/node": "^26.0.0",
+    "typescript": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.6.6",
+    "@opentui/solid": ">=0.6.6",
+    "solid-js": ">=1.9.0"
+  }
+}
