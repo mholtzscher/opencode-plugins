@@ -28,13 +28,13 @@ Add a typed `stopAll` RPC with no caller-supplied directory or daemon arguments.
 - Standards: root `AGENTS.md`, `README.md`, lint/format configs, and `mise-daemons/docs/DEVELOPMENT.md`. No additional standards files exist.
 - Baseline: root lint, package typecheck, 19 tests, and committed-bundle check passed in the new worktree after frozen installs.
 - Previous delivery: PR #51 is open at `b03c3615fc0fabc1214ced809e1ed065a05f4f75`; all seven checks passed in run `43788578054`. Published media matched inspected originals.
-- Current step: follow-up implementation, cleanup, live checks, and media review complete; preparing publication. Independent read-only review returned Ship after the empty-during-confirmation guard fix.
+- Current step: follow-up published to PR #51 at implementation `9423061a6e80887cd49eb49fcdf30e8e979801de`, with all seven checks passing in run `43791710700`. Independent read-only review returned Ship after the empty-during-confirmation guard fix.
 - Initial HTTP verification: root lint; affected package typecheck, 25 tests (97 assertions), TUI build/check passed. An exact-primary normalization regression failed before the review fix and passed afterward. That initial change left server discovery and the RPC contract unchanged; the approved follow-up adds `stopAll`.
 - Live evidence: `/tmp/opencode/mise-http-MFHGXu`. Real OpenCode V2.3.0 at 150×48 and 100×36 verified mouse Copy, default endpoint Copy, mouse and keyboard Open HTTP, IPv6, full-name search, long-name target visibility, stale buttons, and normalization-equivalent endpoint-change rejection. Exact OSC52 values and browser launcher arguments were asserted. No user daemons or global settings changed.
 - Captures: `mise-daemons/docs/images/open-http-*`; see the provenance record there. The compiled TUI hash is `8c7816dbae172c8173d03df78e9cf0865d5d51f09d48da4dc9d1c14f79e44eff`.
 - Cleanup: code, comments, and prose checked; only scoped plugin/docs/spec files changed. The isolated TUI and service are stopped. Actual OS clipboard delivery and browser rendering remain unverified.
 - [Experience first](/home/michael/.agents/skills/mstack/principles/experience-first.md): reserve picker width for the full endpoint and retain full daemon names for search, rather than hide the destination behind a long name.
-- Next action: commit and push the follow-up, update PR #51 and its media, and confirm exact-head CI. Do not merge or switch the global Git install to an unmerged branch.
+- Next action: publish this checkpoint-only update and confirm its exact-head CI before the final report. No implementation work remains. Do not merge or switch the global Git install to an unmerged branch.
 
 ### Follow-up verification
 
@@ -43,6 +43,8 @@ Add a typed `stopAll` RPC with no caller-supplied directory or daemon arguments.
 - Real TUI at 150×48 and 100×36 verified labels/separators, exact mouse Copy and mouse/keyboard HTTP targets, confirmation/cancel, busy and empty states, failure feedback, stale guards, and a session workspace move during confirmation.
 - Review found an empty-during-confirmation race. A live synthetic reproduction dispatched before the fix; afterward the same action added no stop call.
 - Evidence: `/tmp/opencode/mise-stop-2fTj6m`, with committed `controls-*` media and provenance in `mise-daemons/docs/images/README.md`. No user services or global settings changed. Physical browser/clipboard delivery is unverified.
+- PR title/body were read back and matched the intended update. All seven published media files matched the inspected local originals byte-for-byte. The isolated service reports stopped; no test TUI remains running.
+- Code, prose, and comment cleanup found no remaining scoped issues. Root lint, package typecheck/tests, bundle checks, packaging dry-run, live interactions, and independent review are complete.
 - [Boundary discipline](/home/michael/.agents/skills/mstack/principles/boundary-discipline.md): the stop RPC accepts no directory or daemon arguments; the loaded server location owns cwd and the fixed project-scoped command.
 
 ## Completion checklist
@@ -55,4 +57,4 @@ Add a typed `stopAll` RPC with no caller-supplied directory or daemon arguments.
 - [x] Follow-up labels and separator implemented.
 - [x] Confirmed, workspace-scoped Stop All implemented and tested.
 - [x] Follow-up TUI verification, documentation/media, and independent review complete.
-- [ ] PR #51 updated and exact-head CI verified.
+- [x] PR #51 updated and implementation exact-head CI verified.
