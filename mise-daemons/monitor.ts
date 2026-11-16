@@ -50,7 +50,11 @@ export const createMonitor = (
   };
 
   update({ status: "loading" });
-  const refresh = async () => {
+  const refresh = async (fresh = false) => {
+    // A control operation needs a read started after it, not an older poll.
+    if (fresh && pending) {
+      await pending;
+    }
     if (disposed) {
       return;
     }

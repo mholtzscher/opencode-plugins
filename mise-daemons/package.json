@@ -21,6 +21,7 @@
   },
   "files": [
     "index.ts",
+    "control.ts",
     "discovery.ts",
     "parse.ts",
     "rpc.ts",
