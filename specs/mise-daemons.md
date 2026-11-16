@@ -14,13 +14,15 @@ Use `mise daemons ls --json` on the OpenCode server. Let Mise resolve inherited 
 - Branch: `feat/mise-daemons-sidebar`
 - Base: `a887f03d4c76a8256112d9529ae638d00879b6e3` (`origin/main`).
 - Standards: root `AGENTS.md`, `README.md`, Oxlint/Ultracite and Oxfmt configs. No separate contributing or coding-standards document exists.
-- Current step: review complete; preparing commit and PR.
+- Current step: implementation delivered in open PR [#50](https://github.com/mholtzscher/opencode-plugins/pull/50). Not merged.
 - Verification: baseline root lint and all five existing package typechecks/tests passed (592 tests). New package typecheck, 19 tests, TUI build/check, root lint, and npm pack dry-run passed. OpenCode runtime and new SDK are V2.3.0. Real TUI synthetic fixtures verified sidebar, clicks, picker, OSC52 payloads, browser target dispatch, stale/empty states, hidden polling stop, and workspace move. Evidence: `/tmp/opencode/mise-daemons-smoke-OzBM8r`.
 - Review: fixed stale picker actions by fetching a fresh selection snapshot and rejecting a changed action or endpoint; added project-only duplicate-source policies and corrected the local count. Independent verdict: ship for the reviewed fixes.
 - Packed-install evidence: a tarball extracted outside the repository loaded as an active server/TUI/RPC plugin in OpenCode V2.3.0. Live stopped-selection and Copy-to-Open changes performed no stale action. The real installed Mise output also parsed successfully (no running daemons).
 - Cleanup: dedicated code, prose, and comment passes completed. No unrelated paths changed. Isolated TUI sessions and their temporary service were stopped.
 - Limitations: browser launcher target and exact OSC52 payloads verified, not physical system clipboard delivery or browser rendering. In-flight cancellation is covered by automated process/monitor tests; the live workspace move confirms routing, not timing of interruption.
-- Next action: publish the reviewed snapshot and media, then confirm required CI for the exact PR head.
+- Published implementation: `310c55d30808add850f9999efdbf76df0d1b9594`. All seven checks passed in [run 43782531203](https://github.com/mholtzscher/opencode-plugins/actions/runs/43782531203). Exact-head reads were stable. GitHub reports `main` unprotected, no required status checks, and an empty effective branch-rules list.
+- Media: PR links public repository captures and a 12-second video. Each published file was downloaded and matched byte-for-byte. Exported video frames were decoded and inspected; the browser's streaming preview refused the media URL with a URL-safety error. Downloaded H.264 media is valid. Capture provenance is in `mise-daemons/docs/images/README.md`.
+- Next action: confirm CI for any documentation-only checkpoint update, then leave the PR for human review. No implementation work remains. Merging requires separate approval.
 
 ## Completion checklist
 
@@ -32,7 +34,7 @@ Use `mise daemons ls --json` on the OpenCode server. Let Mise resolve inherited 
 - [x] Package typecheck/tests, root checks, and installed-package checks pass.
 - [x] Real TUI verification covers rendered states, clicking, and keyboard actions.
 - [x] Independent review and cleanup completed.
-- [ ] Scoped commit and PR published; exact-head required CI confirmed.
+- [x] Scoped commit and PR published; exact-head CI confirmed.
 
 ## Decisions
 
